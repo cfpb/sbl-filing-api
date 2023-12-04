@@ -14,7 +14,7 @@ python-keycloak = "^3.7.0"
 sqlalchemy = "^2.0.23"
 psycopg2-binary = "^2.9.9"
 asyncpg = "^0.29.0"
-regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.git", rev = "main"}
+regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.git", branch = "main"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
