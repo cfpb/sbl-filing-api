@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
+from routers import filing_router
+
 app = FastAPI()
 
 
-@app.get("/test")
-def test():
-    return "test"
+app.include_router(filing_router, prefix="/v1/filing")
