@@ -12,10 +12,10 @@ class SubmissionState(str, Enum):
 
 class FilingState(str, Enum):
     FILING_STARTED = "FILING_STARTED"
+    FILING_INSTITUTION_APPROVED = "FILING_INSTITUTION_APPROVED"
     FILING_IN_PROGRESS = "FILING_IN_PROGRESS"
     FILING_COMPLETE = "FILING_COMPLETE"
 
 
 class FilingType(str, Enum):
-    TYPE_A = "TYPE_A"
-    TYPE_B = "TYPE_B"
+    MANUAL = "MANUAL"
