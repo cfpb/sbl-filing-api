@@ -13,6 +13,7 @@ class SubmissionDTO(BaseModel):
     validation_ruleset_version: str | None = None
     validation_json: Dict[str, Any] | None = None
     filing: int
+    confirmation_id: str | None = None
 
 
 class FilingDTO(BaseModel):
@@ -23,6 +24,7 @@ class FilingDTO(BaseModel):
     state: FilingState
     filing_period: int
     institution_snapshot_id: str
+    contact_info: str
 
 
 class FilingPeriodDTO(BaseModel):
