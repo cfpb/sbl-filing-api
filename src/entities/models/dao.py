@@ -44,7 +44,7 @@ class FilingDAO(Base):
     state: Mapped[FilingState] = mapped_column(SAEnum(FilingState))
     filing_period: Mapped[int] = mapped_column(ForeignKey("filing_period.id"))
     institution_snapshot_id: Mapped[str]
-    contact_info: Mapped[str]
+    contact_info: Mapped[str] = mapped_column(nullable=True)
 
 
 # Commenting out for now since we're just storing the results from the data-validator as JSON.

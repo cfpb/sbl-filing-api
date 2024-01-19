@@ -24,7 +24,7 @@ class FilingDTO(BaseModel):
     state: FilingState
     filing_period: int
     institution_snapshot_id: str
-    contact_info: str
+    contact_info: str | None = None
 
 
 class FilingPeriodDTO(BaseModel):
