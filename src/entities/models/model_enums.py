@@ -17,5 +17,4 @@ class FilingState(str, Enum):
 
 
 class FilingType(str, Enum):
-    TYPE_A = "TYPE_A"
-    TYPE_B = "TYPE_B"
+    MANUAL = "MANUAL"
