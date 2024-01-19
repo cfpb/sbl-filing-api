@@ -35,7 +35,7 @@ def upgrade() -> None:
                 name="submissionstate",
             ),
         ),
-        sa.Column("validation_ruleset_version", sa.String, nullable=False),
+        sa.Column("validation_ruleset_version", sa.String),
         sa.Column("validation_json", sa.JSON),
         sa.Column("filing", sa.Integer),
         sa.Column("confirmation_id", sa.String),

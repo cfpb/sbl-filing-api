@@ -150,7 +150,6 @@ class TestSubmissionRepo:
         assert res.submitter == "test@cfpb.gov"
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
-        assert res.validation_ruleset_version == "v1"
 
     async def test_update_submission(self, transaction_session: AsyncSession):
         res = await repo.add_submission(transaction_session, SubmissionDTO(submitter="test2@cfpb.gov", filing=2))

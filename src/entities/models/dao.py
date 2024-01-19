@@ -18,7 +18,7 @@ class SubmissionDAO(Base):
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
     submitter: Mapped[str]
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
-    validation_ruleset_version: Mapped[str]
+    validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
     filing: Mapped[str] = mapped_column(ForeignKey("filing.id"))
 

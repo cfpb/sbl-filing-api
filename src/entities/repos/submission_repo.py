@@ -42,7 +42,6 @@ async def add_submission(session: AsyncSession, submission: SubmissionDTO) -> Su
             filing=submission.filing,
             submitter=submission.submitter,
             state=SubmissionState.SUBMISSION_UPLOADED,
-            validation_ruleset_version="v1",
         )
         # this returns the attached object, most importantly with the new submission id
         new_sub = await session.merge(new_sub)
