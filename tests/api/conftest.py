@@ -10,9 +10,6 @@ from entities.models import FilingPeriodDAO, FilingType
 
 @pytest.fixture
 def app_fixture(mocker: MockerFixture) -> FastAPI:
-    mocked_engine = mocker.patch("sqlalchemy.ext.asyncio.create_async_engine")
-    MockedEngine = mocker.patch("sqlalchemy.ext.asyncio.AsyncEngine")
-    mocked_engine.return_value = MockedEngine.return_value
     from main import app
 
     return app
