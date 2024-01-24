@@ -24,6 +24,13 @@ async def get_submissions(session: AsyncSession, filing_id: int = None) -> List[
         return results.all()
 
 
+async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:
+    async with session.begin():
+        stmt = select(FilingPeriodDAO)
+        results = await session.scalars(stmt)
+        return results.all()
+
+
 async def get_submission(session: AsyncSession, submission_id: int) -> SubmissionDAO:
     return await query_helper(session, submission_id, SubmissionDAO)
 

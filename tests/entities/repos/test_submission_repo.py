@@ -85,6 +85,11 @@ class TestSubmissionRepo:
         assert res.id == 2
         assert res.filing_type == FilingType.MANUAL
 
+    async def test_get_filing_periods(self, query_session: AsyncSession):
+        res = await repo.get_filing_periods(query_session)
+        assert len(res) == 1
+        assert res[0].name == "FilingPeriod2024"
+
     async def test_get_filing_period(self, query_session: AsyncSession):
         res = await repo.get_filing_period(query_session, filing_period_id=1)
         assert res.id == 1
