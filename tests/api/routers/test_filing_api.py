@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 
 
 class TestFilingApi:
-    def test_get_periods(self, mocker: MockerFixture, app_fixture: FastAPI, get_institutions_mock: Mock):
+    def test_get_periods(self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock):
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/periods")
         assert res.status_code == 200

@@ -16,7 +16,7 @@ def app_fixture(mocker: MockerFixture) -> FastAPI:
 
 
 @pytest.fixture
-def get_institutions_mock(mocker: MockerFixture) -> Mock:
+def get_filing_period_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("entities.repos.submission_repo.get_filing_periods")
     mock.return_value = [
         FilingPeriodDAO(
