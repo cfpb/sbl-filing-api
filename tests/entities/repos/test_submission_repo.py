@@ -116,10 +116,14 @@ class TestSubmissionRepo:
         assert res.state == FilingState.FILING_COMPLETE
 
     async def test_get_filing(self, query_session: AsyncSession):
-        res = await repo.get_filing_period(query_session, filing_period_id=1)
+        res = await repo.get_filing(query_session, filing_id=1)
         assert res.id == 1
-        assert res.name == "FilingPeriod2024"
-        assert res.filing_type == FilingType.MANUAL
+        assert res.lei == "1234567890"
+        
+        res = await repo.get_filing(query_session, filing_id=2)
+        assert res.id == 2
+        assert res.lei == "ABCDEFGHIJ"
+
 
     async def test_get_submission(self, query_session: AsyncSession):
         res = await repo.get_submission(query_session, submission_id=1)
@@ -143,6 +147,10 @@ class TestSubmissionRepo:
         assert {"test2@cfpb.gov"} == set([s.submitter for s in res])
         assert {2} == set([s.filing for s in res])
         assert {SubmissionState.SUBMISSION_UPLOADED} == set([s.state for s in res])
+        
+        #verify a filing with no submissions behaves ok
+        res = await repo.get_submissions(query_session, filing_id=3)
+        assert len(res) == 0
 
     async def test_add_submission(self, transaction_session: AsyncSession):
         res = await repo.add_submission(transaction_session, SubmissionDTO(submitter="test@cfpb.gov", filing=1))
@@ -214,3 +222,4 @@ class TestSubmissionRepo:
         ]
         error_df = pd.DataFrame(df_data, columns=df_columns)
         return error_df.to_json()
+    
