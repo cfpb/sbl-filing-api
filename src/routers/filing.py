@@ -25,8 +25,8 @@ async def upload_file(
     content = await file.read()
     await submission_processor.upload_to_storage(lei, submission_id, content)
     background_tasks.add_task(submission_processor.validate_submission, lei, submission_id, content)
-    
-    
+
+
 @router.get("/{lei}/filings/{filing_id}/submissions", response_model=List[SubmissionDTO])
 async def get_filing_periods(request: Request, lei: str, filing_id: int):
     return await repo.get_submissions(request.state.db_session, filing_id)

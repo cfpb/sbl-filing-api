@@ -19,7 +19,7 @@ class TestFilingApi:
             )
         ]
         return mock
-        
+
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/123456790/filings/1/submissions")
         results = res.json()
@@ -28,8 +28,8 @@ class TestFilingApi:
         assert len(results) == 1
         assert results[0]["submitter"] == "test1@cfpb.gov"
         assert results[0]["state"] == SubmissionState.SUBMISSION_UPLOADED
-        
-        #verify an empty submission list returns ok
+
+        # verify an empty submission list returns ok
         mock.return_value = []
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/123456790/filings/2/submissions")
