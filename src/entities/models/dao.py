@@ -1,10 +1,9 @@
-from .model_enums import FilingType, FilingState, SubmissionState
+from .model_enums import FilingType, FilingTaskState, SubmissionState
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import ForeignKey, func
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import JSON
 
@@ -37,11 +36,29 @@ class FilingPeriodDAO(Base):
     filing_type: Mapped[FilingType] = mapped_column(SAEnum(FilingType))
 
 
+class FilingTaskStateDAO(Base):
+    __tablename__ = "filing_task_state"
+    filing: Mapped[int] = mapped_column(ForeignKey("filing.id"), primary_key=True)
+    task: Mapped[str] = mapped_column(ForeignKey("filing_task.name"), primary_key=True)
+    user: Mapped[str]
+    state: Mapped[FilingTaskState] = mapped_column(SAEnum(FilingTaskState))
+    change_timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    def __str__(self):
+        return f"Filing ID: {self.filing}, Task: {self.task}, User: {self.user}, state: {self.state}, Timestamp: {self.change_timestamp}"
+
+
+class FilingTaskDAO(Base):
+    __tablename__ = "filing_task"
+    name: Mapped[str] = mapped_column(primary_key=True)
+    order: Mapped[int]
+
+
 class FilingDAO(Base):
     __tablename__ = "filing"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     lei: Mapped[str]
-    state: Mapped[FilingState] = mapped_column(SAEnum(FilingState))
+    tasks: Mapped[List[FilingTaskStateDAO]] = relationship(lazy="selectin", cascade="all, delete-orphan")
     filing_period: Mapped[int] = mapped_column(ForeignKey("filing_period.id"))
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[str] = mapped_column(nullable=True)

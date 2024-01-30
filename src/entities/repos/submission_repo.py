@@ -10,6 +10,7 @@ from entities.models import (
     FilingPeriodDTO,
     FilingDTO,
     FilingDAO,
+    FilingTaskDAO,
 )
 
 T = TypeVar("T")
@@ -34,6 +35,13 @@ async def get_filing(session: AsyncSession, filing_id: int) -> FilingDAO:
 
 async def get_filing_period(session: AsyncSession, filing_period_id: int) -> FilingPeriodDAO:
     return await query_helper(session, filing_period_id, FilingPeriodDAO)
+
+
+async def get_filing_tasks(session: AsyncSession) -> List[FilingTaskDAO]:
+    async with session.begin():
+        stmt = select(FilingTaskDAO)
+        results = await session.scalars(stmt)
+        return results.all()
 
 
 async def add_submission(session: AsyncSession, submission: SubmissionDTO) -> SubmissionDAO:
