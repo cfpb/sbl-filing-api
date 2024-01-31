@@ -1,4 +1,4 @@
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -8,6 +8,13 @@ from entities.models import SubmissionDAO, SubmissionState
 
 
 class TestFilingApi:
+    def test_get_periods(self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/periods")
+        assert res.status_code == 200
+        assert len(res.json()) == 1
+        assert res.json()[0]["name"] == "FilingPeriod2024"
+
     async def test_get_submissions(self, mocker: MockerFixture, app_fixture: FastAPI):
         mock = mocker.patch("entities.repos.submission_repo.get_submissions")
         mock.return_value = [
