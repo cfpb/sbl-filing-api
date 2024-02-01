@@ -117,7 +117,7 @@ class TestSubmissionRepo:
 
     async def test_add_task_to_filing(self, query_session: AsyncSession, transaction_session: AsyncSession):
         filing = await repo.get_filing(query_session, filing_id=1)
-        task = await query_session.scalar(select(FilingTaskDAO).where(FilingTaskDAO.name=='Task-1'))
+        task = await query_session.scalar(select(FilingTaskDAO).where(FilingTaskDAO.name == "Task-1"))
         filing_task = FilingTaskStateDAO(
             filing=filing.id, task=task, user="test@cfpb.gov", state=FilingTaskState.IN_PROGRESS
         )

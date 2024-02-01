@@ -35,12 +35,15 @@ class FilingPeriodDAO(Base):
     due: Mapped[datetime]
     filing_type: Mapped[FilingType] = mapped_column(SAEnum(FilingType))
 
+
 class FilingTaskDAO(Base):
     __tablename__ = "filing_task"
     name: Mapped[str] = mapped_column(primary_key=True)
     order: Mapped[int]
+
     def __str__(self):
         return f"Name: {self.name}, Order: {self.order}"
+
 
 class FilingTaskStateDAO(Base):
     __tablename__ = "filing_task_state"
