@@ -35,23 +35,24 @@ class FilingPeriodDAO(Base):
     due: Mapped[datetime]
     filing_type: Mapped[FilingType] = mapped_column(SAEnum(FilingType))
 
+class FilingTaskDAO(Base):
+    __tablename__ = "filing_task"
+    name: Mapped[str] = mapped_column(primary_key=True)
+    order: Mapped[int]
+    def __str__(self):
+        return f"Name: {self.name}, Order: {self.order}"
 
 class FilingTaskStateDAO(Base):
     __tablename__ = "filing_task_state"
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"), primary_key=True)
-    task: Mapped[str] = mapped_column(ForeignKey("filing_task.name"), primary_key=True)
+    task_name: Mapped[str] = mapped_column(ForeignKey("filing_task.name"), primary_key=True)
+    task: Mapped[FilingTaskDAO] = relationship(lazy="selectin")
     user: Mapped[str]
     state: Mapped[FilingTaskState] = mapped_column(SAEnum(FilingTaskState))
     change_timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     def __str__(self):
         return f"Filing ID: {self.filing}, Task: {self.task}, User: {self.user}, state: {self.state}, Timestamp: {self.change_timestamp}"
-
-
-class FilingTaskDAO(Base):
-    __tablename__ = "filing_task"
-    name: Mapped[str] = mapped_column(primary_key=True)
-    order: Mapped[int]
 
 
 class FilingDAO(Base):

@@ -117,8 +117,9 @@ class TestSubmissionRepo:
 
     async def test_add_task_to_filing(self, query_session: AsyncSession, transaction_session: AsyncSession):
         filing = await repo.get_filing(query_session, filing_id=1)
+        task = await query_session.scalar(select(FilingTaskDAO).where(FilingTaskDAO.name=='Task-1'))
         filing_task = FilingTaskStateDAO(
-            filing=filing.id, task="Task-1", user="test@cfpb.gov", state=FilingTaskState.IN_PROGRESS
+            filing=filing.id, task=task, user="test@cfpb.gov", state=FilingTaskState.IN_PROGRESS
         )
         filing.tasks = [filing_task]
         seconds_now = datetime.utcnow().timestamp()
@@ -127,7 +128,7 @@ class TestSubmissionRepo:
         filing_task_states = (await transaction_session.scalars(select(FilingTaskStateDAO))).all()
 
         assert len(filing_task_states) == 1
-        assert filing_task_states[0].task == "Task-1"
+        assert filing_task_states[0].task.name == "Task-1"
         assert filing_task_states[0].filing == 1
         assert filing_task_states[0].state == FilingTaskState.IN_PROGRESS
         assert filing_task_states[0].user == "test@cfpb.gov"

@@ -22,7 +22,7 @@ def upgrade() -> None:
     op.create_table(
         "filing_task_state",
         sa.Column("filing", sa.INTEGER, primary_key=True),
-        sa.Column("task", sa.String, primary_key=True),
+        sa.Column("task_name", sa.String, primary_key=True),
         sa.Column(
             "state",
             sa.Enum(
@@ -39,7 +39,7 @@ def upgrade() -> None:
             ["filing.id"],
         ),
         sa.ForeignKeyConstraint(
-            ["task"],
+            ["task_name"],
             ["filing_task.name"],
         ),
     )

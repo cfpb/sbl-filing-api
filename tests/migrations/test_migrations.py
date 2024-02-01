@@ -20,7 +20,7 @@ def test_migrations_up_to_078cbbc69fe5(alembic_runner: MigrationContext, alembic
     assert {"name"} == set([c["name"] for c in inspector.get_columns("filing_task")])
 
     assert "filing_task_state" in tables
-    assert {"filing", "task", "state", "user", "change_timestamp"} == set(
+    assert {"filing", "task_name", "state", "user", "change_timestamp"} == set(
         [c["name"] for c in inspector.get_columns("filing_task_state")]
     )
 
@@ -33,7 +33,7 @@ def test_migrations_up_to_078cbbc69fe5(alembic_runner: MigrationContext, alembic
 
     filing_state_fk2 = inspector.get_foreign_keys("filing_task_state")[1]
     assert (
-        "task" in filing_state_fk2["constrained_columns"]
+        "task_name" in filing_state_fk2["constrained_columns"]
         and "filing_task" == filing_state_fk2["referred_table"]
         and "name" in filing_state_fk2["referred_columns"]
     )
