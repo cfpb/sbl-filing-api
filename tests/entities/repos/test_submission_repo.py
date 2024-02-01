@@ -3,7 +3,7 @@ import pytest
 
 from datetime import datetime
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
 from entities.models import (
     SubmissionDAO,
@@ -19,14 +19,18 @@ from entities.models import (
     SubmissionState,
 )
 from entities.repos import submission_repo as repo
+from pytest_mock import MockerFixture
+
+from entities.engine import engine as entities_engine
 
 
 class TestSubmissionRepo:
     @pytest.fixture(scope="function", autouse=True)
     async def setup(
-        self,
-        transaction_session: AsyncSession,
+        self, transaction_session: AsyncSession, mocker: MockerFixture, session_generator: async_scoped_session
     ):
+        mocker.patch.object(entities_engine, "SessionLocal", return_value=session_generator)
+
         filing_task_1 = FilingTaskDAO(name="Task-1", order=1)
         filing_task_2 = FilingTaskDAO(name="Task-2", order=2)
         transaction_session.add(filing_task_1)
@@ -89,6 +93,11 @@ class TestSubmissionRepo:
         res = await repo.upsert_filing_period(transaction_session, new_fp)
         assert res.id == 2
         assert res.filing_type == FilingType.MANUAL
+
+    async def test_get_filing_periods(self, query_session: AsyncSession):
+        res = await repo.get_filing_periods(query_session)
+        assert len(res) == 1
+        assert res[0].name == "FilingPeriod2024"
 
     async def test_get_filing_period(self, query_session: AsyncSession):
         res = await repo.get_filing_period(query_session, filing_period_id=1)
@@ -172,27 +181,40 @@ class TestSubmissionRepo:
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
 
-    async def test_update_submission(self, transaction_session: AsyncSession):
-        res = await repo.add_submission(transaction_session, SubmissionDTO(submitter="test2@cfpb.gov", filing=2))
-        res.state = SubmissionState.VALIDATION_IN_PROGRESS
+    async def test_update_submission(self, session_generator: async_scoped_session):
+        async with session_generator() as add_session:
+            res = await repo.add_submission(add_session, SubmissionDTO(submitter="test2@cfpb.gov", filing=2))
 
-        stmt = select(SubmissionDAO).filter(SubmissionDAO.id == 4)
-        new_res1 = await transaction_session.scalar(stmt)
-        assert new_res1.id == 4
-        assert new_res1.filing == 2
-        assert new_res1.state == SubmissionState.VALIDATION_IN_PROGRESS
+        res.state = SubmissionState.VALIDATION_IN_PROGRESS
+        res = await repo.update_submission(res)
+
+        async def query_updated_dao():
+            async with session_generator() as search_session:
+                stmt = select(SubmissionDAO).filter(SubmissionDAO.id == 4)
+                new_res1 = await search_session.scalar(stmt)
+                assert new_res1.id == 4
+                assert new_res1.filing == 2
+                assert new_res1.state == SubmissionState.VALIDATION_IN_PROGRESS
+
+        await query_updated_dao()
 
         validation_json = self.get_error_json()
         res.validation_json = validation_json
         res.state = SubmissionState.VALIDATION_WITH_ERRORS
+        # to test passing in a session to the update_submission function
+        async with session_generator() as update_session:
+            res = await repo.update_submission(res, update_session)
 
-        stmt = select(SubmissionDAO).filter(SubmissionDAO.id == 4)
-        new_res2 = await transaction_session.scalar(stmt)
+        async def query_updated_dao():
+            async with session_generator() as search_session:
+                stmt = select(SubmissionDAO).filter(SubmissionDAO.id == 4)
+                new_res2 = await search_session.scalar(stmt)
+                assert new_res2.id == 4
+                assert new_res2.filing == 2
+                assert new_res2.state == SubmissionState.VALIDATION_WITH_ERRORS
+                assert new_res2.validation_json == validation_json
 
-        assert new_res2.id == 4
-        assert new_res2.filing == 2
-        assert new_res2.state == SubmissionState.VALIDATION_WITH_ERRORS
-        assert new_res2.validation_json == validation_json
+        await query_updated_dao()
 
     def get_error_json(self):
         df_columns = [

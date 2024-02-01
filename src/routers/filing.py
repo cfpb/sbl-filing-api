@@ -1,9 +1,26 @@
 from http import HTTPStatus
-from fastapi import Request, UploadFile, BackgroundTasks
+from fastapi import Depends, Request, UploadFile, BackgroundTasks
 from regtech_api_commons.api import Router
 from services import submission_processor
+from typing import Annotated, List
 
-router = Router()
+from entities.engine import get_session
+from entities.models import FilingPeriodDTO
+from entities.repos import submission_repo as repo
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def set_db(request: Request, session: Annotated[AsyncSession, Depends(get_session)]):
+    request.state.db_session = session
+
+
+router = Router(dependencies=[Depends(set_db)])
+
+
+@router.get("/periods", response_model=List[FilingPeriodDTO])
+async def get_filing_periods(request: Request):
+    return await repo.get_filing_periods(request.state.db_session)
 
 
 @router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)
