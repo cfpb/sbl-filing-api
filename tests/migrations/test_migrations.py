@@ -17,7 +17,7 @@ def test_migrations_up_to_078cbbc69fe5(alembic_runner: MigrationContext, alembic
     tables = inspector.get_table_names()
 
     assert "filing_task" in tables
-    assert {"name"} == set([c["name"] for c in inspector.get_columns("filing_task")])
+    assert {"name", "order"} == set([c["name"] for c in inspector.get_columns("filing_task")])
 
     assert "filing_task_state" in tables
     assert {"filing", "task_name", "state", "user", "change_timestamp"} == set(
