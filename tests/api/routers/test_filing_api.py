@@ -25,12 +25,11 @@ class TestFilingApi:
                 validation_ruleset_version="v1",
             )
         ]
-        return mock
 
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/123456790/filings/1/submissions")
         results = res.json()
-        mock.assert_called_once_with(ANY, 1)
+        mock.assert_called_with(ANY, 1)
         assert res.status_code == 200
         assert len(results) == 1
         assert results[0]["submitter"] == "test1@cfpb.gov"
@@ -41,6 +40,6 @@ class TestFilingApi:
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/123456790/filings/2/submissions")
         results = res.json()
-        mock.assert_called_once_with(ANY, 2)
+        mock.assert_called_with(ANY, 2)
         assert res.status_code == 200
         assert len(results) == 0
