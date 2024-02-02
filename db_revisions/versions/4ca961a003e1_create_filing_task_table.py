@@ -20,7 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.create_table(
-        "filing_task", sa.Column("name", sa.String, primary_key=True), sa.Column("order", sa.INTEGER, nullable=False)
+        "filing_task",
+        sa.Column("name", sa.String, primary_key=True),
+        sa.Column("task_order", sa.INTEGER, nullable=False),
     )
 
 

@@ -39,10 +39,10 @@ class FilingPeriodDAO(Base):
 class FilingTaskDAO(Base):
     __tablename__ = "filing_task"
     name: Mapped[str] = mapped_column(primary_key=True)
-    order: Mapped[int]
+    task_order: Mapped[int]
 
     def __str__(self):
-        return f"Name: {self.name}, Order: {self.order}"
+        return f"Name: {self.name}, Order: {self.task_order}"
 
 
 class FilingTaskStateDAO(Base):

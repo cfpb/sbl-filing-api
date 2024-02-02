@@ -31,8 +31,8 @@ class TestSubmissionRepo:
     ):
         mocker.patch.object(entities_engine, "SessionLocal", return_value=session_generator)
 
-        filing_task_1 = FilingTaskDAO(name="Task-1", order=1)
-        filing_task_2 = FilingTaskDAO(name="Task-2", order=2)
+        filing_task_1 = FilingTaskDAO(name="Task-1", task_order=1)
+        filing_task_2 = FilingTaskDAO(name="Task-2", task_order=2)
         transaction_session.add(filing_task_1)
         transaction_session.add(filing_task_2)
 
