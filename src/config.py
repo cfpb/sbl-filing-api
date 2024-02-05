@@ -6,6 +6,8 @@ from pydantic import field_validator, ValidationInfo
 from pydantic.networks import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from regtech_api_commons.oauth2.config import KeycloakSettings
+
 env_files_to_load = [".env"]
 if os.getenv("ENV", "LOCAL") == "LOCAL":
     env_files_to_load.append(".env.local")
@@ -39,3 +41,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+kc_settings = KeycloakSettings(_env_file=env_files_to_load)

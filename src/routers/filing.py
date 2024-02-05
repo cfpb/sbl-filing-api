@@ -10,6 +10,8 @@ from entities.repos import submission_repo as repo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from starlette.authentication import requires
+
 
 async def set_db(request: Request, session: Annotated[AsyncSession, Depends(get_session)]):
     request.state.db_session = session
@@ -19,6 +21,7 @@ router = Router(dependencies=[Depends(set_db)])
 
 
 @router.get("/periods", response_model=List[FilingPeriodDTO])
+@requires("authenticated")
 async def get_filing_periods(request: Request):
     return await repo.get_filing_periods(request.state.db_session)
 
@@ -33,5 +36,6 @@ async def upload_file(
 
 
 @router.get("/{lei}/filings/{filing_id}/submissions", response_model=List[SubmissionDTO])
+@requires("authenticated")
 async def get_submission(request: Request, lei: str, filing_id: int):
     return await repo.get_submissions(request.state.db_session, filing_id)
