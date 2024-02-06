@@ -51,6 +51,7 @@ def test_migrations(alembic_runner: MigrationContext, alembic_engine: Engine):
         and "id" in submission_fk["referred_columns"]
     )
 
+
 def test_migration_to_19fccbf914bc(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("19fccbf914bc")
 

@@ -25,7 +25,7 @@ class TestFilingApi:
                 filing=1,
                 state=SubmissionState.SUBMISSION_UPLOADED,
                 validation_ruleset_version="v1",
-                submission_time=datetime.datetime.now()
+                submission_time=datetime.datetime.now(),
             )
         ]
 
@@ -47,7 +47,6 @@ class TestFilingApi:
         assert res.status_code == 200
         assert len(results) == 0
 
-
     async def test_get_latest_submission(self, mocker: MockerFixture, app_fixture: FastAPI):
         mock = mocker.patch("entities.repos.submission_repo.get_submissions")
         mock.return_value = [
@@ -56,15 +55,15 @@ class TestFilingApi:
                 filing=1,
                 state=SubmissionState.SUBMISSION_UPLOADED,
                 validation_ruleset_version="v1",
-                submission_time=(datetime.datetime.now() - datetime.timedelta(seconds=1000))
+                submission_time=(datetime.datetime.now() - datetime.timedelta(seconds=1000)),
             ),
             SubmissionDAO(
                 submitter="test1@cfpb.gov",
                 filing=1,
                 state=SubmissionState.VALIDATION_IN_PROGRESS,
                 validation_ruleset_version="v1",
-                submission_time=datetime.datetime.now()
-            )
+                submission_time=datetime.datetime.now(),
+            ),
         ]
 
         client = TestClient(app_fixture)

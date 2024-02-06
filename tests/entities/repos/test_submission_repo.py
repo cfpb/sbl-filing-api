@@ -58,21 +58,21 @@ class TestSubmissionRepo:
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
-            submission_time=datetime.now()
+            submission_time=datetime.now(),
         )
         submission2 = SubmissionDAO(
             submitter="test2@cfpb.gov",
             filing=2,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
-            submission_time=datetime.now()
+            submission_time=datetime.now(),
         )
         submission3 = SubmissionDAO(
             submitter="test2@cfpb.gov",
             filing=2,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
-            submission_time=datetime.now()
+            submission_time=datetime.now(),
         )
         transaction_session.add(submission1)
         transaction_session.add(submission2)
