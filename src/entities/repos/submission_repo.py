@@ -20,11 +20,12 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-async def get_submissions(session: AsyncSession, filing_id: int = None) -> List[SubmissionDAO]:
+async def get_submissions(session: AsyncSession, filing_id: int = None, order_by: str = "id") -> List[SubmissionDAO]:
     async with session.begin():
         stmt = select(SubmissionDAO)
         if filing_id:
             stmt = stmt.filter(SubmissionDAO.filing == filing_id)
+        stmt.order_by(order_by)
         results = await session.scalars(stmt)
         return results.all()
 

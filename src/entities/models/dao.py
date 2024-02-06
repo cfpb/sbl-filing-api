@@ -2,7 +2,7 @@ from .model_enums import FilingType, FilingState, SubmissionState
 from datetime import datetime
 from typing import Any
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -22,9 +22,10 @@ class SubmissionDAO(Base):
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
     filing: Mapped[str] = mapped_column(ForeignKey("filing.id"))
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
+    submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
 
     def __str__(self):
-        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing: {self.filing}"
+        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing: {self.filing}, Submission: {self.submission_time}"
 
 
 class FilingPeriodDAO(Base):
