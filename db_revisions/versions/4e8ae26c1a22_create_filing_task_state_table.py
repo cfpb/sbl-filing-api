@@ -7,7 +7,7 @@ Create Date: 2024-01-30 13:02:52.041229
 """
 from typing import Sequence, Union
 
-from alembic import op
+from alembic import op, context
 import sqlalchemy as sa
 
 
@@ -47,3 +47,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("filing_task_state")
+    if "sqlite" not in context.get_context().dialect.name:
+        op.execute(sa.DDL("DROP TYPE filingtaskstate"))
