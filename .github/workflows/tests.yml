@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - "main"
+      - "53-adding-get-for-filing-object-endpoints"
 
 jobs:
   unit-tests:
