@@ -1,11 +1,11 @@
 from http import HTTPStatus
-from fastapi import Depends, Request, UploadFile, BackgroundTasks
+from fastapi import Depends, Request, UploadFile, BackgroundTasks, HTTPException
 from regtech_api_commons.api import Router
 from services import submission_processor
 from typing import Annotated, List
 
 from entities.engine import get_session
-from entities.models import FilingPeriodDTO, SubmissionDTO
+from entities.models import FilingPeriodDTO, SubmissionDTO, FilingDTO
 from entities.repos import submission_repo as repo
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +21,15 @@ router = Router(dependencies=[Depends(set_db)])
 @router.get("/periods", response_model=List[FilingPeriodDTO])
 async def get_filing_periods(request: Request):
     return await repo.get_filing_periods(request.state.db_session)
+
+
+# This has to come after the /periods endpoint
+@router.get("/{period_name}", response_model=List[FilingDTO])
+async def get_filings(request: Request, period_name: str):
+    try:
+        return await repo.get_period_filings_for_user(request.state.db_session, period_name)
+    except repo.NoFilingPeriodException as nfpe:
+        raise HTTPException(status_code=500, detail=str(nfpe))
 
 
 @router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)

@@ -15,6 +15,22 @@ class TestFilingApi:
         assert len(res.json()) == 1
         assert res.json()[0]["name"] == "FilingPeriod2024"
 
+    def test_get_filings(self, app_fixture: FastAPI, get_filings_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/FilingPeriod2024")
+        get_filings_mock.assert_called_with(ANY, "FilingPeriod2024")
+        assert res.status_code == 200
+        assert len(res.json()) == 1
+        assert res.json()[0]["lei"] == "12345678"
+
+    def test_get_filings_with_error(self, app_fixture: FastAPI, get_filings_error_mock: Mock):
+        client = TestClient(app_fixture)
+        response = client.get("/v1/filing/FilingPeriod2025")
+        assert response.status_code == 500
+        assert response.json() == {
+            "detail": "There is no Filing Period with name FilingPeriod2025 defined in the database."
+        }
+
     async def test_get_submissions(self, mocker: MockerFixture, app_fixture: FastAPI):
         mock = mocker.patch("entities.repos.submission_repo.get_submissions")
         mock.return_value = [

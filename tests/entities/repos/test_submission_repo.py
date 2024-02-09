@@ -23,6 +23,8 @@ from pytest_mock import MockerFixture
 
 from entities.engine import engine as entities_engine
 
+from regtech_api_commons.models.auth import AuthenticatedUser
+
 
 class TestSubmissionRepo:
     @pytest.fixture(scope="function", autouse=True)
@@ -149,10 +151,40 @@ class TestSubmissionRepo:
         res = await repo.get_filing(query_session, filing_id=1)
         assert res.id == 1
         assert res.lei == "1234567890"
+        assert len(res.tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res.tasks])
 
         res = await repo.get_filing(query_session, filing_id=2)
         assert res.id == 2
         assert res.lei == "ABCDEFGHIJ"
+        assert len(res.tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res.tasks])
+
+    async def test_get_period_filings_for_user(self, query_session: AsyncSession, mocker: MockerFixture):
+        # Verify a user with no filing for an LEI gets one
+        user = AuthenticatedUser.from_claim({"institutions": ["ZYXWVUTSRQP"]})
+        results = await repo.get_period_filings_for_user(query_session, user, period_name="FilingPeriod2024")
+        assert len(results) == 1
+        assert results[0].id == 3
+        assert results[0].lei == "ZYXWVUTSRQP"
+        assert len(results[0].tasks) == 2
+
+        # Verify a user with two LEIs and one started filing gets two filings, one for the started
+        # and one newly created
+        user = AuthenticatedUser.from_claim({"institutions": ["1234567890", "0987654321"]})
+        results = await repo.get_period_filings_for_user(query_session, user, period_name="FilingPeriod2024")
+        assert len(results) == 2
+        assert results[0].id == 1
+        assert results[0].lei == "1234567890"
+        assert results[1].id == 4
+        assert results[1].lei == "0987654321"
+        assert len(results[0].tasks) == 2
+        assert len(results[1].tasks) == 2
+
+        try:
+            await repo.get_period_filings_for_user(query_session, user, period_name="FilingPeriod2025")
+        except repo.NoFilingPeriodException as nfpe:
+            assert str(nfpe) == "There is no Filing Period with name FilingPeriod2025 defined in the database."
 
     async def test_get_submission(self, query_session: AsyncSession):
         res = await repo.get_submission(query_session, submission_id=1)
