@@ -25,7 +25,7 @@ def upgrade() -> None:
         sa.Column("start_period", sa.DateTime, nullable=False),
         sa.Column("end_period", sa.DateTime, nullable=False),
         sa.Column("due", sa.DateTime, nullable=False),
-        sa.Column("filing_type", sa.Enum("MANUAL", name="filingtype"), server_default="MANUAL"),
+        sa.Column("filing_type", sa.Enum("ANNUAL", name="filingtype"), server_default="ANNUAL"),
     )
 
 

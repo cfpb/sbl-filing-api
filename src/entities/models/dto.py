@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 from pydantic import BaseModel, ConfigDict
-from .model_enums import FilingType, FilingState, SubmissionState
+from .model_enums import FilingType, FilingTaskState, SubmissionState
 
 
 class SubmissionDTO(BaseModel):
@@ -17,12 +17,29 @@ class SubmissionDTO(BaseModel):
     submission_time: datetime | None = None
 
 
+class FilingTaskDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    task_order: int
+
+
+class FilingTaskStateDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    filing: int
+    task: FilingTaskDTO
+    user: str | None = None
+    state: FilingTaskState
+    change_timestamp: datetime
+
+
 class FilingDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int | None = None
     lei: str
-    state: FilingState
+    tasks: List[FilingTaskStateDTO]
     filing_period: int
     institution_snapshot_id: str
     contact_info: str | None = None

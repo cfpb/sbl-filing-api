@@ -24,7 +24,7 @@ def get_filing_period_mock(mocker: MockerFixture) -> Mock:
             start_period=datetime.now(),
             end_period=datetime.now(),
             due=datetime.now(),
-            filing_type=FilingType.MANUAL,
+            filing_type=FilingType.ANNUAL,
         )
     ]
     return mock
