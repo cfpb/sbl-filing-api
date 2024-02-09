@@ -1,7 +1,7 @@
 """add submission time to submission
 
 Revision ID: 19fccbf914bc
-Revises: f30c5c3c7a42
+Revises: 078cbbc69fe5
 Create Date: 2024-02-06 15:50:28.836237
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "19fccbf914bc"
-down_revision: Union[str, None] = "f30c5c3c7a42"
+down_revision: Union[str, None] = "078cbbc69fe5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
