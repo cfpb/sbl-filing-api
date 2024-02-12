@@ -58,20 +58,6 @@ async def get_period_filings_for_user(
     if filing_period:
         filings = await query_helper(session, FilingDAO, "filing_period", filing_period[0].id)
         filings = [f for f in filings if f.lei in user.institutions]
-        filing_leis = [f.lei for f in filings]
-        missing_filing_leis = [lei for lei in user.institutions if lei not in filing_leis]
-        if missing_filing_leis:
-            for lei in missing_filing_leis:
-                filing_dao = await upsert_filing(
-                    session,
-                    FilingDTO(
-                        lei=lei,
-                        tasks=[],
-                        filing_period=filing_period[0].id,
-                        institution_snapshot_id="v1",  # TODO: add function to get this from user-fi-api
-                    ),
-                )
-                filings.append(filing_dao)
         filings = deepcopy(filings)
         await populate_missing_tasks(session, filings)
 
@@ -145,7 +131,8 @@ async def query_helper(session: AsyncSession, table_obj: T, column_name: str = N
 async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]):
     filing_tasks = await query_helper(session, FilingTaskDAO)
     for f in filings:
-        missing_tasks = [t for t in filing_tasks if t not in f.tasks]
+        tasks = [t.task for t in f.tasks]
+        missing_tasks = [t for t in filing_tasks if t not in tasks]
         for mt in missing_tasks:
             f.tasks.append(
                 FilingTaskStateDAO(filing=f.id, task_name=mt.name, state=FilingTaskState.NOT_STARTED, user="")

@@ -161,25 +161,16 @@ class TestSubmissionRepo:
         assert FilingTaskState.NOT_STARTED in set([t.state for t in res.tasks])
 
     async def test_get_period_filings_for_user(self, query_session: AsyncSession, mocker: MockerFixture):
-        # Verify a user with no filing for an LEI gets one
         user = AuthenticatedUser.from_claim({"institutions": ["ZYXWVUTSRQP"]})
         results = await repo.get_period_filings_for_user(query_session, user, period_name="FilingPeriod2024")
-        assert len(results) == 1
-        assert results[0].id == 3
-        assert results[0].lei == "ZYXWVUTSRQP"
-        assert len(results[0].tasks) == 2
+        assert len(results) == 0
 
-        # Verify a user with two LEIs and one started filing gets two filings, one for the started
-        # and one newly created
         user = AuthenticatedUser.from_claim({"institutions": ["1234567890", "0987654321"]})
         results = await repo.get_period_filings_for_user(query_session, user, period_name="FilingPeriod2024")
-        assert len(results) == 2
+        assert len(results) == 1
         assert results[0].id == 1
         assert results[0].lei == "1234567890"
-        assert results[1].id == 4
-        assert results[1].lei == "0987654321"
         assert len(results[0].tasks) == 2
-        assert len(results[1].tasks) == 2
 
         try:
             await repo.get_period_filings_for_user(query_session, user, period_name="FilingPeriod2025")
