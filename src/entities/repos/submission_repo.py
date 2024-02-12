@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
 from entities.engine import get_session
@@ -28,6 +28,17 @@ async def get_submissions(session: AsyncSession, filing_id: int = None) -> List[
             stmt = stmt.filter(SubmissionDAO.filing == filing_id)
         results = await session.scalars(stmt)
         return results.all()
+
+
+async def get_latest_submission(session: AsyncSession, filing_id: int) -> List[SubmissionDAO]:
+    async with session.begin():
+        stmt = (
+            select(SubmissionDAO)
+            .filter(SubmissionDAO.filing == filing_id)
+            .order_by(desc(SubmissionDAO.submission_time))
+            .limit(1)
+        )
+        return await session.scalar(stmt)
 
 
 async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:

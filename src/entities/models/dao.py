@@ -22,12 +22,13 @@ class SubmissionDAO(Base):
     filing_period: Mapped[str]
     lei: Mapped[str]
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
+    submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     
     __table_args__ = (
             ForeignKeyConstraint(["filing_period", "lei"],["filing.filing_period","filing.lei"]))
 
     def __str__(self):
-        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing: {self.filing}"
+        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing: {self.filing}, Submission: {self.submission_time}"
 
 
 class FilingPeriodDAO(Base):

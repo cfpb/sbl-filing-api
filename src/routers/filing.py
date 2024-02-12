@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from fastapi import Depends, Request, UploadFile, BackgroundTasks
+from fastapi import Depends, Request, UploadFile, BackgroundTasks, status
+from fastapi.responses import JSONResponse
 from regtech_api_commons.api import Router
 from services import submission_processor
 from typing import Annotated, List
@@ -39,3 +40,11 @@ async def upload_file(
 @requires("authenticated")
 async def get_submission(request: Request, lei: str, filing_id: int):
     return await repo.get_submissions(request.state.db_session, filing_id)
+
+
+@router.get("/{lei}/filings/{filing_id}/submissions/latest", response_model=SubmissionDTO)
+async def get_submission_latest(request: Request, lei: str, filing_id: int):
+    result = await repo.get_latest_submission(request.state.db_session, filing_id)
+    if result:
+        return result
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)

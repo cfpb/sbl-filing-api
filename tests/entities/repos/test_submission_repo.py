@@ -1,7 +1,8 @@
 import pandas as pd
 import pytest
 
-from datetime import datetime
+import datetime
+from datetime import datetime as dt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
@@ -38,9 +39,9 @@ class TestSubmissionRepo:
 
         filing_period = FilingPeriodDAO(
             name="FilingPeriod2024",
-            start_period=datetime.now(),
-            end_period=datetime.now(),
-            due=datetime.now(),
+            start_period=dt.now(),
+            end_period=dt.now(),
+            due=dt.now(),
             filing_type=FilingType.ANNUAL,
         )
         transaction_session.add(filing_period)
@@ -63,19 +64,24 @@ class TestSubmissionRepo:
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
+            submission_time=dt.now(),
         )
         submission2 = SubmissionDAO(
             submitter="test2@cfpb.gov",
             filing=2,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
+            submission_time=(dt.now() - datetime.timedelta(seconds=1000)),
         )
         submission3 = SubmissionDAO(
             submitter="test2@cfpb.gov",
             filing=2,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
+            submission_time=dt.now(),
         )
+        print(f"{submission2}")
+        print(f"{submission3}")
         transaction_session.add(submission1)
         transaction_session.add(submission2)
         transaction_session.add(submission3)
@@ -85,9 +91,9 @@ class TestSubmissionRepo:
     async def test_add_filing_period(self, transaction_session: AsyncSession):
         new_fp = FilingPeriodDTO(
             name="FilingPeriod2024.1",
-            start_period=datetime.now(),
-            end_period=datetime.now(),
-            due=datetime.now(),
+            start_period=dt.now(),
+            end_period=dt.now(),
+            due=dt.now(),
             filing_type=FilingType.ANNUAL,
         )
         res = await repo.upsert_filing_period(transaction_session, new_fp)
@@ -131,7 +137,7 @@ class TestSubmissionRepo:
             filing=filing.id, task=task, user="test@cfpb.gov", state=FilingTaskState.IN_PROGRESS
         )
         filing.tasks = [filing_task]
-        seconds_now = datetime.utcnow().timestamp()
+        seconds_now = dt.utcnow().timestamp()
         await repo.upsert_filing(transaction_session, filing)
 
         filing_task_states = (await transaction_session.scalars(select(FilingTaskStateDAO))).all()
@@ -153,6 +159,14 @@ class TestSubmissionRepo:
         res = await repo.get_filing(query_session, filing_id=2)
         assert res.id == 2
         assert res.lei == "ABCDEFGHIJ"
+
+    async def test_get_latest_submission(self, query_session: AsyncSession):
+        res = await repo.get_latest_submission(query_session, filing_id=2)
+        assert res.id == 3
+        assert res.submitter == "test2@cfpb.gov"
+        assert res.filing == 2
+        assert res.state == SubmissionState.SUBMISSION_UPLOADED
+        assert res.validation_ruleset_version == "v1"
 
     async def test_get_submission(self, query_session: AsyncSession):
         res = await repo.get_submission(query_session, submission_id=1)
