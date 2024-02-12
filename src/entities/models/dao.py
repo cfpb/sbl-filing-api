@@ -19,8 +19,12 @@ class SubmissionDAO(Base):
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
-    filing: Mapped[str] = mapped_column(ForeignKey("filing.id"))
+    filing_period: Mapped[str]
+    lei: Mapped[str]
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
+    
+    __table_args__ = (
+            ForeignKeyConstraint(["filing_period", "lei"],["filing.filing_period","filing.lei"]))
 
     def __str__(self):
         return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing: {self.filing}"
@@ -46,9 +50,11 @@ class FilingTaskDAO(Base):
 
 class FilingTaskStateDAO(Base):
     __tablename__ = "filing_task_state"
-    filing_period: Mapped[str] = mapped_column(primary_key=True)
-    lei: Mapped[str] = mapped_column(primary_key=True)
-    task_name: Mapped[str] = mapped_column(ForeignKey("filing_task.name"), primary_key=True)
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    filing_period: Mapped[str]
+    lei: Mapped[str]
+    task_name: Mapped[str] = mapped_column(ForeignKey("filing_task.name"))
     task: Mapped[FilingTaskDAO] = relationship(lazy="selectin")
     user: Mapped[str]
     state: Mapped[FilingTaskState] = mapped_column(SAEnum(FilingTaskState))

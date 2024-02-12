@@ -26,7 +26,8 @@ class FilingTaskDTO(BaseModel):
 class FilingTaskStateDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    filing: int
+    filing_period: str
+    lei: str
     task: FilingTaskDTO
     user: str | None = None
     state: FilingTaskState
@@ -36,7 +37,7 @@ class FilingTaskStateDTO(BaseModel):
 class FilingDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int | None = None
+    filing_period: str
     lei: str
     tasks: List[FilingTaskStateDTO]
     filing_period: int
@@ -46,8 +47,7 @@ class FilingDTO(BaseModel):
 
 class FilingPeriodDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
-    id: int | None = None
+    
     name: str
     start_period: datetime
     end_period: datetime
