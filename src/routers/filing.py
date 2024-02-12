@@ -40,7 +40,7 @@ async def get_submission(request: Request, lei: str, filing_id: int):
 
 @router.get("/{lei}/filings/{filing_id}/submissions/latest", response_model=SubmissionDTO)
 async def get_submission_latest(request: Request, lei: str, filing_id: int):
-    results = await repo.get_submissions(request.state.db_session, filing_id, order_by="submission_time")
-    if len(results) > 0:
-        return results[-1]
+    result = await repo.get_latest_submission(request.state.db_session, filing_id)
+    if result:
+        return result
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)

@@ -48,28 +48,19 @@ class TestFilingApi:
         assert len(results) == 0
 
     async def test_get_latest_submission(self, mocker: MockerFixture, app_fixture: FastAPI):
-        mock = mocker.patch("entities.repos.submission_repo.get_submissions")
-        mock.return_value = [
-            SubmissionDAO(
-                submitter="test1@cfpb.gov",
-                filing=1,
-                state=SubmissionState.SUBMISSION_UPLOADED,
-                validation_ruleset_version="v1",
-                submission_time=(datetime.datetime.now() - datetime.timedelta(seconds=1000)),
-            ),
-            SubmissionDAO(
-                submitter="test1@cfpb.gov",
-                filing=1,
-                state=SubmissionState.VALIDATION_IN_PROGRESS,
-                validation_ruleset_version="v1",
-                submission_time=datetime.datetime.now(),
-            ),
-        ]
+        mock = mocker.patch("entities.repos.submission_repo.get_latest_submission")
+        mock.return_value = SubmissionDAO(
+            submitter="test1@cfpb.gov",
+            filing=1,
+            state=SubmissionState.VALIDATION_IN_PROGRESS,
+            validation_ruleset_version="v1",
+            submission_time=datetime.datetime.now(),
+        )
 
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/123456790/filings/1/submissions/latest")
         result = res.json()
-        mock.assert_called_with(ANY, 1, order_by="submission_time")
+        mock.assert_called_with(ANY, 1)
         assert res.status_code == 200
         assert result["state"] == SubmissionState.VALIDATION_IN_PROGRESS
 
@@ -77,5 +68,5 @@ class TestFilingApi:
         mock.return_value = []
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/123456790/filings/1/submissions/latest")
-        mock.assert_called_with(ANY, 1, order_by="submission_time")
+        mock.assert_called_with(ANY, 1)
         assert res.status_code == 204
