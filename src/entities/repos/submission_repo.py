@@ -123,22 +123,22 @@ async def upsert_filing(session: AsyncSession, filing: FilingDTO) -> FilingDAO:
     return await upsert_helper(session, filing, FilingDAO)
 
 
-async def upsert_helper(session: AsyncSession, original_data: Any, type: T) -> T:
+async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
     copy_data = original_data.__dict__.copy()
     # this is only for if a DAO is passed in
     # Should be DTOs, but hey, it's python
     if copy_data["id"] is not None and "_sa_instance_state" in copy_data:
         del copy_data["_sa_instance_state"]
-    new_dao = type(**copy_data)
+    new_dao = table_obj(**copy_data)
     new_dao = await session.merge(new_dao)
     await session.commit()
     return new_dao
 
 
-async def query_helper(session: AsyncSession, type: T, column_name: str = None, value: Any = None) -> List[T]:
-    stmt = select(type)
+async def query_helper(session: AsyncSession, table_obj: T, column_name: str = None, value: Any = None) -> List[T]:
+    stmt = select(table_obj)
     if column_name and value:
-        stmt = stmt.filter(getattr(type, column_name) == value)
+        stmt = stmt.filter(getattr(table_obj, column_name) == value)
     return (await session.scalars(stmt)).all()
 
 
