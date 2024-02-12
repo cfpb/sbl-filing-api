@@ -53,11 +53,20 @@ addopts = [
   "-rfE",
 ]
 env = [
-  "INST_DB_SCHEMA=main",
-  "INST_DB_USER=user",
-  "INST_DB_PWD=user",
-  "INST_DB_HOST=localhost:5432",
-  "INST_DB_NAME=filing"
+  "DB_SCHEMA=main",
+  "DB_USER=user",
+  "DB_PWD=user",
+  "DB_HOST=localhost:5432",
+  "DB_NAME=filing",
+  "KC_URL=http://localhost",
+  "KC_REALM=",
+  "KC_ADMIN_CLIENT_ID=",
+  "KC_ADMIN_CLIENT_SECRET=",
+  "KC_REALM_URL=http://localhost",
+  "AUTH_URL=http://localhost",
+  "TOKEN_URL=http://localhost",
+  "CERTS_URL=http://localhost",
+  "AUTH_CLIENT=",
 ]
 testpaths = ["tests"]
 

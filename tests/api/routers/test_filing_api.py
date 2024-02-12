@@ -8,12 +8,28 @@ from entities.models import SubmissionDAO, SubmissionState
 
 
 class TestFilingApi:
-    def test_get_periods(self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock):
+    def test_unauthed_get_periods(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, unauthed_user_mock: Mock
+    ):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/periods")
+        assert res.status_code == 403
+
+    def test_get_periods(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, authed_user_mock: Mock
+    ):
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/periods")
         assert res.status_code == 200
         assert len(res.json()) == 1
         assert res.json()[0]["name"] == "FilingPeriod2024"
+
+    def test_unauthed_get_submissions(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, unauthed_user_mock: Mock
+    ):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/123456790/filings/1/submissions")
+        assert res.status_code == 403
 
     def test_get_filings(self, app_fixture: FastAPI, get_filings_mock: Mock):
         client = TestClient(app_fixture)
@@ -31,7 +47,7 @@ class TestFilingApi:
             "detail": "There is no Filing Period with name FilingPeriod2025 defined in the database."
         }
 
-    async def test_get_submissions(self, mocker: MockerFixture, app_fixture: FastAPI):
+    async def test_get_submissions(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         mock = mocker.patch("entities.repos.submission_repo.get_submissions")
         mock.return_value = [
             SubmissionDAO(

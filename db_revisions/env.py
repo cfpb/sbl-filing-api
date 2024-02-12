@@ -30,13 +30,13 @@ if ENV == "LOCAL":
 else:
     load_dotenv()
 
-INST_DB_USER = os.environ.get("INST_DB_USER")
-INST_DB_PWD = os.environ.get("INST_DB_PWD")
-INST_DB_HOST = os.environ.get("INST_DB_HOST")
-INST_DB_NAME = os.environ.get("INST_DB_NAME")
-INST_DB_SCHEMA = os.environ.get("INST_DB_SCHEMA")
-INST_CONN = f"postgresql://{INST_DB_USER}:{(parse.quote(INST_DB_PWD, safe='')).replace('%', '%%')}@{INST_DB_HOST}/{INST_DB_NAME}"
-config.set_main_option("sqlalchemy.url", INST_CONN)
+DB_USER = os.environ.get("DB_USER")
+DB_PWD = os.environ.get("DB_PWD")
+DB_HOST = os.environ.get("DB_HOST")
+DB_NAME = os.environ.get("DB_NAME")
+DB_SCHEMA = os.environ.get("DB_SCHEMA")
+CONN = f"postgresql://{DB_USER}:{(parse.quote(DB_PWD, safe='')).replace('%', '%%')}@{DB_HOST}/{DB_NAME}"
+config.set_main_option("sqlalchemy.url", CONN)
 
 # end specific SBL configuration
 
@@ -45,7 +45,7 @@ config.set_main_option("sqlalchemy.url", INST_CONN)
 # from myapp import mymodel
 
 target_metadata = Base.metadata
-target_metadata.schema = INST_DB_SCHEMA
+target_metadata.schema = DB_SCHEMA
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
