@@ -49,33 +49,36 @@ class TestSubmissionRepo:
         filing1 = FilingDAO(
             lei="1234567890",
             institution_snapshot_id="Snapshot-1",
-            filing_period=1,
+            filing_period="FilingPeriod2024",
         )
         filing2 = FilingDAO(
             lei="ABCDEFGHIJ",
             institution_snapshot_id="Snapshot-1",
-            filing_period=1,
+            filing_period="FilingPeriod2024",
         )
         transaction_session.add(filing1)
         transaction_session.add(filing2)
 
         submission1 = SubmissionDAO(
             submitter="test1@cfpb.gov",
-            filing=1,
+            lei="1234567890",
+            filing_period="FilingPeriod2024",
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=dt.now(),
         )
         submission2 = SubmissionDAO(
             submitter="test2@cfpb.gov",
-            filing=2,
+            lei="ABCDEFGHIJ",
+            filing_period="FilingPeriod2024",
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=(dt.now() - datetime.timedelta(seconds=1000)),
         )
         submission3 = SubmissionDAO(
             submitter="test2@cfpb.gov",
-            filing=2,
+            lei="ABCDEFGHIJ",
+            filing_period="FilingPeriod2024",
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=dt.now(),
@@ -97,7 +100,7 @@ class TestSubmissionRepo:
             filing_type=FilingType.ANNUAL,
         )
         res = await repo.upsert_filing_period(transaction_session, new_fp)
-        assert res.id == 2
+        assert res.name == "FilingPeriod2024.1"
         assert res.filing_type == FilingType.ANNUAL
 
     async def test_get_filing_periods(self, query_session: AsyncSession):
@@ -106,21 +109,24 @@ class TestSubmissionRepo:
         assert res[0].name == "FilingPeriod2024"
 
     async def test_get_filing_period(self, query_session: AsyncSession):
-        res = await repo.get_filing_period(query_session, filing_period_id=1)
-        assert res.id == 1
+        res = await repo.get_filing_period(query_session, filing_period="FilingPeriod2024")
         assert res.name == "FilingPeriod2024"
         assert res.filing_type == FilingType.ANNUAL
 
     async def test_add_and_modify_filing(self, transaction_session: AsyncSession):
-        new_filing = FilingDTO(lei="12345ABCDE", institution_snapshot_id="Snapshot-1", filing_period=1, tasks=[])
+        new_filing = FilingDTO(
+            lei="12345ABCDE", institution_snapshot_id="Snapshot-1", filing_period="FilingPeriod2024", tasks=[]
+        )
         res = await repo.upsert_filing(transaction_session, new_filing)
-        assert res.id == 3
+        assert res.filing_period == "FilingPeriod2024"
         assert res.lei == "12345ABCDE"
         assert res.institution_snapshot_id == "Snapshot-1"
 
-        mod_filing = FilingDTO(id=3, lei="12345ABCDE", institution_snapshot_id="Snapshot-2", filing_period=1, tasks=[])
+        mod_filing = FilingDTO(
+            lei="12345ABCDE", institution_snapshot_id="Snapshot-2", filing_period="FilingPeriod2024", tasks=[]
+        )
         res = await repo.upsert_filing(transaction_session, mod_filing)
-        assert res.id == 3
+        assert res.filing_period == "FilingPeriod2024"
         assert res.lei == "12345ABCDE"
         assert res.institution_snapshot_id == "Snapshot-2"
 
@@ -131,10 +137,14 @@ class TestSubmissionRepo:
         assert tasks[1].name == "Task-2"
 
     async def test_add_task_to_filing(self, query_session: AsyncSession, transaction_session: AsyncSession):
-        filing = await repo.get_filing(query_session, filing_id=1)
+        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="FilingPeriod2024")
         task = await query_session.scalar(select(FilingTaskDAO).where(FilingTaskDAO.name == "Task-1"))
         filing_task = FilingTaskStateDAO(
-            filing=filing.id, task=task, user="test@cfpb.gov", state=FilingTaskState.IN_PROGRESS
+            lei="1234567890",
+            filing_period="FilingPeriod2024",
+            task=task,
+            user="test@cfpb.gov",
+            state=FilingTaskState.IN_PROGRESS,
         )
         filing.tasks = [filing_task]
         seconds_now = dt.utcnow().timestamp()
@@ -144,7 +154,8 @@ class TestSubmissionRepo:
 
         assert len(filing_task_states) == 1
         assert filing_task_states[0].task.name == "Task-1"
-        assert filing_task_states[0].filing == 1
+        assert filing_task_states[0].lei == "1234567890"
+        assert filing_task_states[0].filing_period == "FilingPeriod2024"
         assert filing_task_states[0].state == FilingTaskState.IN_PROGRESS
         assert filing_task_states[0].user == "test@cfpb.gov"
         assert filing_task_states[0].change_timestamp.timestamp() == pytest.approx(
@@ -152,19 +163,32 @@ class TestSubmissionRepo:
         )  # allow for possible 1 second difference
 
     async def test_get_filing(self, query_session: AsyncSession):
-        res = await repo.get_filing(query_session, filing_id=1)
-        assert res.id == 1
+        res = await repo.get_filing(query_session, lei="1234567890", filing_period="FilingPeriod2024")
+        assert res.filing_period == "FilingPeriod2024"
         assert res.lei == "1234567890"
+        assert len(res.tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res.tasks])
 
-        res = await repo.get_filing(query_session, filing_id=2)
-        assert res.id == 2
+        res = await repo.get_filing(query_session, lei="ABCDEFGHIJ", filing_period="FilingPeriod2024")
+        assert res.filing_period == "FilingPeriod2024"
         assert res.lei == "ABCDEFGHIJ"
+        assert len(res.tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res.tasks])
+
+    async def test_get_period_filings(self, query_session: AsyncSession, mocker: MockerFixture):
+        results = await repo.get_period_filings(query_session, lei="ZYXWVUTSRQP", filing_period="FilingPeriod2024")
+        assert len(results) == 0
+
+        results = await repo.get_period_filings(query_session, lei="1234567890", filing_period="FilingPeriod2024")
+        assert len(results) == 1
+        assert results[0].lei == "1234567890"
+        assert results[0].filing_period == "FilingPeriod2024"
+        assert len(results[0].tasks) == 2
 
     async def test_get_latest_submission(self, query_session: AsyncSession):
-        res = await repo.get_latest_submission(query_session, filing_id=2)
+        res = await repo.get_latest_submission(query_session, lei="ABCDEFGHIJ", filing_period="FilingPeriod2024")
         assert res.id == 3
         assert res.submitter == "test2@cfpb.gov"
-        assert res.filing == 2
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
         assert res.validation_ruleset_version == "v1"
 
@@ -172,7 +196,8 @@ class TestSubmissionRepo:
         res = await repo.get_submission(query_session, submission_id=1)
         assert res.id == 1
         assert res.submitter == "test1@cfpb.gov"
-        assert res.filing == 1
+        assert res.lei == "1234567890"
+        assert res.filing_period == "FilingPeriod2024"
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
         assert res.validation_ruleset_version == "v1"
 
@@ -181,30 +206,37 @@ class TestSubmissionRepo:
         assert len(res) == 3
         assert {1, 2, 3} == set([s.id for s in res])
         assert res[0].submitter == "test1@cfpb.gov"
-        assert res[1].filing == 2
+        assert res[1].lei == "ABCDEFGHIJ"
         assert res[2].state == SubmissionState.SUBMISSION_UPLOADED
 
-        res = await repo.get_submissions(query_session, filing_id=2)
+        res = await repo.get_submissions(query_session, lei="ABCDEFGHIJ", filing_period="FilingPeriod2024")
         assert len(res) == 2
         assert {2, 3} == set([s.id for s in res])
         assert {"test2@cfpb.gov"} == set([s.submitter for s in res])
-        assert {2} == set([s.filing for s in res])
+        assert {"ABCDEFGHIJ"} == set([s.lei for s in res])
         assert {SubmissionState.SUBMISSION_UPLOADED} == set([s.state for s in res])
 
         # verify a filing with no submissions behaves ok
-        res = await repo.get_submissions(query_session, filing_id=3)
+        res = await repo.get_submissions(query_session, lei="ZYXWVUTSRQP", filing_period="FilingPeriod2024")
         assert len(res) == 0
 
     async def test_add_submission(self, transaction_session: AsyncSession):
-        res = await repo.add_submission(transaction_session, SubmissionDTO(submitter="test@cfpb.gov", filing=1))
+        res = await repo.add_submission(
+            transaction_session,
+            SubmissionDTO(submitter="test@cfpb.gov", lei="1234567890", filing_period="FilingPeriod2024"),
+        )
         assert res.id == 4
         assert res.submitter == "test@cfpb.gov"
-        assert res.filing == 1
+        assert res.lei == "1234567890"
+        assert res.filing_period == "FilingPeriod2024"
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
 
     async def test_update_submission(self, session_generator: async_scoped_session):
         async with session_generator() as add_session:
-            res = await repo.add_submission(add_session, SubmissionDTO(submitter="test2@cfpb.gov", filing=2))
+            res = await repo.add_submission(
+                add_session,
+                SubmissionDTO(submitter="test2@cfpb.gov", lei="ABCDEFGHIJ", filing_period="FilingPeriod2024"),
+            )
 
         res.state = SubmissionState.VALIDATION_IN_PROGRESS
         res = await repo.update_submission(res)
@@ -214,7 +246,8 @@ class TestSubmissionRepo:
                 stmt = select(SubmissionDAO).filter(SubmissionDAO.id == 4)
                 new_res1 = await search_session.scalar(stmt)
                 assert new_res1.id == 4
-                assert new_res1.filing == 2
+                assert new_res1.lei == "ABCDEFGHIJ"
+                assert new_res1.filing_period == "FilingPeriod2024"
                 assert new_res1.state == SubmissionState.VALIDATION_IN_PROGRESS
 
         await query_updated_dao()
@@ -231,7 +264,8 @@ class TestSubmissionRepo:
                 stmt = select(SubmissionDAO).filter(SubmissionDAO.id == 4)
                 new_res2 = await search_session.scalar(stmt)
                 assert new_res2.id == 4
-                assert new_res2.filing == 2
+                assert new_res2.lei == "ABCDEFGHIJ"
+                assert new_res2.filing_period == "FilingPeriod2024"
                 assert new_res2.state == SubmissionState.VALIDATION_WITH_ERRORS
                 assert new_res2.validation_json == validation_json
 

@@ -34,14 +34,9 @@ def upgrade() -> None:
         ),
         sa.Column("user", sa.String, nullable=False),
         sa.Column("change_timestamp", sa.DateTime, nullable=False),
-        sa.ForeignKeyConstraint(
-            ["filing"],
-            ["filing.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["task_name"],
-            ["filing_task.name"],
-        ),
+        sa.PrimaryKeyConstraint("filing", "task_name", name="filing_task_state_pkey"),
+        sa.ForeignKeyConstraint(["filing"], ["filing.id"], name="filing_task_state_filing_fkey"),
+        sa.ForeignKeyConstraint(["task_name"], ["filing_task.name"], name="filing_task_state_filing_task_fkey"),
     )
 
 

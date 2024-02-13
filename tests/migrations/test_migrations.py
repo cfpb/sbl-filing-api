@@ -89,3 +89,52 @@ def test_migration_to_19fccbf914bc(alembic_runner: MigrationContext, alembic_eng
     inspector = sqlalchemy.inspect(alembic_engine)
 
     assert "submission_time" in set([c["name"] for c in inspector.get_columns("submission")])
+
+
+def test_migration_to_83e1a5a70b11(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("83e1a5a70b11")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    filing_period_pk = inspector.get_pk_constraint("filing_period")
+    assert filing_period_pk["name"] == "filing_period_pkey"
+    assert filing_period_pk["constrained_columns"] == ["name"]
+    assert "id" not in set([c["name"] for c in inspector.get_columns("filing_period")])
+
+    filing_period_pk = inspector.get_pk_constraint("filing")
+    filing_fk = inspector.get_foreign_keys("filing")[0]
+    assert filing_period_pk["name"] == "filing_pkey"
+    assert filing_period_pk["constrained_columns"] == ["lei", "filing_period"]
+    assert "id" not in set([c["name"] for c in inspector.get_columns("filing")])
+    assert "VARCHAR" in str([c for c in inspector.get_columns("filing") if c["name"] == "filing_period"][0]["type"])
+    assert filing_fk["name"] == "filing_filing_period_fkey"
+    assert (
+        "filing_period" in filing_fk["constrained_columns"]
+        and "filing_period" == filing_fk["referred_table"]
+        and "name" in filing_fk["referred_columns"]
+    )
+    
+    submission_fk = inspector.get_foreign_keys("submission")[0]
+    sub_column_names = set([c["name"] for c in inspector.get_columns("submission")])
+    assert "filing" not in sub_column_names
+    assert {"filing_period", "lei"}.issubset(sub_column_names)
+    assert submission_fk["name"] == "submission_filing_fkey"
+    assert (
+        ["filing_period","lei"] == submission_fk["constrained_columns"]
+        and "filing" == submission_fk["referred_table"]
+        and ["filing_period","lei"] == submission_fk["referred_columns"]
+    )
+    
+    filing_task_state_fk = inspector.get_foreign_keys("filing_task_state")[1]
+    filing_task_state_pk = inspector.get_pk_constraint("filing_task_state")
+    assert filing_task_state_pk["name"] == "filing_task_state_pkey"
+    assert filing_task_state_pk["constrained_columns"] == ["id"]
+    fts_column_names = set([c["name"] for c in inspector.get_columns("filing_task_state")])
+    assert "filing" not in fts_column_names
+    assert {"id", "filing_period", "lei"}.issubset(fts_column_names)
+    assert filing_task_state_fk["name"] == "filing_task_state_filing_fkey"
+    assert (
+        ["filing_period","lei"] == filing_task_state_fk["constrained_columns"]
+        and "filing" == filing_task_state_fk["referred_table"]
+        and ["filing_period","lei"] == filing_task_state_fk["referred_columns"]
+    )

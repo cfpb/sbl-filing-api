@@ -39,10 +39,8 @@ def upgrade() -> None:
         sa.Column("validation_json", sa.JSON),
         sa.Column("filing", sa.Integer),
         sa.Column("confirmation_id", sa.String),
-        sa.ForeignKeyConstraint(
-            ["filing"],
-            ["filing.id"],
-        ),
+        sa.PrimaryKeyConstraint("id", name="submission_pkey"),
+        sa.ForeignKeyConstraint(["filing"], ["filing.id"], name="submission_filing_fkey"),
     )
 
 

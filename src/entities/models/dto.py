@@ -12,7 +12,8 @@ class SubmissionDTO(BaseModel):
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
     validation_json: Dict[str, Any] | None = None
-    filing: int
+    filing_period: str
+    lei: str
     confirmation_id: str | None = None
     submission_time: datetime | None = None
 
@@ -32,7 +33,7 @@ class FilingTaskStateDTO(BaseModel):
     task: FilingTaskDTO
     user: str | None = None
     state: FilingTaskState
-    change_timestamp: datetime
+    change_timestamp: datetime | None = None
 
 
 class FilingDTO(BaseModel):
@@ -41,14 +42,13 @@ class FilingDTO(BaseModel):
     filing_period: str
     lei: str
     tasks: List[FilingTaskStateDTO]
-    filing_period: int
     institution_snapshot_id: str
     contact_info: str | None = None
 
 
 class FilingPeriodDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     name: str
     start_period: datetime
     end_period: datetime

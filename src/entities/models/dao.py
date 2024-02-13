@@ -23,12 +23,11 @@ class SubmissionDAO(Base):
     lei: Mapped[str]
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
-    
-    __table_args__ = (
-            ForeignKeyConstraint(["filing_period", "lei"],["filing.filing_period","filing.lei"]))
+
+    __table_args__ = (ForeignKeyConstraint(["filing_period", "lei"], ["filing.filing_period", "filing.lei"]),)
 
     def __str__(self):
-        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing: {self.filing}, Submission: {self.submission_time}"
+        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing_period}, LEI: {self.lei}, Submission: {self.submission_time}"
 
 
 class FilingPeriodDAO(Base):
@@ -51,7 +50,7 @@ class FilingTaskDAO(Base):
 
 class FilingTaskStateDAO(Base):
     __tablename__ = "filing_task_state"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     filing_period: Mapped[str]
     lei: Mapped[str]
@@ -61,8 +60,7 @@ class FilingTaskStateDAO(Base):
     state: Mapped[FilingTaskState] = mapped_column(SAEnum(FilingTaskState))
     change_timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (
-            ForeignKeyConstraint(["filing_period", "lei"],["filing.filing_period","filing.lei"]))
+    __table_args__ = (ForeignKeyConstraint(["filing_period", "lei"], ["filing.filing_period", "filing.lei"]),)
 
     def __str__(self):
         return f"Filing ID: {self.filing}, Task: {self.task}, User: {self.user}, state: {self.state}, Timestamp: {self.change_timestamp}"

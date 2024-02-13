@@ -35,10 +35,8 @@ def upgrade() -> None:
         sa.Column("institution_snapshot_id", sa.String, nullable=False),
         sa.Column("filing_period", sa.Integer),
         sa.Column("contact_info", sa.String),
-        sa.ForeignKeyConstraint(
-            ["filing_period"],
-            ["filing_period.id"],
-        ),
+        sa.PrimaryKeyConstraint("id", name="filing_pkey"),
+        sa.ForeignKeyConstraint(["filing_period"], ["filing_period.id"], name="filing_filing_period_fkey"),
     )
 
 

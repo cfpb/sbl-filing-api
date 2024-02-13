@@ -26,6 +26,7 @@ def upgrade() -> None:
         sa.Column("end_period", sa.DateTime, nullable=False),
         sa.Column("due", sa.DateTime, nullable=False),
         sa.Column("filing_type", sa.Enum("ANNUAL", name="filingtype"), server_default="ANNUAL"),
+        sa.PrimaryKeyConstraint("id", name="filing_period_pkey"),
     )
 
 
