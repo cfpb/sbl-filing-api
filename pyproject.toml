@@ -19,6 +19,7 @@ regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.
 python-multipart = "^0.0.6"
 boto3 = "^1.33.12"
 alembic = "^1.12.0"
+async-lru = "^2.0.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

@@ -8,6 +8,8 @@ from regtech_api_commons.models.auth import AuthenticatedUser
 
 from copy import deepcopy
 
+from async_lru import alru_cache
+
 from entities.models import (
     SubmissionDAO,
     SubmissionDTO,
@@ -56,9 +58,8 @@ async def get_submission(session: AsyncSession, submission_id: int) -> Submissio
 
 async def get_filing(session: AsyncSession, filing_id: int) -> FilingDAO:
     result = await query_helper(session, FilingDAO, "id", filing_id)
-    result = deepcopy(result)
     if result:
-        await populate_missing_tasks(session, result)
+        result = await populate_missing_tasks(session, result)
     return result[0] if result else None
 
 
@@ -69,8 +70,8 @@ async def get_period_filings_for_user(
     if filing_period:
         filings = await query_helper(session, FilingDAO, "filing_period", filing_period[0].id)
         filings = [f for f in filings if f.lei in user.institutions]
-        filings = deepcopy(filings)
-        await populate_missing_tasks(session, filings)
+        if filings:
+            filings = await populate_missing_tasks(session, filings)
 
         return filings
     else:
@@ -82,6 +83,7 @@ async def get_filing_period(session: AsyncSession, filing_period_id: int) -> Fil
     return result[0] if result else None
 
 
+@alru_cache(maxsize=128)
 async def get_filing_tasks(session: AsyncSession) -> List[FilingTaskDAO]:
     return await query_helper(session, FilingTaskDAO)
 
@@ -139,12 +141,14 @@ async def query_helper(session: AsyncSession, table_obj: T, column_name: str = N
     return (await session.scalars(stmt)).all()
 
 
-async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]):
-    filing_tasks = await query_helper(session, FilingTaskDAO)
-    for f in filings:
+async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]) -> List[FilingDAO]:
+    filing_tasks = await get_filing_tasks(session)
+    filings_copy = deepcopy(filings)
+    for f in filings_copy:
         tasks = [t.task for t in f.tasks]
         missing_tasks = [t for t in filing_tasks if t not in tasks]
         for mt in missing_tasks:
             f.tasks.append(
                 FilingTaskStateDAO(filing=f.id, task_name=mt.name, state=FilingTaskState.NOT_STARTED, user="")
             )
+    return filings_copy
