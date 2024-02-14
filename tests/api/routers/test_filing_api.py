@@ -33,13 +33,21 @@ class TestFilingApi:
         res = client.get("/v1/filing/123456790/2024/submissions")
         assert res.status_code == 403
 
-    def test_get_filings(self, app_fixture: FastAPI, get_filings_mock: Mock):
+    def test_get_filing(self, app_fixture: FastAPI, get_filing_mock: Mock):
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/1234567890/2024/")
-        get_filings_mock.assert_called_with(ANY, "1234567890", "2024")
+        get_filing_mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
-        assert len(res.json()) == 1
-        assert res.json()[0]["lei"] == "1234567890"
+        assert res.json()["lei"] == "1234567890"
+        assert res.json()["filing_period"] == "2024"
+
+    def test_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.post("/v1/filing/ZXWVUTSRQP/2024/")
+        post_filing_mock.assert_called_with(ANY, "ZXWVUTSRQP", "2024")
+        assert res.status_code == 200
+        assert res.json()["lei"] == "ZXWVUTSRQP"
+        assert res.json()["filing_period"] == "2024"
 
     async def test_get_submissions(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         mock = mocker.patch("entities.repos.submission_repo.get_submissions")

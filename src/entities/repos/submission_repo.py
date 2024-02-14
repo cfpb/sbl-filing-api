@@ -62,11 +62,10 @@ async def get_filing(session: AsyncSession, lei: str, filing_period: str) -> Fil
     return result[0] if result else None
 
 
-async def get_period_filings(session: AsyncSession, lei: str, filing_period: str) -> List[FilingDAO]:
-    filings = await query_helper(session, FilingDAO, lei=lei, filing_period=filing_period)
+async def get_period_filings(session: AsyncSession, filing_period: str) -> List[FilingDAO]:
+    filings = await query_helper(session, FilingDAO, filing_period=filing_period)
     if filings:
         filings = await populate_missing_tasks(session, filings)
-
     return filings
 
 
@@ -113,6 +112,17 @@ async def upsert_filing_period(session: AsyncSession, filing_period: FilingPerio
 
 async def upsert_filing(session: AsyncSession, filing: FilingDTO) -> FilingDAO:
     return await upsert_helper(session, filing, FilingDAO)
+
+
+async def create_new_filing(session: AsyncSession, lei: str, filing_period: str) -> FilingDAO:
+    new_filing = FilingDAO(
+        filing_period=filing_period,
+        lei=lei,
+        institution_snapshot_id="v1",  # need story to retrieve this from user-fi I believe
+    )
+    new_filing = await upsert_helper(session, new_filing, FilingDAO)
+    new_filing = await populate_missing_tasks(session, [new_filing])[0]
+    return new_filing
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:

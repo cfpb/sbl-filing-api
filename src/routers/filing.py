@@ -28,12 +28,12 @@ async def get_filing_periods(request: Request):
 
 
 # This has to come after the /periods endpoint
-@router.get("/{lei}/{period_name}", response_model=List[FilingDTO])
-async def get_filings(request: Request, lei: str, period_name: str):
-    return await repo.get_period_filings(request.state.db_session, lei, period_name)
+@router.get("/{lei}/{period_name}", response_model=FilingDTO)
+async def get_filing(request: Request, lei: str, period_name: str):
+    return await repo.get_filing(request.state.db_session, lei, period_name)
 
 
-@router.post("/{lei}/{period_name}", response_model=List[FilingDTO])
+@router.post("/{lei}/{period_name}", response_model=FilingDTO)
 async def post_filing(request: Request, lei: str, period_name: str, filing_obj: FilingDTO = None):
     if filing_obj:
         return await repo.upsert_filing(request.state.db_session, filing_obj)

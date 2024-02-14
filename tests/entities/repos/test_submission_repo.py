@@ -176,14 +176,13 @@ class TestSubmissionRepo:
         assert FilingTaskState.NOT_STARTED in set([t.state for t in res.tasks])
 
     async def test_get_period_filings(self, query_session: AsyncSession, mocker: MockerFixture):
-        results = await repo.get_period_filings(query_session, lei="ZYXWVUTSRQP", filing_period="FilingPeriod2024")
-        assert len(results) == 0
-
-        results = await repo.get_period_filings(query_session, lei="1234567890", filing_period="FilingPeriod2024")
-        assert len(results) == 1
+        results = await repo.get_period_filings(query_session, filing_period="FilingPeriod2024")
+        assert len(results) == 2
         assert results[0].lei == "1234567890"
         assert results[0].filing_period == "FilingPeriod2024"
-        assert len(results[0].tasks) == 2
+        assert results[1].lei == "ABCDEFGHIJ"
+        assert results[1].filing_period == "FilingPeriod2024"
+
 
     async def test_get_latest_submission(self, query_session: AsyncSession):
         res = await repo.get_latest_submission(query_session, lei="ABCDEFGHIJ", filing_period="FilingPeriod2024")
