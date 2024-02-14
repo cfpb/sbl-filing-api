@@ -63,27 +63,27 @@ def get_filing_period_mock(mocker: MockerFixture) -> Mock:
 def get_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("entities.repos.submission_repo.get_filing")
     mock.return_value = FilingDAO(
-            lei="1234567890",
-            tasks=[
-                FilingTaskStateDAO(
-                    filing_period="2024",
-                    lei="1234567890",
-                    task=FilingTaskDAO(name="Task-1", task_order=1),
-                    state=FilingTaskState.NOT_STARTED,
-                    user="",
-                ),
-                FilingTaskStateDAO(
-                    filing_period="2024",
-                    lei="1234567890",
-                    task=FilingTaskDAO(name="Task-2", task_order=2),
-                    state=FilingTaskState.NOT_STARTED,
-                    user="",
-                ),
-            ],
-            filing_period="2024",
-            institution_snapshot_id="v1",
-            contact_info="test@cfpb.gov",
-        )
+        lei="1234567890",
+        tasks=[
+            FilingTaskStateDAO(
+                filing_period="2024",
+                lei="1234567890",
+                task=FilingTaskDAO(name="Task-1", task_order=1),
+                state=FilingTaskState.NOT_STARTED,
+                user="",
+            ),
+            FilingTaskStateDAO(
+                filing_period="2024",
+                lei="1234567890",
+                task=FilingTaskDAO(name="Task-2", task_order=2),
+                state=FilingTaskState.NOT_STARTED,
+                user="",
+            ),
+        ],
+        filing_period="2024",
+        institution_snapshot_id="v1",
+        contact_info="test@cfpb.gov",
+    )
     return mock
 
 

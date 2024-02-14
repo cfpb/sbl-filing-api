@@ -183,7 +183,6 @@ class TestSubmissionRepo:
         assert results[1].lei == "ABCDEFGHIJ"
         assert results[1].filing_period == "FilingPeriod2024"
 
-
     async def test_get_latest_submission(self, query_session: AsyncSession):
         res = await repo.get_latest_submission(query_session, lei="ABCDEFGHIJ", filing_period="FilingPeriod2024")
         assert res.id == 3
