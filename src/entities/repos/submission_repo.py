@@ -44,17 +44,6 @@ async def get_latest_submission(session: AsyncSession, lei: str, filing_period: 
         return await session.scalar(stmt)
 
 
-async def get_latest_submission(session: AsyncSession, filing_id: int) -> List[SubmissionDAO]:
-    async with session.begin():
-        stmt = (
-            select(SubmissionDAO)
-            .filter(SubmissionDAO.filing == filing_id)
-            .order_by(desc(SubmissionDAO.submission_time))
-            .limit(1)
-        )
-        return await session.scalar(stmt)
-
-
 async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:
     return await query_helper(session, FilingPeriodDAO)
 

@@ -192,14 +192,6 @@ class TestSubmissionRepo:
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
         assert res.validation_ruleset_version == "v1"
 
-    async def test_get_latest_submission(self, query_session: AsyncSession):
-        res = await repo.get_latest_submission(query_session, filing_id=2)
-        assert res.id == 3
-        assert res.submitter == "test2@cfpb.gov"
-        assert res.filing == 2
-        assert res.state == SubmissionState.SUBMISSION_UPLOADED
-        assert res.validation_ruleset_version == "v1"
-
     async def test_get_submission(self, query_session: AsyncSession):
         res = await repo.get_submission(query_session, submission_id=1)
         assert res.id == 1
