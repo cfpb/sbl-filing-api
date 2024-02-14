@@ -7,6 +7,8 @@ from entities.engine import get_session
 
 from copy import deepcopy
 
+from async_lru import alru_cache
+
 from entities.models import (
     SubmissionDAO,
     SubmissionDTO,
@@ -55,16 +57,15 @@ async def get_submission(session: AsyncSession, submission_id: int) -> Submissio
 
 async def get_filing(session: AsyncSession, lei: str, filing_period: str) -> FilingDAO:
     result = await query_helper(session, FilingDAO, lei=lei, filing_period=filing_period)
-    result = deepcopy(result)
     if result:
-        await populate_missing_tasks(session, result)
+        result = await populate_missing_tasks(session, result)
     return result[0] if result else None
 
 
 async def get_period_filings(session: AsyncSession, lei: str, filing_period: str) -> List[FilingDAO]:
     filings = await query_helper(session, FilingDAO, lei=lei, filing_period=filing_period)
-    filings = deepcopy(filings)
-    await populate_missing_tasks(session, filings)
+    if filings:
+        filings = await populate_missing_tasks(session, filings)
 
     return filings
 
@@ -74,6 +75,7 @@ async def get_filing_period(session: AsyncSession, filing_period: str) -> Filing
     return result[0] if result else None
 
 
+@alru_cache(maxsize=128)
 async def get_filing_tasks(session: AsyncSession) -> List[FilingTaskDAO]:
     return await query_helper(session, FilingTaskDAO)
 
@@ -135,8 +137,9 @@ async def query_helper(session: AsyncSession, table_obj: T, **filter_args) -> Li
 
 
 async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]):
-    filing_tasks = await query_helper(session, FilingTaskDAO)
-    for f in filings:
+    filing_tasks = await get_filing_tasks(session)
+    filings_copy = deepcopy(filings)
+    for f in filings_copy:
         tasks = [t.task for t in f.tasks]
         missing_tasks = [t for t in filing_tasks if t not in tasks]
         for mt in missing_tasks:
@@ -149,3 +152,5 @@ async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]
                     user="",
                 )
             )
+
+    return filings_copy
