@@ -21,8 +21,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "filing_task_state",
-        sa.Column("filing", sa.INTEGER, primary_key=True),
-        sa.Column("task_name", sa.String, primary_key=True),
+        sa.Column("id", sa.INTEGER, autoincrement=True),
+        sa.Column("filing_period", sa.String),
+        sa.Column("lei", sa.String),
+        sa.Column("task_name", sa.String),
         sa.Column(
             "state",
             sa.Enum(
@@ -34,8 +36,8 @@ def upgrade() -> None:
         ),
         sa.Column("user", sa.String, nullable=False),
         sa.Column("change_timestamp", sa.DateTime, nullable=False),
-        sa.PrimaryKeyConstraint("filing", "task_name", name="filing_task_state_pkey"),
-        sa.ForeignKeyConstraint(["filing"], ["filing.id"], name="filing_task_state_filing_fkey"),
+        sa.PrimaryKeyConstraint("id", name="filing_task_state_pkey"),
+        sa.ForeignKeyConstraint(["filing_period", "lei"], ["filing.filing_period","filing.lei"], name="filing_task_state_filing_fkey"),
         sa.ForeignKeyConstraint(["task_name"], ["filing_task.name"], name="filing_task_state_filing_task_fkey"),
     )
 

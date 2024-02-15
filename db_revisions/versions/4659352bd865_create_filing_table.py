@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "filing",
-        sa.Column("id", sa.INTEGER, primary_key=True, autoincrement=True),
+        sa.Column("filing_period", sa.String, nullable=False),
         sa.Column("lei", sa.String, nullable=False),
         sa.Column(
             "state",
@@ -33,10 +33,9 @@ def upgrade() -> None:
             ),
         ),
         sa.Column("institution_snapshot_id", sa.String, nullable=False),
-        sa.Column("filing_period", sa.Integer),
         sa.Column("contact_info", sa.String),
-        sa.PrimaryKeyConstraint("id", name="filing_pkey"),
-        sa.ForeignKeyConstraint(["filing_period"], ["filing_period.id"], name="filing_filing_period_fkey"),
+        sa.PrimaryKeyConstraint("filing_period", "lei", name="filing_pkey"),
+        sa.ForeignKeyConstraint(["filing_period"], ["filing_period.name"], name="filing_filing_period_fkey"),
     )
 
 

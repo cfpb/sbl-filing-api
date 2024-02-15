@@ -27,13 +27,12 @@ async def get_filing_periods(request: Request):
     return await repo.get_filing_periods(request.state.db_session)
 
 
-# This has to come after the /periods endpoint
-@router.get("/{lei}/{period_name}", response_model=FilingDTO)
+@router.get("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
 async def get_filing(request: Request, lei: str, period_name: str):
     return await repo.get_filing(request.state.db_session, lei, period_name)
 
 
-@router.post("/{lei}/{period_name}", response_model=FilingDTO)
+@router.post("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
 async def post_filing(request: Request, lei: str, period_name: str, filing_obj: FilingDTO = None):
     if filing_obj:
         return await repo.upsert_filing(request.state.db_session, filing_obj)
@@ -50,13 +49,13 @@ async def upload_file(
     background_tasks.add_task(submission_processor.validate_submission, lei, submission_id, content)
 
 
-@router.get("/{lei}/{period_name}/submissions", response_model=List[SubmissionDTO])
+@router.get("/institutions/{lei}/filings/{period_name}/submissions", response_model=List[SubmissionDTO])
 @requires("authenticated")
 async def get_submission(request: Request, lei: str, period_name: str):
     return await repo.get_submissions(request.state.db_session, lei, period_name)
 
 
-@router.get("/{lei}/{period_name}/submissions/latest", response_model=SubmissionDTO)
+@router.get("/institutions/{lei}/filings/{period_name}/submissions/latest", response_model=SubmissionDTO)
 async def get_submission_latest(request: Request, lei: str, period_name: str):
     result = await repo.get_latest_submission(request.state.db_session, lei, period_name)
     if result:

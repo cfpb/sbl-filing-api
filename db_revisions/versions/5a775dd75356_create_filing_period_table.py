@@ -20,13 +20,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "filing_period",
-        sa.Column("id", sa.INTEGER, primary_key=True, autoincrement=True),
         sa.Column("name", sa.String, nullable=False),
         sa.Column("start_period", sa.DateTime, nullable=False),
         sa.Column("end_period", sa.DateTime, nullable=False),
         sa.Column("due", sa.DateTime, nullable=False),
         sa.Column("filing_type", sa.Enum("ANNUAL", name="filingtype"), server_default="ANNUAL"),
-        sa.PrimaryKeyConstraint("id", name="filing_period_pkey"),
+        sa.PrimaryKeyConstraint("name", name="filing_period_pkey"),
     )
 
 

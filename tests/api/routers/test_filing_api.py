@@ -30,12 +30,12 @@ class TestFilingApi:
         self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, unauthed_user_mock: Mock
     ):
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/123456790/2024/submissions")
+        res = client.get("/v1/filing/institutions/123456790/filings/2024/submissions")
         assert res.status_code == 403
 
     def test_get_filing(self, app_fixture: FastAPI, get_filing_mock: Mock):
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/1234567890/2024/")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/")
         get_filing_mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
         assert res.json()["lei"] == "1234567890"
@@ -43,7 +43,7 @@ class TestFilingApi:
 
     def test_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock):
         client = TestClient(app_fixture)
-        res = client.post("/v1/filing/ZXWVUTSRQP/2024/")
+        res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
         post_filing_mock.assert_called_with(ANY, "ZXWVUTSRQP", "2024")
         assert res.status_code == 200
         assert res.json()["lei"] == "ZXWVUTSRQP"
@@ -63,7 +63,7 @@ class TestFilingApi:
         ]
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/1234567890/2024/submissions")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions")
         results = res.json()
         mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
@@ -74,7 +74,7 @@ class TestFilingApi:
         # verify an empty submission list returns ok
         mock.return_value = []
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/1234567890/2024/submissions")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions")
         results = res.json()
         mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
@@ -92,7 +92,7 @@ class TestFilingApi:
         )
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/1234567890/2024/submissions/latest")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest")
         result = res.json()
         mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
@@ -101,6 +101,6 @@ class TestFilingApi:
         # verify an empty submission result is ok
         mock.return_value = []
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/1234567890/2024/submissions/latest")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest")
         mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 204
