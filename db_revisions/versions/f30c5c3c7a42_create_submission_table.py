@@ -41,7 +41,9 @@ def upgrade() -> None:
         sa.Column("lei", sa.String),
         sa.Column("confirmation_id", sa.String),
         sa.PrimaryKeyConstraint("id", name="submission_pkey"),
-        sa.ForeignKeyConstraint(["filing_period", "lei"], ["filing.filing_period","filing.lei"], name="submission_filing_fkey"),
+        sa.ForeignKeyConstraint(
+            ["filing_period", "lei"], ["filing.filing_period", "filing.lei"], name="submission_filing_fkey"
+        ),
     )
 
 

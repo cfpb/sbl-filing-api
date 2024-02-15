@@ -23,11 +23,11 @@ def test_migrations_up_to_078cbbc69fe5(alembic_runner: MigrationContext, alembic
     assert {"id", "filing_period", "lei", "task_name", "state", "user", "change_timestamp"} == set(
         [c["name"] for c in inspector.get_columns("filing_task_state")]
     )
-    
+
     filing_task_state_pk = inspector.get_pk_constraint("filing_task_state")
     assert filing_task_state_pk["name"] == "filing_task_state_pkey"
     assert filing_task_state_pk["constrained_columns"] == ["id"]
-    
+
     filing_task_state_fk = inspector.get_foreign_keys("filing_task_state")[0]
     assert filing_task_state_fk["name"] == "filing_task_state_filing_fkey"
     assert (
@@ -74,7 +74,6 @@ def test_migrations(alembic_runner: MigrationContext, alembic_engine: Engine):
         "confirmation_id",
     } == set([c["name"] for c in inspector.get_columns("submission")])
 
-    
     filing_period_pk = inspector.get_pk_constraint("filing_period")
     assert filing_period_pk["name"] == "filing_period_pkey"
     assert filing_period_pk["constrained_columns"] == ["name"]
