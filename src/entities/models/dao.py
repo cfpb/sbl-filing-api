@@ -2,7 +2,7 @@ from .model_enums import FilingType, FilingTaskState, SubmissionState
 from datetime import datetime
 from typing import Any, List
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, func, ForeignKeyConstraint
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import JSON
@@ -15,24 +15,22 @@ class Base(AsyncAttrs, DeclarativeBase):
 class SubmissionDAO(Base):
     __tablename__ = "submission"
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
+    filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
     submitter: Mapped[str]
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
-    filing_period: Mapped[str]
-    lei: Mapped[str]
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
 
-    __table_args__ = (ForeignKeyConstraint(["filing_period", "lei"], ["filing.filing_period", "filing.lei"]),)
-
     def __str__(self):
-        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing_period}, LEI: {self.lei}, Submission: {self.submission_time}"
+        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"
 
 
 class FilingPeriodDAO(Base):
     __tablename__ = "filing_period"
-    name: Mapped[str] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(primary_key=True)
+    description: Mapped[str]
     start_period: Mapped[datetime]
     end_period: Mapped[datetime]
     due: Mapped[datetime]
@@ -52,24 +50,22 @@ class FilingTaskStateDAO(Base):
     __tablename__ = "filing_task_state"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    filing_period: Mapped[str]
-    lei: Mapped[str]
+    filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
     task_name: Mapped[str] = mapped_column(ForeignKey("filing_task.name"))
     task: Mapped[FilingTaskDAO] = relationship(lazy="selectin")
     user: Mapped[str]
     state: Mapped[FilingTaskState] = mapped_column(SAEnum(FilingTaskState))
     change_timestamp: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
-    __table_args__ = (ForeignKeyConstraint(["filing_period", "lei"], ["filing.filing_period", "filing.lei"]),)
-
     def __str__(self):
-        return f"Filing ID: {self.filing}, Task: {self.task}, User: {self.user}, state: {self.state}, Timestamp: {self.change_timestamp}"
+        return f"ID: {self.id},Filing ID: {self.filing}, Task: {self.task}, User: {self.user}, state: {self.state}, Timestamp: {self.change_timestamp}"
 
 
 class FilingDAO(Base):
     __tablename__ = "filing"
-    filing_period: Mapped[str] = mapped_column(ForeignKey("filing_period.name"), primary_key=True)
-    lei: Mapped[str] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    filing_period: Mapped[str] = mapped_column(ForeignKey("filing_period.code"))
+    lei: Mapped[str]
     tasks: Mapped[List[FilingTaskStateDAO]] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[str] = mapped_column(nullable=True)

@@ -37,13 +37,10 @@ def upgrade() -> None:
         ),
         sa.Column("validation_ruleset_version", sa.String),
         sa.Column("validation_json", sa.JSON),
-        sa.Column("filing_period", sa.String),
-        sa.Column("lei", sa.String),
+        sa.Column("filing", sa.Integer),
         sa.Column("confirmation_id", sa.String),
         sa.PrimaryKeyConstraint("id", name="submission_pkey"),
-        sa.ForeignKeyConstraint(
-            ["filing_period", "lei"], ["filing.filing_period", "filing.lei"], name="submission_filing_fkey"
-        ),
+        sa.ForeignKeyConstraint(["filing"], ["filing.id"], name="submission_filing_fkey"),
     )
 
 

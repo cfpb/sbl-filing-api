@@ -32,18 +32,17 @@ class NoFilingPeriodException(Exception):
 
 
 async def get_submissions(session: AsyncSession, lei: str = None, filing_period: str = None) -> List[SubmissionDAO]:
-    return await query_helper(session, SubmissionDAO, lei=lei, filing_period=filing_period)
+    filing_id = None
+    if lei and filing_period:
+        filing = await get_filing(session, lei=lei, filing_period=filing_period)
+        filing_id = filing.id
+    return await query_helper(session, SubmissionDAO, filing=filing_id)
 
 
 async def get_latest_submission(session: AsyncSession, lei: str, filing_period: str) -> List[SubmissionDAO]:
-    async with session.begin():
-        stmt = (
-            select(SubmissionDAO)
-            .filter_by(lei=lei, filing_period=filing_period)
-            .order_by(desc(SubmissionDAO.submission_time))
-            .limit(1)
-        )
-        return await session.scalar(stmt)
+    filing = await get_filing(session, lei=lei, filing_period=filing_period)
+    stmt = select(SubmissionDAO).filter_by(filing=filing.id).order_by(desc(SubmissionDAO.submission_time)).limit(1)
+    return await session.scalar(stmt)
 
 
 async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:
@@ -70,7 +69,7 @@ async def get_period_filings(session: AsyncSession, filing_period: str) -> List[
 
 
 async def get_filing_period(session: AsyncSession, filing_period: str) -> FilingPeriodDAO:
-    result = await query_helper(session, FilingPeriodDAO, name=filing_period)
+    result = await query_helper(session, FilingPeriodDAO, code=filing_period)
     return result[0] if result else None
 
 
@@ -82,8 +81,7 @@ async def get_filing_tasks(session: AsyncSession) -> List[FilingTaskDAO]:
 async def add_submission(session: AsyncSession, submission: SubmissionDTO) -> SubmissionDAO:
     async with session.begin():
         new_sub = SubmissionDAO(
-            filing_period=submission.filing_period,
-            lei=submission.lei,
+            filing=submission.filing,
             submitter=submission.submitter,
             state=SubmissionState.SUBMISSION_UPLOADED,
         )
@@ -121,8 +119,8 @@ async def create_new_filing(session: AsyncSession, lei: str, filing_period: str)
         institution_snapshot_id="v1",  # need story to retrieve this from user-fi I believe
     )
     new_filing = await upsert_helper(session, new_filing, FilingDAO)
-    new_filing = await populate_missing_tasks(session, [new_filing])[0]
-    return new_filing
+    new_filing = await populate_missing_tasks(session, [new_filing])
+    return new_filing[0]
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
@@ -133,7 +131,8 @@ async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T)
         del copy_data["_sa_instance_state"]
     new_dao = table_obj(**copy_data)
     new_dao = await session.merge(new_dao)
-    await session.commit()
+    await session.flush()
+    await session.refresh(new_dao)
     return new_dao
 
 
@@ -155,8 +154,7 @@ async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]
         for mt in missing_tasks:
             f.tasks.append(
                 FilingTaskStateDAO(
-                    filing_period=f.filing_period,
-                    lei=f.lei,
+                    filing=f.id,
                     task_name=mt.name,
                     state=FilingTaskState.NOT_STARTED,
                     user="",

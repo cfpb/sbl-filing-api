@@ -24,7 +24,7 @@ class TestFilingApi:
         res = client.get("/v1/filing/periods")
         assert res.status_code == 200
         assert len(res.json()) == 1
-        assert res.json()[0]["name"] == "FilingPeriod2024"
+        assert res.json()[0]["code"] == "2024"
 
     def test_unauthed_get_submissions(
         self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, unauthed_user_mock: Mock
@@ -54,8 +54,7 @@ class TestFilingApi:
         mock.return_value = [
             SubmissionDAO(
                 submitter="test1@cfpb.gov",
-                filing_period="2024",
-                lei="1234567890",
+                filing=1,
                 state=SubmissionState.SUBMISSION_UPLOADED,
                 validation_ruleset_version="v1",
                 submission_time=datetime.datetime.now(),
@@ -84,8 +83,7 @@ class TestFilingApi:
         mock = mocker.patch("entities.repos.submission_repo.get_latest_submission")
         mock.return_value = SubmissionDAO(
             submitter="test1@cfpb.gov",
-            filing_period="2024",
-            lei="1234567890",
+            filing=1,
             state=SubmissionState.VALIDATION_IN_PROGRESS,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),

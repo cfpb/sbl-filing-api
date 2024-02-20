@@ -49,7 +49,8 @@ def get_filing_period_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("entities.repos.submission_repo.get_filing_periods")
     mock.return_value = [
         FilingPeriodDAO(
-            name="FilingPeriod2024",
+            code="2024",
+            description="Filing Period 2024",
             start_period=datetime.now(),
             end_period=datetime.now(),
             due=datetime.now(),
@@ -63,18 +64,19 @@ def get_filing_period_mock(mocker: MockerFixture) -> Mock:
 def get_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("entities.repos.submission_repo.get_filing")
     mock.return_value = FilingDAO(
+        id=1,
         lei="1234567890",
         tasks=[
             FilingTaskStateDAO(
-                filing_period="2024",
-                lei="1234567890",
+                id=1,
+                filing=1,
                 task=FilingTaskDAO(name="Task-1", task_order=1),
                 state=FilingTaskState.NOT_STARTED,
                 user="",
             ),
             FilingTaskStateDAO(
-                filing_period="2024",
-                lei="1234567890",
+                id=2,
+                filing=1,
                 task=FilingTaskDAO(name="Task-2", task_order=2),
                 state=FilingTaskState.NOT_STARTED,
                 user="",
@@ -91,18 +93,19 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
 def post_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("entities.repos.submission_repo.create_new_filing")
     mock.return_value = FilingDAO(
+        id=3,
         lei="ZXWVUTSRQP",
         tasks=[
             FilingTaskStateDAO(
-                filing_period="2024",
-                lei="ZXWVUTSRQP",
+                id=1,
+                filing=3,
                 task=FilingTaskDAO(name="Task-1", task_order=1),
                 state=FilingTaskState.NOT_STARTED,
                 user="",
             ),
             FilingTaskStateDAO(
-                filing_period="2024",
-                lei="ZXWVUTSRQP",
+                id=2,
+                filing=3,
                 task=FilingTaskDAO(name="Task-2", task_order=2),
                 state=FilingTaskState.NOT_STARTED,
                 user="",
