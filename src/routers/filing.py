@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
+from fastapi import Depends, Request, UploadFile, BackgroundTasks, status
 from fastapi.responses import JSONResponse
 from regtech_api_commons.api import Router
 from services import submission_processor
@@ -27,13 +27,17 @@ async def get_filing_periods(request: Request):
     return await repo.get_filing_periods(request.state.db_session)
 
 
-# This has to come after the /periods endpoint
-@router.get("/{period_name}", response_model=List[FilingDTO])
-async def get_filings(request: Request, period_name: str):
-    try:
-        return await repo.get_period_filings_for_user(request.state.db_session, period_name)
-    except repo.NoFilingPeriodException as nfpe:
-        raise HTTPException(status_code=500, detail=str(nfpe))
+@router.get("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
+async def get_filing(request: Request, lei: str, period_name: str):
+    return await repo.get_filing(request.state.db_session, lei, period_name)
+
+
+@router.post("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
+async def post_filing(request: Request, lei: str, period_name: str, filing_obj: FilingDTO = None):
+    if filing_obj:
+        return await repo.upsert_filing(request.state.db_session, filing_obj)
+    else:
+        return await repo.create_new_filing(request.state.db_session, lei, period_name)
 
 
 @router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)
@@ -45,15 +49,15 @@ async def upload_file(
     background_tasks.add_task(submission_processor.validate_submission, lei, submission_id, content)
 
 
-@router.get("/{lei}/filings/{filing_id}/submissions", response_model=List[SubmissionDTO])
+@router.get("/institutions/{lei}/filings/{period_name}/submissions", response_model=List[SubmissionDTO])
 @requires("authenticated")
-async def get_submission(request: Request, lei: str, filing_id: int):
-    return await repo.get_submissions(request.state.db_session, filing_id)
+async def get_submission(request: Request, lei: str, period_name: str):
+    return await repo.get_submissions(request.state.db_session, lei, period_name)
 
 
-@router.get("/{lei}/filings/{filing_id}/submissions/latest", response_model=SubmissionDTO)
-async def get_submission_latest(request: Request, lei: str, filing_id: int):
-    result = await repo.get_latest_submission(request.state.db_session, filing_id)
+@router.get("/institutions/{lei}/filings/{period_name}/submissions/latest", response_model=SubmissionDTO)
+async def get_submission_latest(request: Request, lei: str, period_name: str):
+    result = await repo.get_latest_submission(request.state.db_session, lei, period_name)
     if result:
         return result
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)

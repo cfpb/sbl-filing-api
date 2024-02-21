@@ -4,7 +4,6 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
 from entities.engine import get_session
-from regtech_api_commons.models.auth import AuthenticatedUser
 
 from copy import deepcopy
 
@@ -32,19 +31,18 @@ class NoFilingPeriodException(Exception):
     pass
 
 
-async def get_submissions(session: AsyncSession, filing_id: int = None) -> List[SubmissionDAO]:
-    return await query_helper(session, SubmissionDAO, "filing", filing_id)
+async def get_submissions(session: AsyncSession, lei: str = None, filing_period: str = None) -> List[SubmissionDAO]:
+    filing_id = None
+    if lei and filing_period:
+        filing = await get_filing(session, lei=lei, filing_period=filing_period)
+        filing_id = filing.id
+    return await query_helper(session, SubmissionDAO, filing=filing_id)
 
 
-async def get_latest_submission(session: AsyncSession, filing_id: int) -> List[SubmissionDAO]:
-    async with session.begin():
-        stmt = (
-            select(SubmissionDAO)
-            .filter(SubmissionDAO.filing == filing_id)
-            .order_by(desc(SubmissionDAO.submission_time))
-            .limit(1)
-        )
-        return await session.scalar(stmt)
+async def get_latest_submission(session: AsyncSession, lei: str, filing_period: str) -> List[SubmissionDAO]:
+    filing = await get_filing(session, lei=lei, filing_period=filing_period)
+    stmt = select(SubmissionDAO).filter_by(filing=filing.id).order_by(desc(SubmissionDAO.submission_time)).limit(1)
+    return await session.scalar(stmt)
 
 
 async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:
@@ -52,34 +50,26 @@ async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:
 
 
 async def get_submission(session: AsyncSession, submission_id: int) -> SubmissionDAO:
-    result = await query_helper(session, SubmissionDAO, "id", submission_id)
+    result = await query_helper(session, SubmissionDAO, id=submission_id)
     return result[0] if result else None
 
 
-async def get_filing(session: AsyncSession, filing_id: int) -> FilingDAO:
-    result = await query_helper(session, FilingDAO, "id", filing_id)
+async def get_filing(session: AsyncSession, lei: str, filing_period: str) -> FilingDAO:
+    result = await query_helper(session, FilingDAO, lei=lei, filing_period=filing_period)
     if result:
         result = await populate_missing_tasks(session, result)
     return result[0] if result else None
 
 
-async def get_period_filings_for_user(
-    session: AsyncSession, user: AuthenticatedUser, period_name: str
-) -> List[FilingDAO]:
-    filing_period = await query_helper(session, FilingPeriodDAO, "name", period_name)
-    if filing_period:
-        filings = await query_helper(session, FilingDAO, "filing_period", filing_period[0].id)
-        filings = [f for f in filings if f.lei in user.institutions]
-        if filings:
-            filings = await populate_missing_tasks(session, filings)
-
-        return filings
-    else:
-        raise NoFilingPeriodException(f"There is no Filing Period with name {period_name} defined in the database.")
+async def get_period_filings(session: AsyncSession, filing_period: str) -> List[FilingDAO]:
+    filings = await query_helper(session, FilingDAO, filing_period=filing_period)
+    if filings:
+        filings = await populate_missing_tasks(session, filings)
+    return filings
 
 
-async def get_filing_period(session: AsyncSession, filing_period_id: int) -> FilingPeriodDAO:
-    result = await query_helper(session, FilingPeriodDAO, "id", filing_period_id)
+async def get_filing_period(session: AsyncSession, filing_period: str) -> FilingPeriodDAO:
+    result = await query_helper(session, FilingPeriodDAO, code=filing_period)
     return result[0] if result else None
 
 
@@ -122,26 +112,40 @@ async def upsert_filing(session: AsyncSession, filing: FilingDTO) -> FilingDAO:
     return await upsert_helper(session, filing, FilingDAO)
 
 
+async def create_new_filing(session: AsyncSession, lei: str, filing_period: str) -> FilingDAO:
+    new_filing = FilingDAO(
+        filing_period=filing_period,
+        lei=lei,
+        institution_snapshot_id="v1",  # need story to retrieve this from user-fi I believe
+    )
+    new_filing = await upsert_helper(session, new_filing, FilingDAO)
+    new_filing = await populate_missing_tasks(session, [new_filing])
+    return new_filing[0]
+
+
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
     copy_data = original_data.__dict__.copy()
     # this is only for if a DAO is passed in
     # Should be DTOs, but hey, it's python
-    if copy_data["id"] is not None and "_sa_instance_state" in copy_data:
+    if "_sa_instance_state" in copy_data:
         del copy_data["_sa_instance_state"]
     new_dao = table_obj(**copy_data)
     new_dao = await session.merge(new_dao)
-    await session.commit()
+    await session.flush()
+    await session.refresh(new_dao)
     return new_dao
 
 
-async def query_helper(session: AsyncSession, table_obj: T, column_name: str = None, value: Any = None) -> List[T]:
+async def query_helper(session: AsyncSession, table_obj: T, **filter_args) -> List[T]:
     stmt = select(table_obj)
-    if column_name and value:
-        stmt = stmt.filter(getattr(table_obj, column_name) == value)
+    # remove empty args
+    filter_args = {k: v for k, v in filter_args.items() if v is not None}
+    if filter_args:
+        stmt = stmt.filter_by(**filter_args)
     return (await session.scalars(stmt)).all()
 
 
-async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]) -> List[FilingDAO]:
+async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]):
     filing_tasks = await get_filing_tasks(session)
     filings_copy = deepcopy(filings)
     for f in filings_copy:
@@ -149,6 +153,12 @@ async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]
         missing_tasks = [t for t in filing_tasks if t not in tasks]
         for mt in missing_tasks:
             f.tasks.append(
-                FilingTaskStateDAO(filing=f.id, task_name=mt.name, state=FilingTaskState.NOT_STARTED, user="")
+                FilingTaskStateDAO(
+                    filing=f.id,
+                    task_name=mt.name,
+                    state=FilingTaskState.NOT_STARTED,
+                    user="",
+                )
             )
+
     return filings_copy

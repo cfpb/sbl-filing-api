@@ -24,30 +24,30 @@ class TestFilingApi:
         res = client.get("/v1/filing/periods")
         assert res.status_code == 200
         assert len(res.json()) == 1
-        assert res.json()[0]["name"] == "FilingPeriod2024"
+        assert res.json()[0]["code"] == "2024"
 
     def test_unauthed_get_submissions(
         self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, unauthed_user_mock: Mock
     ):
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/123456790/filings/1/submissions")
+        res = client.get("/v1/filing/institutions/123456790/filings/2024/submissions")
         assert res.status_code == 403
 
-    def test_get_filings(self, app_fixture: FastAPI, get_filings_mock: Mock):
+    def test_get_filing(self, app_fixture: FastAPI, get_filing_mock: Mock):
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/FilingPeriod2024")
-        get_filings_mock.assert_called_with(ANY, "FilingPeriod2024")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/")
+        get_filing_mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
-        assert len(res.json()) == 1
-        assert res.json()[0]["lei"] == "12345678"
+        assert res.json()["lei"] == "1234567890"
+        assert res.json()["filing_period"] == "2024"
 
-    def test_get_filings_with_error(self, app_fixture: FastAPI, get_filings_error_mock: Mock):
+    def test_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock):
         client = TestClient(app_fixture)
-        response = client.get("/v1/filing/FilingPeriod2025")
-        assert response.status_code == 500
-        assert response.json() == {
-            "detail": "There is no Filing Period with name FilingPeriod2025 defined in the database."
-        }
+        res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
+        post_filing_mock.assert_called_with(ANY, "ZXWVUTSRQP", "2024")
+        assert res.status_code == 200
+        assert res.json()["lei"] == "ZXWVUTSRQP"
+        assert res.json()["filing_period"] == "2024"
 
     async def test_get_submissions(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         mock = mocker.patch("entities.repos.submission_repo.get_submissions")
@@ -62,9 +62,9 @@ class TestFilingApi:
         ]
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/123456790/filings/1/submissions")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions")
         results = res.json()
-        mock.assert_called_with(ANY, 1)
+        mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
         assert len(results) == 1
         assert results[0]["submitter"] == "test1@cfpb.gov"
@@ -73,9 +73,9 @@ class TestFilingApi:
         # verify an empty submission list returns ok
         mock.return_value = []
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/123456790/filings/2/submissions")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions")
         results = res.json()
-        mock.assert_called_with(ANY, 2)
+        mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
         assert len(results) == 0
 
@@ -90,15 +90,15 @@ class TestFilingApi:
         )
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/123456790/filings/1/submissions/latest")
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest")
         result = res.json()
-        mock.assert_called_with(ANY, 1)
+        mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 200
         assert result["state"] == SubmissionState.VALIDATION_IN_PROGRESS
 
         # verify an empty submission result is ok
         mock.return_value = []
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/123456790/filings/1/submissions/latest")
-        mock.assert_called_with(ANY, 1)
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest")
+        mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 204
