@@ -54,3 +54,10 @@ class FilingPeriodDTO(BaseModel):
     end_period: datetime
     due: datetime
     filing_type: FilingType
+    
+    
+class StateUpdateDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    state: FilingTaskState
+    

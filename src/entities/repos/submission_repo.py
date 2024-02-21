@@ -111,7 +111,7 @@ async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSe
         except Exception as e:
             await session.rollback()
             logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
-            raise
+            raise    
 
 
 async def upsert_filing_period(session: AsyncSession, filing_period: FilingPeriodDTO) -> FilingPeriodDAO:
