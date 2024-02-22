@@ -66,4 +66,4 @@ async def get_submission_latest(request: Request, lei: str, period_name: str):
 @router.post("/institutions/{lei}/filings/{period_name}/tasks/{task_name}")
 @requires("authenticated")
 async def update_task_state(request: Request, lei: str, period_name: str, task_name: str, state: StateUpdateDTO):
-    await repo.update_task_state(request.state.db_session, lei, period_name, task_name, state.state)
+    await repo.update_task_state(request.state.db_session, lei, period_name, task_name, state.state, request.user)
