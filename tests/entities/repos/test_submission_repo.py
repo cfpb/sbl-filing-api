@@ -68,7 +68,7 @@ class TestSubmissionRepo:
         transaction_session.add(filing1)
         transaction_session.add(filing2)
         transaction_session.add(filing3)
-        
+
         filing_task1 = FilingTaskStateDAO(
             id=1,
             filing=1,
@@ -76,7 +76,7 @@ class TestSubmissionRepo:
             user="testuser",
             state="IN_PROGRESS",
         )
-        transaction_session.add(filing_task1)   
+        transaction_session.add(filing_task1)
 
         submission1 = SubmissionDAO(
             id=1,
@@ -157,7 +157,9 @@ class TestSubmissionRepo:
 
     async def test_mod_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
         user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
-        await repo.update_task_state(query_session, lei="1234567890", filing_period="2024", task_name="Task-1", state="COMPLETED", user=user)
+        await repo.update_task_state(
+            query_session, lei="1234567890", filing_period="2024", task_name="Task-1", state="COMPLETED", user=user
+        )
         seconds_now = dt.utcnow().timestamp()
         filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
         filing_task_states = filing.tasks
@@ -171,10 +173,12 @@ class TestSubmissionRepo:
         assert filing_task_states[0].change_timestamp.timestamp() == pytest.approx(
             seconds_now, abs=1.0
         )  # allow for possible 1 second difference
-        
+
     async def test_add_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
         user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
-        await repo.update_task_state(query_session, lei="1234567890", filing_period="2024", task_name="Task-2", state="IN_PROGRESS", user=user)
+        await repo.update_task_state(
+            query_session, lei="1234567890", filing_period="2024", task_name="Task-2", state="IN_PROGRESS", user=user
+        )
         seconds_now = dt.utcnow().timestamp()
         filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
         filing_task_states = filing.tasks

@@ -4,11 +4,8 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
 from entities.engine import get_session
-<<<<<<< HEAD
 
 from regtech_api_commons.models import AuthenticatedUser
-=======
->>>>>>> main
 
 from copy import deepcopy
 
@@ -106,7 +103,7 @@ async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSe
         except Exception as e:
             await session.rollback()
             logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
-            raise    
+            raise
 
 
 async def upsert_filing_period(session: AsyncSession, filing_period: FilingPeriodDTO) -> FilingPeriodDAO:
@@ -128,17 +125,18 @@ async def create_new_filing(session: AsyncSession, lei: str, filing_period: str)
     return new_filing[0]
 
 
-async def update_task_state(session: AsyncSession, lei: str, filing_period: str, task_name: str, state: FilingTaskState, user: AuthenticatedUser):
+async def update_task_state(
+    session: AsyncSession, lei: str, filing_period: str, task_name: str, state: FilingTaskState, user: AuthenticatedUser
+):
     filing = await get_filing(session, lei=lei, filing_period=filing_period)
     found_task = await query_helper(session, FilingTaskStateDAO, filing=filing.id, task_name=task_name)
     if found_task:
-        task = found_task[0] #should only be one
+        task = found_task[0]  # should only be one
         task.state = state
         task.user = user.username
     else:
         task = FilingTaskStateDAO(filing=filing.id, state=state, task_name=task_name, user=user.username)
     await upsert_helper(session, task, FilingTaskStateDAO)
-
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
