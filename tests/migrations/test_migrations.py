@@ -88,6 +88,11 @@ def test_migrations(alembic_runner: MigrationContext, alembic_engine: Engine):
         and "filing_period" == filing_fk["referred_table"]
         and "code" in filing_fk["referred_columns"]
     )
+    
+    filing_idx = inspector.get_indexes("filing")[0]
+    assert filing_idx["name"] == "idx_lei_filing_period"
+    assert ['lei', 'filing_period'] == filing_idx["column_names"]
+    assert filing_idx["unique"] == 1
 
     submission_fk = inspector.get_foreign_keys("submission")[0]
     assert submission_fk["name"] == "submission_filing_fkey"
