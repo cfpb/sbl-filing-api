@@ -13,7 +13,7 @@ __all__ = [
     "FilingPeriodDTO",
     "FilingType",
     "FilingTaskState",
-    "StateUpdateDTO"
+    "StateUpdateDTO",
 ]
 
 from .dao import Base, SubmissionDAO, FilingPeriodDAO, FilingDAO, FilingTaskStateDAO, FilingTaskDAO

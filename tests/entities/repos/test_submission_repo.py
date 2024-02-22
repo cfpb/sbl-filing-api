@@ -68,7 +68,6 @@ class TestSubmissionRepo:
         transaction_session.add(filing1)
         transaction_session.add(filing2)
         transaction_session.add(filing3)
-<<<<<<< HEAD
         
         filing_task1 = FilingTaskStateDAO(
             id=1,
@@ -78,8 +77,6 @@ class TestSubmissionRepo:
             state="IN_PROGRESS",
         )
         transaction_session.add(filing_task1)   
-=======
->>>>>>> main
 
         submission1 = SubmissionDAO(
             id=1,

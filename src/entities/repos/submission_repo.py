@@ -173,11 +173,7 @@ async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]
             f.tasks.append(
                 FilingTaskStateDAO(
                     filing=f.id,
-<<<<<<< HEAD
                     task_name=mt,
-=======
-                    task_name=mt.name,
->>>>>>> main
                     state=FilingTaskState.NOT_STARTED,
                     user="",
                 )
