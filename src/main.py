@@ -1,4 +1,7 @@
+import logging
 import os
+
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.security import OAuth2AuthorizationCodeBearer
@@ -15,16 +18,28 @@ from alembic import command
 
 from config import kc_settings
 
-app = FastAPI()
+log = logging.getLogger()
 
 
-@app.on_event("startup")
-async def app_start():
+@asynccontextmanager
+async def lifespan(app_: FastAPI):
+    log.info("Starting up filing-api server.")
+    log.info("Running alembic migrations...")
+    run_migrations()
+    log.info("Migrations complete, API is ready to start serving requests.")
+    yield
+    log.info("Shutting down filing-api server...")
+
+
+def run_migrations():
     file_dir = os.path.dirname(os.path.realpath(__file__))
     alembic_cfg = Config(f"{file_dir}/../alembic.ini")
     alembic_cfg.set_main_option("script_location", f"{file_dir}/../db_revisions")
     alembic_cfg.set_main_option("prepend_sys_path", f"{file_dir}/../")
     command.upgrade(alembic_cfg, "head")
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 token_bearer = OAuth2AuthorizationCodeBearer(

@@ -4,8 +4,11 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
 from entities.engine import get_session
+<<<<<<< HEAD
 
 from regtech_api_commons.models import AuthenticatedUser
+=======
+>>>>>>> main
 
 from copy import deepcopy
 
@@ -170,7 +173,11 @@ async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]
             f.tasks.append(
                 FilingTaskStateDAO(
                     filing=f.id,
+<<<<<<< HEAD
                     task_name=mt,
+=======
+                    task_name=mt.name,
+>>>>>>> main
                     state=FilingTaskState.NOT_STARTED,
                     user="",
                 )

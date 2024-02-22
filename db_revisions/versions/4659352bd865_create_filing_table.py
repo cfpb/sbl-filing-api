@@ -37,6 +37,7 @@ def upgrade() -> None:
         sa.Column("contact_info", sa.String),
         sa.PrimaryKeyConstraint("id", name="filing_pkey"),
         sa.ForeignKeyConstraint(["filing_period"], ["filing_period.code"], name="filing_filing_period_fkey"),
+        sa.Index("idx_lei_filing_period", "lei", "filing_period", unique=True),
     )
 
 
