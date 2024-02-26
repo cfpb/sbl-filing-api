@@ -53,8 +53,9 @@ class FilingPeriodDTO(BaseModel):
     end_period: datetime
     due: datetime
     filing_type: FilingType
-    
+
+
 class UpdateValueDTO(BaseModel):
     model_config = ConfigDict(from_attribute=True)
-    
+
     value: Any

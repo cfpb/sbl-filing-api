@@ -69,7 +69,7 @@ class FilingDAO(Base):
     tasks: Mapped[List[FilingTaskStateDAO]] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[str] = mapped_column(nullable=True)
-    
+
     def __str__(self):
         return f"ID: {self.id}, Filing Period: {self.filing_period}, LEI: {self.lei}, Tasks: {self.tasks}, Institution Snapshot ID: {self.institution_snapshot_id}, Contact Info: {self.contact_info}"
 
