@@ -131,7 +131,7 @@ async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T)
         del copy_data["_sa_instance_state"]
     new_dao = table_obj(**copy_data)
     new_dao = await session.merge(new_dao)
-    await session.flush()
+    await session.commit()
     await session.refresh(new_dao)
     return new_dao
 

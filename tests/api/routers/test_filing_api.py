@@ -1,5 +1,7 @@
 import datetime
 
+from copy import deepcopy
+
 from unittest.mock import ANY, Mock
 
 from fastapi import FastAPI
@@ -102,3 +104,25 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest")
         mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 204
+        
+    async def test_patch_filing(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock):
+        filing_return = get_filing_mock.return_value
+        
+        mock = mocker.patch("entities.repos.submission_repo.upsert_filing")
+        updated_filing_obj = deepcopy(get_filing_mock.return_value)
+        updated_filing_obj.institution_snapshot_id = "v3"
+        mock.return_value = updated_filing_obj
+
+        client = TestClient(app_fixture)
+        
+        get_filing_mock.return_value = None
+        res = client.patch("/v1/filing/institutions/1234567890/filings/2025/fields/institution_snapshot_id", json={"value": "v3"})
+        assert res.status_code == 204
+
+        get_filing_mock.return_value = filing_return
+        res = client.patch("/v1/filing/institutions/1234567890/filings/2024/fields/unknown_field", json={"value": "v3"})
+        assert res.status_code == 204
+
+        res = client.patch("/v1/filing/institutions/1234567890/filings/2025/fields/institution_snapshot_id", json={"value": "v3"})
+        assert res.status_code == 200
+        assert res.json()["institution_snapshot_id"] == "v3"
