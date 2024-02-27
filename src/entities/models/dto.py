@@ -58,4 +58,4 @@ class FilingPeriodDTO(BaseModel):
 class UpdateValueDTO(BaseModel):
     model_config = ConfigDict(from_attribute=True)
 
-    value: Any
+    value: str | int | float | bool

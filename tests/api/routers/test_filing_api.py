@@ -117,16 +117,25 @@ class TestFilingApi:
 
         client = TestClient(app_fixture)
 
+        # no existing filing for endpoint
         get_filing_mock.return_value = None
         res = client.patch(
             "/v1/filing/institutions/1234567890/filings/2025/fields/institution_snapshot_id", json={"value": "v3"}
         )
         assert res.status_code == 204
 
+        # no known field for endpoint
         get_filing_mock.return_value = filing_return
         res = client.patch("/v1/filing/institutions/1234567890/filings/2024/fields/unknown_field", json={"value": "v3"})
         assert res.status_code == 204
 
+        # unallowed value data type
+        res = client.patch(
+            "/v1/filing/institutions/1234567890/filings/2025/fields/institution_snapshot_id", json={"value": ["1", "2"]}
+        )
+        assert res.status_code == 422
+
+        # good
         res = client.patch(
             "/v1/filing/institutions/1234567890/filings/2025/fields/institution_snapshot_id", json={"value": "v3"}
         )
