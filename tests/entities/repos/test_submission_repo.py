@@ -19,6 +19,7 @@ from entities.models import (
     SubmissionState,
 )
 from entities.repos import submission_repo as repo
+from regtech_api_commons.models import AuthenticatedUser
 from pytest_mock import MockerFixture
 
 from entities.engine import engine as entities_engine
@@ -67,6 +68,15 @@ class TestSubmissionRepo:
         transaction_session.add(filing1)
         transaction_session.add(filing2)
         transaction_session.add(filing3)
+
+        filing_task1 = FilingTaskStateDAO(
+            id=1,
+            filing=1,
+            task_name="Task-1",
+            user="testuser",
+            state="IN_PROGRESS",
+        )
+        transaction_session.add(filing_task1)
 
         submission1 = SubmissionDAO(
             id=1,
@@ -145,28 +155,41 @@ class TestSubmissionRepo:
         assert tasks[0].name == "Task-1"
         assert tasks[1].name == "Task-2"
 
-    async def test_add_task_to_filing(self, query_session: AsyncSession, transaction_session: AsyncSession):
-        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
-        task = await query_session.scalar(select(FilingTaskDAO).where(FilingTaskDAO.name == "Task-1"))
-        filing_task = FilingTaskStateDAO(
-            filing=1,
-            task=task,
-            user="test@cfpb.gov",
-            state=FilingTaskState.IN_PROGRESS,
+    async def test_mod_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
+        user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
+        await repo.update_task_state(
+            query_session, lei="1234567890", filing_period="2024", task_name="Task-1", state="COMPLETED", user=user
         )
-        filing.tasks = [filing_task]
         seconds_now = dt.utcnow().timestamp()
-        await repo.upsert_filing(transaction_session, filing)
+        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
+        filing_task_states = filing.tasks
 
-        filing_task_states = (await transaction_session.scalars(select(FilingTaskStateDAO))).all()
-
-        assert len(filing_task_states) == 1
+        assert len(filing_task_states) == 2
         assert filing_task_states[0].task.name == "Task-1"
         assert filing_task_states[0].id == 1
         assert filing_task_states[0].filing == 1
-        assert filing_task_states[0].state == FilingTaskState.IN_PROGRESS
-        assert filing_task_states[0].user == "test@cfpb.gov"
+        assert filing_task_states[0].state == FilingTaskState.COMPLETED
+        assert filing_task_states[0].user == "testuser"
         assert filing_task_states[0].change_timestamp.timestamp() == pytest.approx(
+            seconds_now, abs=1.0
+        )  # allow for possible 1 second difference
+
+    async def test_add_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
+        user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
+        await repo.update_task_state(
+            query_session, lei="1234567890", filing_period="2024", task_name="Task-2", state="IN_PROGRESS", user=user
+        )
+        seconds_now = dt.utcnow().timestamp()
+        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
+        filing_task_states = filing.tasks
+
+        assert len(filing_task_states) == 2
+        assert filing_task_states[1].task.name == "Task-2"
+        assert filing_task_states[1].id == 2
+        assert filing_task_states[1].filing == 1
+        assert filing_task_states[1].state == FilingTaskState.IN_PROGRESS
+        assert filing_task_states[1].user == "testuser"
+        assert filing_task_states[1].change_timestamp.timestamp() == pytest.approx(
             seconds_now, abs=1.0
         )  # allow for possible 1 second difference
 

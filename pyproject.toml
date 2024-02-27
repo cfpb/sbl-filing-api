@@ -20,6 +20,8 @@ python-multipart = "^0.0.6"
 boto3 = "^1.33.12"
 alembic = "^1.12.0"
 async-lru = "^2.0.4"
+fsspec = "^2024.2.0"
+s3fs = "^2024.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
@@ -28,6 +30,7 @@ pytest-mock = "^3.12.0"
 pytest-env = "^1.1.3"
 pytest-alembic = "^0.10.7"
 pytest-asyncio = "^0.23.2"
+moto = "^4.2.13"
 aiosqlite = "^0.19.0"
 httpx = "^0.26.0"
 
@@ -68,6 +71,8 @@ env = [
   "TOKEN_URL=http://localhost",
   "CERTS_URL=http://localhost",
   "AUTH_CLIENT=",
+  "UPLOAD_FS_PROTOCOL=file",
+  "UPLOAD_FS_ROOT=../upload",
 ]
 testpaths = ["tests"]
 

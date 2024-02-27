@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
 from entities.engine import get_session
 
+from regtech_api_commons.models import AuthenticatedUser
+
 from copy import deepcopy
 
 from async_lru import alru_cache
@@ -123,6 +125,20 @@ async def create_new_filing(session: AsyncSession, lei: str, filing_period: str)
     return new_filing[0]
 
 
+async def update_task_state(
+    session: AsyncSession, lei: str, filing_period: str, task_name: str, state: FilingTaskState, user: AuthenticatedUser
+):
+    filing = await get_filing(session, lei=lei, filing_period=filing_period)
+    found_task = await query_helper(session, FilingTaskStateDAO, filing=filing.id, task_name=task_name)
+    if found_task:
+        task = found_task[0]  # should only be one
+        task.state = state
+        task.user = user.username
+    else:
+        task = FilingTaskStateDAO(filing=filing.id, state=state, task_name=task_name, user=user.username)
+    await upsert_helper(session, task, FilingTaskStateDAO)
+
+
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
     copy_data = original_data.__dict__.copy()
     # this is only for if a DAO is passed in
@@ -149,13 +165,13 @@ async def populate_missing_tasks(session: AsyncSession, filings: List[FilingDAO]
     filing_tasks = await get_filing_tasks(session)
     filings_copy = deepcopy(filings)
     for f in filings_copy:
-        tasks = [t.task for t in f.tasks]
-        missing_tasks = [t for t in filing_tasks if t not in tasks]
+        tasks = [t.task.name for t in f.tasks]
+        missing_tasks = [t.name for t in filing_tasks if t.name not in tasks]
         for mt in missing_tasks:
             f.tasks.append(
                 FilingTaskStateDAO(
                     filing=f.id,
-                    task_name=mt.name,
+                    task_name=mt,
                     state=FilingTaskState.NOT_STARTED,
                     user="",
                 )

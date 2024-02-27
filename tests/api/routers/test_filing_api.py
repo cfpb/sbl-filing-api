@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from entities.models import SubmissionDAO, SubmissionState
+from entities.models import SubmissionDAO, SubmissionState, FilingTaskState
 
 
 class TestFilingApi:
@@ -141,3 +141,23 @@ class TestFilingApi:
         )
         assert res.status_code == 200
         assert res.json()["institution_snapshot_id"] == "v3"
+
+    async def test_unauthed_task_update(self, app_fixture: FastAPI, unauthed_user_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.post(
+            "/v1/filing/institutions/1234567890/filings/2024/tasks/Task-1",
+            json={"state": "COMPLETED"},
+        )
+        assert res.status_code == 403
+
+    async def test_task_update(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+        mock = mocker.patch("entities.repos.submission_repo.update_task_state")
+        client = TestClient(app_fixture)
+        res = client.post(
+            "/v1/filing/institutions/1234567890/filings/2024/tasks/Task-1",
+            json={"state": "COMPLETED"},
+        )
+        assert res.status_code == 200
+        mock.assert_called_with(
+            ANY, "1234567890", "2024", "Task-1", FilingTaskState.COMPLETED, authed_user_mock.return_value[1]
+        )
