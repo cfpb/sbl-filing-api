@@ -1,14 +1,18 @@
 import datetime
+import httpx
+import pytest
 
 from copy import deepcopy
 
 from unittest.mock import ANY, Mock
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
 from entities.models import SubmissionDAO, SubmissionState, FilingTaskState
+
+from services import lei_verifier
 
 
 class TestFilingApi:
@@ -186,3 +190,15 @@ class TestFilingApi:
         mock.assert_called_with(
             ANY, "1234567890", "2024", "Task-1", FilingTaskState.COMPLETED, authed_user_mock.return_value[1]
         )
+
+    def test_verify_lei_dependency(
+        self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, submission_csv: str
+    ):
+        mock_lei_service = mocker.patch("services.lei_verifier.httpx.get")
+        mock_lei_service.return_value = httpx.Response(200, json={"is_active": False})
+        with pytest.raises(HTTPException) as http_exc:
+            request = Request(scope={"type": "http", "headers": [(b"authorization", b"123")]})
+            lei_verifier.verify_lei(request=request, lei="1234567890")
+        assert isinstance(http_exc.value, HTTPException)
+        assert http_exc.value.status_code == 403
+        assert http_exc.value.detail == "LEI 1234567890 is in an inactive state."
