@@ -41,6 +41,10 @@ class TestFilingApi:
         assert res.json()["lei"] == "1234567890"
         assert res.json()["filing_period"] == "2024"
 
+        get_filing_mock.return_value = None
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/")
+        assert res.status_code == 204
+
     def test_unauthed_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock):
         client = TestClient(app_fixture)
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")

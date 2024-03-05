@@ -30,7 +30,10 @@ async def get_filing_periods(request: Request):
 @router.get("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
 @requires("authenticated")
 async def get_filing(request: Request, lei: str, period_name: str):
-    return await repo.get_filing(request.state.db_session, lei, period_name)
+    res = await repo.get_filing(request.state.db_session, lei, period_name)
+    if not res:
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    return res
 
 
 @router.post("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
