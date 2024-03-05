@@ -42,10 +42,7 @@ async def post_filing(request: Request, lei: str, period_name: str, filing_obj: 
         return await repo.create_new_filing(request.state.db_session, lei, period_name)
 
 
-@router.post(
-    "/{lei}/submissions/{submission_id}",
-    status_code=HTTPStatus.ACCEPTED,
-)
+@router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)
 @requires("authenticated")
 async def upload_file(
     request: Request, lei: str, submission_id: str, file: UploadFile, background_tasks: BackgroundTasks

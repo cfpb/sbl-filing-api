@@ -17,8 +17,6 @@ from entities.models import (
 from regtech_api_commons.models.auth import AuthenticatedUser
 from starlette.authentication import AuthCredentials, UnauthenticatedUser
 
-import pandas as pd
-
 
 @pytest.fixture
 def app_fixture(mocker: MockerFixture) -> FastAPI:
@@ -124,11 +122,3 @@ def post_filing_mock(mocker: MockerFixture) -> Mock:
         institution_snapshot_id="v1",
     )
     return mock
-
-
-@pytest.fixture(scope="session")
-def submission_csv(tmpdir_factory) -> str:
-    df = pd.DataFrame([["0", "1"]], columns=["Submission_Column_1", "Submission_Column_2"])
-    filename = str(tmpdir_factory.mktemp("data").join("submission.csv"))
-    df.to_csv(filename)
-    return filename

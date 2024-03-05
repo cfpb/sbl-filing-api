@@ -191,9 +191,7 @@ class TestFilingApi:
             ANY, "1234567890", "2024", "Task-1", FilingTaskState.COMPLETED, authed_user_mock.return_value[1]
         )
 
-    def test_verify_lei_dependency(
-        self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, submission_csv: str
-    ):
+    def test_verify_lei_dependency(self, mocker: MockerFixture):
         mock_lei_service = mocker.patch("services.lei_verifier.httpx.get")
         mock_lei_service.return_value = httpx.Response(200, json={"is_active": False})
         with pytest.raises(HTTPException) as http_exc:
