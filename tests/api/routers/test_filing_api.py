@@ -70,6 +70,7 @@ class TestFilingApi:
                 state=SubmissionState.SUBMISSION_UPLOADED,
                 validation_ruleset_version="v1",
                 submission_time=datetime.datetime.now(),
+                filename="file1.csv",
             )
         ]
 
@@ -106,6 +107,7 @@ class TestFilingApi:
             state=SubmissionState.VALIDATION_IN_PROGRESS,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
+            filename="file1.csv",
         )
 
         client = TestClient(app_fixture)

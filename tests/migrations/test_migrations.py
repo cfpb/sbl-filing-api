@@ -133,3 +133,11 @@ def test_migration_to_bbc51b08d22f(alembic_runner: MigrationContext, alembic_eng
         and "filing" == filing_task_state_fk["referred_table"]
         and ["id"] == filing_task_state_fk["referred_columns"]
     )
+
+
+def test_migrations_to_8e8faceb46bd(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("8e8faceb46bd")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "filename" in set([c["name"] for c in inspector.get_columns("submission")])

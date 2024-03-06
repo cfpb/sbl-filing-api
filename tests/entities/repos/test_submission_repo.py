@@ -85,6 +85,7 @@ class TestSubmissionRepo:
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=dt.now(),
+            filename="file1.csv",
         )
         submission2 = SubmissionDAO(
             id=2,
@@ -93,6 +94,7 @@ class TestSubmissionRepo:
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=(dt.now() - datetime.timedelta(seconds=1000)),
+            filename="file2.csv",
         )
         submission3 = SubmissionDAO(
             id=3,
@@ -101,6 +103,7 @@ class TestSubmissionRepo:
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=dt.now(),
+            filename="file3.csv",
         )
         transaction_session.add(submission1)
         transaction_session.add(submission2)
@@ -278,7 +281,7 @@ class TestSubmissionRepo:
     async def test_add_submission(self, transaction_session: AsyncSession):
         res = await repo.add_submission(
             transaction_session,
-            SubmissionDAO(submitter="test@cfpb.gov", filing=1),
+            SubmissionDAO(submitter="test@cfpb.gov", filing=1, filename="file1.csv"),
         )
         assert res.id == 4
         assert res.submitter == "test@cfpb.gov"
@@ -289,7 +292,7 @@ class TestSubmissionRepo:
         async with session_generator() as add_session:
             res = await repo.add_submission(
                 add_session,
-                SubmissionDAO(submitter="test2@cfpb.gov", filing=1),
+                SubmissionDAO(submitter="test2@cfpb.gov", filing=1, filename="file1.csv"),
             )
 
         res.state = SubmissionState.VALIDATION_IN_PROGRESS
