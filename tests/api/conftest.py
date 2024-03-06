@@ -10,9 +10,6 @@ from entities.models import (
     FilingPeriodDAO,
     FilingType,
     FilingDAO,
-    FilingTaskProgressDAO,
-    FilingTaskState,
-    FilingTaskDAO,
 )
 
 from regtech_api_commons.models.auth import AuthenticatedUser
@@ -74,22 +71,6 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
     mock.return_value = FilingDAO(
         id=1,
         lei="1234567890",
-        tasks=[
-            FilingTaskProgressDAO(
-                id=1,
-                filing=1,
-                task=FilingTaskDAO(name="Task-1", task_order=1),
-                state=FilingTaskState.NOT_STARTED,
-                user="",
-            ),
-            FilingTaskProgressDAO(
-                id=2,
-                filing=1,
-                task=FilingTaskDAO(name="Task-2", task_order=2),
-                state=FilingTaskState.NOT_STARTED,
-                user="",
-            ),
-        ],
         filing_period="2024",
         institution_snapshot_id="v1",
         contact_info="test@cfpb.gov",
@@ -103,22 +84,6 @@ def post_filing_mock(mocker: MockerFixture) -> Mock:
     mock.return_value = FilingDAO(
         id=3,
         lei="ZXWVUTSRQP",
-        tasks=[
-            FilingTaskProgressDAO(
-                id=1,
-                filing=3,
-                task=FilingTaskDAO(name="Task-1", task_order=1),
-                state=FilingTaskState.NOT_STARTED,
-                user="",
-            ),
-            FilingTaskProgressDAO(
-                id=2,
-                filing=3,
-                task=FilingTaskDAO(name="Task-2", task_order=2),
-                state=FilingTaskState.NOT_STARTED,
-                user="",
-            ),
-        ],
         filing_period="2024",
         institution_snapshot_id="v1",
     )

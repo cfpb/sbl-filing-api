@@ -1,6 +1,6 @@
 from .model_enums import FilingType, FilingTaskState, SubmissionState
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Optional
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
@@ -67,7 +67,7 @@ class FilingDAO(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     filing_period: Mapped[str] = mapped_column(ForeignKey("filing_period.code"))
     lei: Mapped[str]
-    tasks: Mapped[List[FilingTaskProgressDAO]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    tasks: Mapped[Optional[List[FilingTaskProgressDAO]]] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[str] = mapped_column(nullable=True)
 
