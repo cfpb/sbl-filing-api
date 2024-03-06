@@ -192,8 +192,8 @@ class TestFilingApi:
         )
 
     def test_verify_lei_dependency(self, mocker: MockerFixture):
-        mock_lei_service = mocker.patch("services.lei_verifier.httpx.get")
-        mock_lei_service.return_value = httpx.Response(200, json={"is_active": False})
+        mock_user_fi_service = mocker.patch("services.lei_verifier.httpx.get")
+        mock_user_fi_service.return_value = httpx.Response(200, json={"is_active": False})
         with pytest.raises(HTTPException) as http_exc:
             request = Request(scope={"type": "http", "headers": [(b"authorization", b"123")]})
             lei_verifier.verify_lei(request=request, lei="1234567890")

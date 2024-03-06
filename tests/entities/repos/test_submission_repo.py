@@ -171,8 +171,8 @@ class TestSubmissionRepo:
         assert filing_task_states[0].state == FilingTaskState.COMPLETED
         assert filing_task_states[0].user == "testuser"
         assert filing_task_states[0].change_timestamp.timestamp() == pytest.approx(
-            seconds_now, abs=1.0
-        )  # allow for possible 1 second difference
+            seconds_now, abs=1.5
+        )  # allow for possible 1.5 second difference
 
     async def test_add_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
         user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})

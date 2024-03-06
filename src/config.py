@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     """
     upload_fs_root: str
 
-    lei_service_url: str = "http://sbl-project-user_fi-1:8888/v1/institutions/"
+    user_fi_api_url: str = "http://sbl-project-user_fi-1:8888/v1/institutions/"
 
     def __init__(self, **data):
         super().__init__(**data)
