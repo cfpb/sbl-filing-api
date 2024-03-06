@@ -955,51 +955,6 @@ files = [
 ]
 
 [[package]]
-name = "httpcore"
-version = "1.0.4"
-description = "A minimal low-level HTTP client."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "httpcore-1.0.4-py3-none-any.whl", hash = "sha256:ac418c1db41bade2ad53ae2f3834a3a0f5ae76b56cf5aa497d2d033384fc7d73"},
-    {file = "httpcore-1.0.4.tar.gz", hash = "sha256:cb2839ccfcba0d2d3c1131d3c3e26dfc327326fbe7a5dc0dbfe9f6c9151bb022"},
-]
-
-[package.dependencies]
-certifi = "*"
-h11 = ">=0.13,<0.15"
-
-[package.extras]
-asyncio = ["anyio (>=4.0,<5.0)"]
-http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (==1.*)"]
-trio = ["trio (>=0.22.0,<0.25.0)"]
-
-[[package]]
-name = "httpx"
-version = "0.26.0"
-description = "The next generation HTTP client."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "httpx-0.26.0-py3-none-any.whl", hash = "sha256:8915f5a3627c4d47b73e8202457cb28f1266982d1159bd5779d86a80c0eab1cd"},
-    {file = "httpx-0.26.0.tar.gz", hash = "sha256:451b55c30d5185ea6b23c2c793abf9bb237d2a7dfb901ced6ff69ad37ec1dfaf"},
-]
-
-[package.dependencies]
-anyio = "*"
-certifi = "*"
-httpcore = "==1.*"
-idna = "*"
-sniffio = "*"
-
-[package.extras]
-brotli = ["brotli", "brotlicffi"]
-cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
-http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (==1.*)"]
-
-[[package]]
 name = "idna"
 version = "3.6"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1051,17 +1006,18 @@ files = [
 
 [[package]]
 name = "jwcrypto"
-version = "1.5.4"
+version = "1.5.5"
 description = "Implementation of JOSE Web standards"
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "jwcrypto-1.5.4.tar.gz", hash = "sha256:0815fbab613db99bad85691da5f136f8860423396667728a264bcfa6e1db36b0"},
+    {file = "jwcrypto-1.5.5-py3-none-any.whl", hash = "sha256:c18b10b2049603bef3ae7b77ad14bded431a9077d113447d62bebd8550b0d5bd"},
+    {file = "jwcrypto-1.5.5.tar.gz", hash = "sha256:59e7d5e4589d1b07170f368e20c32eb32a023911806a9723b1f43a0d8b3028d6"},
 ]
 
 [package.dependencies]
 cryptography = ">=3.4"
-typing_extensions = ">=4.5.0"
+typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "mako"
@@ -2613,4 +2569,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "47451edf58a435dfc1937c7cd4e21e5f31e7193d34813b6f890799c379280fcb"
+content-hash = "95a7b408d30602cf2a55f824ac612fa014804bc8ce36f15558458f4ce9f8d2f0"
