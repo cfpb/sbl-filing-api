@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from fastapi import Depends, Request, UploadFile, BackgroundTasks, status
+from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
 from fastapi.responses import JSONResponse
 from regtech_api_commons.api import Router
 from services import submission_processor
@@ -42,6 +42,12 @@ async def post_filing(request: Request, lei: str, period_name: str, filing_obj: 
     if filing_obj:
         return await repo.upsert_filing(request.state.db_session, filing_obj)
     else:
+        result = await repo.get_filing(request.state.db_session, lei, period_name)
+        if result:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Filing already exists for Filing Period {period_name} and LEI {lei}",
+            )
         return await repo.create_new_filing(request.state.db_session, lei, period_name)
 
 
