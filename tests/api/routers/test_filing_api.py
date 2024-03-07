@@ -132,6 +132,33 @@ class TestFilingApi:
         mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 204
 
+    def test_unauthed_get_submission_by_id(self, mocker: MockerFixture, app_fixture: FastAPI):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/123456790/filings/2024/submissions/1")
+        assert res.status_code == 403
+
+    async def test_get_submission_by_id(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+        mock = mocker.patch("entities.repos.submission_repo.get_submission")
+        mock.return_value = SubmissionDAO(
+            id=1,
+            submitter="test1@cfpb.gov",
+            filing=1,
+            state=SubmissionState.VALIDATION_WITH_ERRORS,
+            validation_ruleset_version="v1",
+            submission_time=datetime.datetime.now(),
+            filename="file1.csv",
+        )
+
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/1")
+        mock.assert_called_with(ANY, "1")
+        assert res.status_code == 200
+
+        mock.return_value = None
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/1")
+        mock.assert_called_with(ANY, "1")
+        assert res.status_code == 204
+
     def test_authed_upload_file(
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, submission_csv: str
     ):

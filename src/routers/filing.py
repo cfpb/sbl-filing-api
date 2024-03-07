@@ -57,7 +57,7 @@ async def upload_file(
 
 @router.get("/institutions/{lei}/filings/{period_name}/submissions", response_model=List[SubmissionDTO])
 @requires("authenticated")
-async def get_submission(request: Request, lei: str, period_name: str):
+async def get_submissions(request: Request, lei: str, period_name: str):
     return await repo.get_submissions(request.state.db_session, lei, period_name)
 
 
@@ -65,6 +65,15 @@ async def get_submission(request: Request, lei: str, period_name: str):
 @requires("authenticated")
 async def get_submission_latest(request: Request, lei: str, period_name: str):
     result = await repo.get_latest_submission(request.state.db_session, lei, period_name)
+    if result:
+        return result
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+
+
+@router.get("/institutions/{lei}/filings/{period_name}/submissions/{id}", response_model=SubmissionDTO)
+@requires("authenticated")
+async def get_submission(request: Request, id: str):
+    result = await repo.get_submission(request.state.db_session, id)
     if result:
         return result
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
