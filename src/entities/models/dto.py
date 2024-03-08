@@ -34,6 +34,21 @@ class FilingTaskProgressDTO(BaseModel):
     change_timestamp: datetime | None = None
 
 
+class ContactInfoDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int | None = None
+    first_name: str
+    last_name: str
+    hq_address_street_1: str
+    hq_address_street_2: str | None = None
+    hq_address_city: str
+    hq_address_state: str
+    hq_address_zip: str
+    email: str
+    phone: str
+
+
 class FilingDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,7 +57,7 @@ class FilingDTO(BaseModel):
     lei: str
     tasks: List[FilingTaskProgressDTO] | None = None
     institution_snapshot_id: str
-    contact_info: str | None = None
+    contact_info: ContactInfoDTO | None = None
 
 
 class FilingPeriodDTO(BaseModel):

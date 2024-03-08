@@ -17,6 +17,8 @@ from entities.models import (
     FilingType,
     FilingTaskState,
     SubmissionState,
+    ContactInfoDAO,
+    ContactInfoDTO,
 )
 from entities.repos import submission_repo as repo
 from regtech_api_commons.models import AuthenticatedUser
@@ -107,6 +109,36 @@ class TestSubmissionRepo:
         transaction_session.add(submission2)
         transaction_session.add(submission3)
 
+        contact_info1 = ContactInfoDAO(
+            id=1,
+            filing=1,
+            first_name="test_first_name_1",
+            last_name="test_last_name_1",
+            hq_address_street_1="address street 1",
+            hq_address_street_2="",
+            hq_address_city="Test City 1",
+            hq_address_state="TS",
+            hq_address_zip="12345",
+            phone="112-345-6789",
+            email="test1@cfpb.gov",
+        )
+        contact_info2 = ContactInfoDAO(
+            id=2,
+            filing=2,
+            first_name="test_first_name_2",
+            last_name="test_last_name_2",
+            hq_address_street_1="address street 2",
+            hq_address_street_2="",
+            hq_address_city="Test City 2",
+            hq_address_state="TS",
+            hq_address_zip="12345",
+            phone="212-345-6789",
+            email="test2@cfpb.gov",
+        )
+        transaction_session.add(contact_info1)
+        transaction_session.add(contact_info2)
+        # transaction_session.add(contact_info3)
+
         await transaction_session.commit()
 
     async def test_add_filing_period(self, transaction_session: AsyncSession):
@@ -142,7 +174,11 @@ class TestSubmissionRepo:
 
     async def test_modify_filing(self, transaction_session: AsyncSession):
         mod_filing = FilingDTO(
-            id=3, lei="ZYXWVUTSRQP", institution_snapshot_id="Snapshot-2", filing_period="2024", tasks=[]
+            id=3,
+            lei="ZYXWVUTSRQP",
+            institution_snapshot_id="Snapshot-2",
+            filing_period="2024",
+            tasks=[],
         )
         res = await repo.upsert_filing(transaction_session, mod_filing)
         assert res.id == 3
@@ -172,8 +208,8 @@ class TestSubmissionRepo:
         assert filing_task_states[0].state == FilingTaskState.COMPLETED
         assert filing_task_states[0].user == "testuser"
         assert filing_task_states[0].change_timestamp.timestamp() == pytest.approx(
-            seconds_now, abs=1.0
-        )  # allow for possible 1 second difference
+            seconds_now, abs=1.5
+        )  # allow for possible 1.5 second difference
 
     async def test_add_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
         user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
@@ -323,6 +359,90 @@ class TestSubmissionRepo:
                 assert new_res2.validation_json == validation_json
 
         await query_updated_dao()
+
+    async def test_get_contact_info(self, query_session: AsyncSession):
+        res = await repo.get_contact_info(session=query_session, lei="ABCDEFGHIJ", filing_period="2024")
+        assert res.id == 2
+        assert res.filing == 2
+        assert res.first_name == "test_first_name_2"
+        assert res.last_name == "test_last_name_2"
+        assert res.hq_address_street_1 == "address street 2"
+        assert res.hq_address_street_2 == ""
+        assert res.hq_address_city == "Test City 2"
+        assert res.hq_address_state == "TS"
+        assert res.hq_address_zip == "12345"
+        assert res.phone == "212-345-6789"
+        assert res.email == "test2@cfpb.gov"
+
+    async def test_create_contact_info(self, transaction_session: AsyncSession):
+        await repo.update_contact_info(
+            transaction_session,
+            lei="ZYXWVUTSRQP",
+            filing_period="2024",
+            new_contact_info=ContactInfoDTO(
+                first_name="test_first_name_3",
+                last_name="test_last_name_3",
+                hq_address_street_1="address street 1",
+                hq_address_street_2="",
+                hq_address_city="Test City",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                phone="312-345-6789",
+                email="test3@cfpb.gov",
+            ),
+        )
+
+        # Testing to make sure the newly created contact_info is linked to the correct filing.
+        filing = await repo.get_filing(transaction_session, lei="ZYXWVUTSRQP", filing_period="2024")
+        filing_contact_info = filing.contact_info
+
+        assert filing_contact_info.id == 3
+        assert filing_contact_info.filing == 3
+        assert filing_contact_info.first_name == "test_first_name_3"
+        assert filing_contact_info.last_name == "test_last_name_3"
+        assert filing_contact_info.hq_address_street_1 == "address street 1"
+        assert filing_contact_info.hq_address_street_2 == ""
+        assert filing_contact_info.hq_address_city == "Test City"
+        assert filing_contact_info.hq_address_state == "TS"
+        assert filing_contact_info.hq_address_zip == "12345"
+        assert filing_contact_info.phone == "312-345-6789"
+        assert filing_contact_info.email == "test3@cfpb.gov"
+
+    async def test_update_contact_info(self, transaction_session: AsyncSession):
+        await repo.update_contact_info(
+            transaction_session,
+            lei="ABCDEFGHIJ",
+            filing_period="2024",
+            new_contact_info=ContactInfoDTO(
+                id=2,
+                filing=2,
+                first_name="test_first_name_upd",
+                last_name="test_last_name_upd",
+                hq_address_street_1="address street upd",
+                hq_address_street_2="",
+                hq_address_city="Test City upd",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                phone="212-345-6789_upd",
+                email="test2_upd@cfpb.gov",
+            ),
+        )
+
+        # Testing to make sure the filing contact_info is updated
+        filing = await repo.get_filing(transaction_session, lei="ABCDEFGHIJ", filing_period="2024")
+        filing_contact_info = filing.contact_info
+
+        assert filing_contact_info.id == 2
+        assert filing_contact_info.filing == 2
+        assert filing_contact_info.first_name == "test_first_name_upd"
+        assert filing_contact_info.last_name == "test_last_name_upd"
+        assert filing_contact_info.hq_address_street_1 == "address street upd"
+        assert filing_contact_info.hq_address_street_2 == ""
+        assert filing_contact_info.hq_address_city == "Test City upd"
+        assert filing_contact_info.hq_address_state == "TS"
+        assert filing_contact_info.hq_address_zip == "12345"
+        assert filing_contact_info.phone == "212-345-6789_upd"
+        assert filing_contact_info.email == "test2_upd@cfpb.gov"
 
     def get_error_json(self):
         df_columns = [

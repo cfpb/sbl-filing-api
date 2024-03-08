@@ -22,6 +22,8 @@ from entities.models import (
     FilingTaskDAO,
     FilingTaskProgressDAO,
     FilingTaskState,
+    ContactInfoDAO,
+    ContactInfoDTO,
 )
 
 logger = logging.getLogger(__name__)
@@ -78,6 +80,11 @@ async def get_filing_period(session: AsyncSession, filing_period: str) -> Filing
 @alru_cache(maxsize=128)
 async def get_filing_tasks(session: AsyncSession) -> List[FilingTaskDAO]:
     return await query_helper(session, FilingTaskDAO)
+
+
+async def get_contact_info(session: AsyncSession, lei: str, filing_period: str) -> ContactInfoDAO:
+    filing = await get_filing(session, lei=lei, filing_period=filing_period)
+    return filing.contact_info
 
 
 async def add_submission(session: AsyncSession, submission: SubmissionDTO) -> SubmissionDAO:
@@ -138,6 +145,14 @@ async def update_task_state(
     else:
         task = FilingTaskProgressDAO(filing=filing.id, state=state, task_name=task_name, user=user.username)
     await upsert_helper(session, task, FilingTaskProgressDAO)
+
+
+async def update_contact_info(
+    session: AsyncSession, lei: str, filing_period: str, new_contact_info: ContactInfoDTO
+) -> ContactInfoDAO:
+    filing = await get_filing(session, lei=lei, filing_period=filing_period)
+    filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
+    return await upsert_helper(session, filing, FilingDAO)
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:

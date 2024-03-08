@@ -1,14 +1,18 @@
 import datetime
+import httpx
+import pytest
 
 from copy import deepcopy
 
 from unittest.mock import ANY, Mock
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from entities.models import SubmissionDAO, SubmissionState, FilingTaskState
+from entities.models import SubmissionDAO, SubmissionState, FilingTaskState, ContactInfoDAO, ContactInfoDTO
+
+from services import lei_verifier
 
 
 class TestFilingApi:
@@ -209,4 +213,124 @@ class TestFilingApi:
         assert res.status_code == 200
         mock.assert_called_with(
             ANY, "1234567890", "2024", "Task-1", FilingTaskState.COMPLETED, authed_user_mock.return_value[1]
+        )
+
+    def test_verify_lei_dependency(self, mocker: MockerFixture):
+        mock_user_fi_service = mocker.patch("services.lei_verifier.httpx.get")
+        mock_user_fi_service.return_value = httpx.Response(200, json={"is_active": False})
+        with pytest.raises(HTTPException) as http_exc:
+            request = Request(scope={"type": "http", "headers": [(b"authorization", b"123")]})
+            lei_verifier.verify_lei(request=request, lei="1234567890")
+        assert isinstance(http_exc.value, HTTPException)
+        assert http_exc.value.status_code == 403
+        assert http_exc.value.detail == "LEI 1234567890 is in an inactive state."
+
+    async def test_unauthed_get_contact_info(self, app_fixture: FastAPI, unauthed_user_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/contact-info")
+        assert res.status_code == 403
+
+    async def test_get_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+        mock = mocker.patch("entities.repos.submission_repo.get_contact_info")
+        mock.return_value = ContactInfoDAO(
+            id=1,
+            filing=1,
+            first_name="test_first_name_1",
+            last_name="test_last_name_1",
+            hq_address_street_1="address street 1",
+            hq_address_street_2="",
+            hq_address_city="Test City",
+            hq_address_state="TS",
+            hq_address_zip="12345",
+            phone="112-345-6789",
+            email="name_1@email.test",
+        )
+
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/contact-info")
+        result = res.json()
+
+        assert res.status_code == 200
+        assert result["id"] == 1
+        assert result["first_name"] == "test_first_name_1"
+        assert result["last_name"] == "test_last_name_1"
+        assert result["hq_address_street_1"] == "address street 1"
+        assert result["hq_address_street_2"] == ""
+        assert result["hq_address_city"] == "Test City"
+        assert result["hq_address_state"] == "TS"
+        assert result["hq_address_zip"] == "12345"
+        assert result["phone"] == "112-345-6789"
+        assert result["email"] == "name_1@email.test"
+
+        # no contact_info for endpoint
+        mock.return_value = None
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/contact-info")
+        assert res.status_code == 204
+
+    async def test_unauthed_post_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, unauthed_user_mock):
+        contact_info_json = {
+            "id": 1,
+            "filing": 1,
+            "first_name": "test_first_name_1",
+            "last_name": "test_last_name_1",
+            "hq_address_street_1": "address street 1",
+            "hq_address_street_2": "",
+            "hq_address_city": "Test City 1",
+            "hq_address_state": "TS",
+            "hq_address_zip": "12345",
+            "phone": "112-345-6789",
+            "email": "name_1@email.test",
+        }
+        client = TestClient(app_fixture)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/contact-info", json=contact_info_json)
+        assert res.status_code == 403
+
+    def test_post_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+        mock = mocker.patch("entities.repos.submission_repo.update_contact_info")
+        mock.return_value = ContactInfoDAO(
+            id=1,
+            filing=1,
+            first_name="test_first_name_1",
+            last_name="test_last_name_1",
+            hq_address_street_1="address street 1",
+            hq_address_street_2="",
+            hq_address_city="Test City 1",
+            hq_address_state="TS",
+            hq_address_zip="12345",
+            phone="112-345-6789",
+            email="name_1@email.test",
+        )
+        client = TestClient(app_fixture)
+        contact_info_json = {
+            "id": 1,
+            "filing": 1,
+            "first_name": "test_first_name_1",
+            "last_name": "test_last_name_1",
+            "hq_address_street_1": "address street 1",
+            "hq_address_street_2": "",
+            "hq_address_city": "Test City 1",
+            "hq_address_state": "TS",
+            "hq_address_zip": "12345",
+            "phone": "112-345-6789",
+            "email": "name_1@email.test",
+        }
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/contact-info", json=contact_info_json)
+
+        assert res.status_code == 200
+        mock.assert_called_with(
+            ANY,
+            "1234567890",
+            "2024",
+            ContactInfoDTO(
+                id=1,
+                first_name="test_first_name_1",
+                last_name="test_last_name_1",
+                hq_address_street_1="address street 1",
+                hq_address_street_2="",
+                hq_address_city="Test City 1",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                email="name_1@email.test",
+                phone="112-345-6789",
+            ),
         )

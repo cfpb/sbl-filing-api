@@ -141,3 +141,36 @@ def test_migrations_to_8e8faceb46bd(alembic_runner: MigrationContext, alembic_en
     inspector = sqlalchemy.inspect(alembic_engine)
 
     assert "filename" in set([c["name"] for c in inspector.get_columns("submission")])
+
+
+def test_migration_to_8eaef8ce4c23(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("8eaef8ce4c23")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    tables = inspector.get_table_names()
+
+    assert "contact_info" in tables
+    assert {
+        "id",
+        "first_name",
+        "last_name",
+        "hq_address_street_1",
+        "hq_address_street_2",
+        "hq_address_city",
+        "hq_address_state",
+        "hq_address_zip",
+        "phone",
+        "email",
+        "filing",
+    } == set([c["name"] for c in inspector.get_columns("contact_info")])
+
+    contact_info_fk = inspector.get_foreign_keys("contact_info")[0]
+    assert contact_info_fk["name"] == "contact_info_filing_fkey"
+    assert (
+        "filing" in contact_info_fk["constrained_columns"]
+        and "filing" == contact_info_fk["referred_table"]
+        and "id" in contact_info_fk["referred_columns"]
+    )
+
+    assert "contact_info" not in [c["name"] for c in inspector.get_columns("contact_info")]
