@@ -56,9 +56,7 @@ class TestFilingApi:
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
         assert res.status_code == 403
 
-    def test_post_filing(
-        self, app_fixture: FastAPI, post_filing_mock: Mock, authed_user_mock: Mock
-    ):
+    def test_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock, authed_user_mock: Mock):
         client = TestClient(app_fixture)
         post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/")
