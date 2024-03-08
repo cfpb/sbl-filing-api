@@ -9,6 +9,7 @@ from entities.engine import get_session
 from entities.models import FilingPeriodDTO, SubmissionDTO, FilingDTO, UpdateValueDTO, StateUpdateDTO
 from entities.repos import submission_repo as repo
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from starlette.authentication import requires
@@ -38,17 +39,14 @@ async def get_filing(request: Request, lei: str, period_name: str):
 
 @router.post("/institutions/{lei}/filings/{period_name}", response_model=FilingDTO)
 @requires("authenticated")
-async def post_filing(request: Request, lei: str, period_name: str, filing_obj: FilingDTO = None):
-    if filing_obj:
-        return await repo.upsert_filing(request.state.db_session, filing_obj)
-    else:
-        result = await repo.get_filing(request.state.db_session, lei, period_name)
-        if result:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Filing already exists for Filing Period {period_name} and LEI {lei}",
-            )
+async def post_filing(request: Request, lei: str, period_name: str):
+    try:
         return await repo.create_new_filing(request.state.db_session, lei, period_name)
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Filing already exists for Filing Period {period_name} and LEI {lei}",
+        )
 
 
 @router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)

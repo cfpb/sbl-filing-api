@@ -14,6 +14,8 @@ from entities.models import SubmissionDAO, SubmissionState, FilingTaskState
 
 from services import lei_verifier
 
+from sqlalchemy.exc import IntegrityError
+
 
 class TestFilingApi:
     def test_unauthed_get_periods(
@@ -49,7 +51,7 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890/filings/2024/")
         assert res.status_code == 204
 
-    def test_unauthed_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock):
+    def test_unauthed_post_filing(self, app_fixture: FastAPI):
         client = TestClient(app_fixture)
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
         assert res.status_code == 403
@@ -58,11 +60,12 @@ class TestFilingApi:
         self, app_fixture: FastAPI, get_filing_mock: Mock, post_filing_mock: Mock, authed_user_mock: Mock
     ):
         client = TestClient(app_fixture)
+        post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/")
         assert res.status_code == 409
         assert res.json()["detail"] == "Filing already exists for Filing Period 2024 and LEI 1234567890"
 
-        get_filing_mock.return_value = None
+        post_filing_mock.side_effect = None
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
         post_filing_mock.assert_called_with(ANY, "ZXWVUTSRQP", "2024")
         assert res.status_code == 200
