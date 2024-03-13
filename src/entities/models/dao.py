@@ -20,7 +20,6 @@ class SubmissionDAO(Base):
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
-    confirmation_id: Mapped[str] = mapped_column(nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
 
@@ -80,6 +79,14 @@ class ContactInfoDAO(Base):
         return f"ContactInfo ID: {self.id}, First Name: {self.first_name}, Last Name: {self.last_name}, Address Street 1: {self.hq_address_street_1}, Address Street 2: {self.hq_address_street_2}, Address City: {self.hq_address_city}, Address State: {self.hq_address_state}, Address Zip: {self.hq_address_zip}"
 
 
+class SignatureDAO(Base):
+    __tablename__ = "signature"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    signer: Mapped[str]
+    signed_date: Mapped[datetime] = mapped_column(server_default=func.now())
+    filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
+    
+    
 class FilingDAO(Base):
     __tablename__ = "filing"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -88,6 +95,8 @@ class FilingDAO(Base):
     tasks: Mapped[List[FilingTaskProgressDAO] | None] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
+    signature: Mapped[SignatureDAO] = relationship("SignatureDAO", lazy="joined") 
+    confirmation_id: Mapped[str] = mapped_column(nullable=True)
 
     def __str__(self):
         return f"ID: {self.id}, Filing Period: {self.filing_period}, LEI: {self.lei}, Tasks: {self.tasks}, Institution Snapshot ID: {self.institution_snapshot_id}, Contact Info: {self.contact_info}"

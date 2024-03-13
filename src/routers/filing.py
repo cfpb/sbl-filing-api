@@ -1,3 +1,4 @@
+from datetime import datetime
 from http import HTTPStatus
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
 from fastapi.responses import JSONResponse
@@ -6,7 +7,7 @@ from services import submission_processor
 from typing import Annotated, List
 
 from entities.engine import get_session
-from entities.models import FilingPeriodDTO, SubmissionDTO, FilingDTO, SnapshotUpdateDTO, StateUpdateDTO, ContactInfoDTO
+from entities.models import FilingPeriodDTO, SubmissionDTO, FilingDTO, SnapshotUpdateDTO, StateUpdateDTO, ContactInfoDTO, SubmissionState, SignatureDAO
 from entities.repos import submission_repo as repo
 
 from sqlalchemy.exc import IntegrityError
@@ -49,6 +50,22 @@ async def post_filing(request: Request, lei: str, period_name: str):
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Filing already exists for Filing Period {period_name} and LEI {lei}",
         )
+
+
+@router.put("/institutions/{lei}/filings/{period_name}/sign", response_model=FilingDTO)
+@requires("authenticated")
+async def sign_filing(request: Request, lei: str, period_name: str):
+    res = await repo.get_filing(request.state.db_session, lei, period_name)
+    if not res:
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_name)
+    if not latest_sub or latest_sub.state != SubmissionState.SUBMISSION_CERTIFIED:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"Cannot sign filing.  Filing for {lei} for period {period_name} does not have a latest submission the SUBMISSION_CERTIFIED state.")
+    if not res.contact_info:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"Cannot sign filing. Filing for {lei} for period {period_name} does not have contact info defined.")
+    res.signer = SignatureDAO(signer=request.user.id, filing=res.id)
+    res.confirmation_id = (lei+"-"+period_name+"-"+latest_sub.id+"-"+datetime.now().timestamp())
+    return await repo.upsert_filing(request.state.db_session, res)
 
 
 @router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)

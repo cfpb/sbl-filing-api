@@ -12,7 +12,6 @@ class SubmissionDTO(BaseModel):
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
     validation_json: Dict[str, Any] | None = None
-    confirmation_id: str | None = None
     submission_time: datetime | None = None
     filename: str
 
@@ -49,6 +48,12 @@ class ContactInfoDTO(BaseModel):
     phone: str
 
 
+class SignatureDTO(BaseModel):
+    id: int
+    signer: str
+    signed_date: datetime
+
+
 class FilingDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,7 +63,8 @@ class FilingDTO(BaseModel):
     tasks: List[FilingTaskProgressDTO] | None = None
     institution_snapshot_id: str
     contact_info: ContactInfoDTO | None = None
-
+    confirmation_id: str | None = None
+    signature: SignatureDTO | None = None
 
 class FilingPeriodDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
