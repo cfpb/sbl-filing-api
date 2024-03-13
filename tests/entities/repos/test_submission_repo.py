@@ -315,10 +315,12 @@ class TestSubmissionRepo:
     async def test_add_submission(self, transaction_session: AsyncSession):
         res = await repo.add_submission(
             transaction_session,
-            SubmissionDAO(submitter="test@cfpb.gov", filing=1, filename="file1.csv"),
+            filing_id=1,
+            submitter="123456-7890-ABCDEF-GHIJ",
+            filename="file1.csv",
         )
         assert res.id == 4
-        assert res.submitter == "test@cfpb.gov"
+        assert res.submitter == "123456-7890-ABCDEF-GHIJ"
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
 
@@ -326,7 +328,9 @@ class TestSubmissionRepo:
         async with session_generator() as add_session:
             res = await repo.add_submission(
                 add_session,
-                SubmissionDAO(submitter="test2@cfpb.gov", filing=1, filename="file1.csv"),
+                filing_id=1,
+                submitter="123456-7890-ABCDEF-GHIJ",
+                filename="file1.csv",
             )
 
         res.state = SubmissionState.VALIDATION_IN_PROGRESS

@@ -13,7 +13,6 @@ from async_lru import alru_cache
 
 from entities.models import (
     SubmissionDAO,
-    SubmissionDTO,
     SubmissionState,
     FilingPeriodDAO,
     FilingPeriodDTO,
@@ -87,13 +86,13 @@ async def get_contact_info(session: AsyncSession, lei: str, filing_period: str) 
     return filing.contact_info
 
 
-async def add_submission(session: AsyncSession, submission: SubmissionDTO) -> SubmissionDAO:
+async def add_submission(session: AsyncSession, filing_id: int, submitter: str, filename: str) -> SubmissionDAO:
     async with session.begin():
         new_sub = SubmissionDAO(
-            filing=submission.filing,
-            submitter=submission.submitter,
+            filing=filing_id,
+            submitter=submitter,
             state=SubmissionState.SUBMISSION_UPLOADED,
-            filename=submission.filename,
+            filename=filename,
         )
         # this returns the attached object, most importantly with the new submission id
         new_sub = await session.merge(new_sub)

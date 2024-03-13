@@ -36,6 +36,7 @@ def authed_user_mock(auth_mock: Mock) -> Mock:
         "preferred_username": "test_user",
         "email": "test@local.host",
         "institutions": ["123456ABCDEF", "654321FEDCBA"],
+        "sub": "123456-7890-ABCDEF-GHIJ",
     }
     auth_mock.return_value = (
         AuthCredentials(["authenticated"]),

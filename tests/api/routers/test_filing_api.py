@@ -6,7 +6,7 @@ import pytest
 
 from copy import deepcopy
 
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, Mock, AsyncMock
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.testclient import TestClient
@@ -170,21 +170,53 @@ class TestFilingApi:
         assert res.status_code == 204
 
     def test_authed_upload_file(
-        self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, submission_csv: str
+        self,
+        mocker: MockerFixture,
+        app_fixture: FastAPI,
+        authed_user_mock: Mock,
+        submission_csv: str,
+        get_filing_mock: Mock,
     ):
+        return_sub = SubmissionDAO(
+            id=1,
+            filing=1,
+            state=SubmissionState.SUBMISSION_UPLOADED,
+            submitter="123456-7890-ABCDEF-GHIJ",
+            filename="submission.csv",
+        )
+
+        mock_validate_file = mocker.patch("services.submission_processor.validate_file_processable")
+        mock_validate_file.return_value = None
         mock_upload = mocker.patch("services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
         mock_validate_submission = mocker.patch("services.submission_processor.validate_submission")
         mock_validate_submission.return_value = None
+        async_mock = AsyncMock(return_value=return_sub)
+        mock_add_submission = mocker.patch("entities.repos.submission_repo.add_submission", side_effect=async_mock)
+        mock_update_submission = mocker.patch(
+            "entities.repos.submission_repo.update_submission", side_effect=async_mock
+        )
+
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
         client = TestClient(app_fixture)
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
-        assert res.status_code == 202
+
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
+        mock_add_submission.assert_called_with(ANY, 1, "123456-7890-ABCDEF-GHIJ", "submission.csv")
+        assert mock_update_submission.call_args.args[0].state == SubmissionState.SUBMISSION_UPLOADED
+        assert res.status_code == 200
+        assert res.json()["id"] == 1
+        assert res.json()["state"] == SubmissionState.SUBMISSION_UPLOADED
+        assert res.json()["submitter"] == "123456-7890-ABCDEF-GHIJ"
+
+        get_filing_mock.return_value = None
+        res = client.post("/v1/filing/institutions/ABCDEFG/filings/2024/submissions", files=files)
+        assert res.status_code == 422
+        assert res.json() == "There is no Filing for LEI ABCDEFG in period 2024, unable to submit file."
 
     def test_unauthed_upload_file(self, mocker: MockerFixture, app_fixture: FastAPI, submission_csv: str):
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
         client = TestClient(app_fixture)
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == 403
 
     def test_upload_file_invalid_type(
@@ -194,7 +226,7 @@ class TestFilingApi:
         mock.side_effect = HTTPException(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
         client = TestClient(app_fixture)
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
     def test_upload_file_invalid_size(
@@ -204,7 +236,7 @@ class TestFilingApi:
         mock.side_effect = HTTPException(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
         client = TestClient(app_fixture)
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     async def test_unauthed_patch_filing(self, app_fixture: FastAPI):

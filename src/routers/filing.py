@@ -1,4 +1,3 @@
-from http import HTTPStatus
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
 from fastapi.responses import JSONResponse
 from regtech_api_commons.api import Router
@@ -6,7 +5,15 @@ from services import submission_processor
 from typing import Annotated, List
 
 from entities.engine import get_session
-from entities.models import FilingPeriodDTO, SubmissionDTO, FilingDTO, SnapshotUpdateDTO, StateUpdateDTO, ContactInfoDTO
+from entities.models import (
+    FilingPeriodDTO,
+    SubmissionDTO,
+    FilingDTO,
+    SnapshotUpdateDTO,
+    StateUpdateDTO,
+    ContactInfoDTO,
+    SubmissionState,
+)
 from entities.repos import submission_repo as repo
 
 from sqlalchemy.exc import IntegrityError
@@ -51,15 +58,29 @@ async def post_filing(request: Request, lei: str, period_name: str):
         )
 
 
-@router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)
+@router.post("/institutions/{lei}/filings/{period_name}/submissions", response_model=SubmissionDTO)
 @requires("authenticated")
 async def upload_file(
-    request: Request, lei: str, submission_id: str, file: UploadFile, background_tasks: BackgroundTasks
+    request: Request, lei: str, period_name: str, file: UploadFile, background_tasks: BackgroundTasks
 ):
     submission_processor.validate_file_processable(file)
     content = await file.read()
-    await submission_processor.upload_to_storage(lei, submission_id, content, file.filename.split(".")[-1])
-    background_tasks.add_task(submission_processor.validate_submission, lei, submission_id, content, background_tasks)
+
+    filing = await repo.get_filing(request.state.db_session, lei, period_name)
+    if not filing:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=f"There is no Filing for LEI {lei} in period {period_name}, unable to submit file.",
+        )
+
+    submission = await repo.add_submission(request.state.db_session, filing.id, request.user.id, file.filename)
+    await submission_processor.upload_to_storage(lei, submission.id, content, file.filename.split(".")[-1])
+
+    submission.state = SubmissionState.SUBMISSION_UPLOADED
+    submission = await repo.update_submission(submission, request.state.db_session)
+    background_tasks.add_task(submission_processor.validate_submission, lei, submission, content, background_tasks)
+
+    return submission
 
 
 @router.get("/institutions/{lei}/filings/{period_name}/submissions", response_model=List[SubmissionDTO])
