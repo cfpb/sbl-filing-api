@@ -85,7 +85,7 @@ class TestSubmissionProcessor:
             submission_processor.validate_file_processable(mock_upload_file)
         assert e.value.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
-    async def test_validate_and_update_successful(self, mocker: MockerFixture):
+    async def test_validate_and_update_successful(self, mocker: MockerFixture, successful_submission_mock: Mock):
         mock_sub = SubmissionDAO(
             id=1,
             filing=1,
@@ -93,28 +93,13 @@ class TestSubmissionProcessor:
             submitter="123456-7890-ABCDEF-GHIJ",
             filename="submission.csv",
         )
-        return_sub = SubmissionDAO(
-            id=1,
-            filing=1,
-            state=SubmissionState.VALIDATION_IN_PROGRESS,
-            submitter="123456-7890-ABCDEF-GHIJ",
-            filename="submission.csv",
-        )
-        mock_update_submission = mocker.patch("services.submission_processor.update_submission")
-        mock_update_submission.return_value = return_sub
-
-        mock_read_csv = mocker.patch("pandas.read_csv")
-        mock_read_csv.return_value = pd.DataFrame([["0", "1"]], columns=["Submission_Column_1", "Submission_Column_2"])
-
-        mock_validation = mocker.patch("services.submission_processor.validate_phases")
-        mock_validation.return_value = (True, pd.DataFrame(columns=[], index=[]))
 
         await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
-        assert mock_update_submission.call_args_list[0][0][0].state == SubmissionState.VALIDATION_IN_PROGRESS
-        assert mock_update_submission.call_args_list[0][0][0].validation_ruleset_version == "0.1.0"
-        assert mock_update_submission.call_args_list[1][0][0].state == "VALIDATION_SUCCESSFUL"
+        assert successful_submission_mock.call_args_list[0][0][0].state == SubmissionState.VALIDATION_IN_PROGRESS
+        assert successful_submission_mock.call_args_list[0][0][0].validation_ruleset_version == "0.1.0"
+        assert successful_submission_mock.call_args_list[1][0][0].state == "VALIDATION_SUCCESSFUL"
 
-    async def test_validate_and_update_warnings(self, mocker: MockerFixture):
+    async def test_validate_and_update_warnings(self, mocker: MockerFixture, warning_submission_mock: Mock):
         mock_sub = SubmissionDAO(
             id=1,
             filing=1,
@@ -122,29 +107,13 @@ class TestSubmissionProcessor:
             submitter="123456-7890-ABCDEF-GHIJ",
             filename="submission.csv",
         )
-        return_sub = SubmissionDAO(
-            id=1,
-            filing=1,
-            state=SubmissionState.VALIDATION_IN_PROGRESS,
-            submitter="123456-7890-ABCDEF-GHIJ",
-            filename="submission.csv",
-        )
-        mock_update_submission = mocker.patch("services.submission_processor.update_submission")
-        mock_update_submission.return_value = return_sub
-
-        mock_read_csv = mocker.patch("pandas.read_csv")
-        mock_read_csv.return_value = pd.DataFrame([["0", "1"]], columns=["Submission_Column_1", "Submission_Column_2"])
-
-        mock_validation = mocker.patch("services.submission_processor.validate_phases")
-        mock_validation.return_value = (False, pd.DataFrame([["warning"]], columns=["validation_severity"]))
 
         await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
+        assert warning_submission_mock.call_args_list[0][0][0].state == SubmissionState.VALIDATION_IN_PROGRESS
+        assert warning_submission_mock.call_args_list[0][0][0].validation_ruleset_version == "0.1.0"
+        assert warning_submission_mock.call_args_list[1][0][0].state == "VALIDATION_WITH_WARNINGS"
 
-        assert mock_update_submission.call_args_list[0][0][0].state == SubmissionState.VALIDATION_IN_PROGRESS
-        assert mock_update_submission.call_args_list[0][0][0].validation_ruleset_version == "0.1.0"
-        assert mock_update_submission.call_args_list[1][0][0].state == "VALIDATION_WITH_WARNINGS"
-
-    async def test_validate_and_update_errors(self, mocker: MockerFixture):
+    async def test_validate_and_update_errors(self, mocker: MockerFixture, error_submission_mock: Mock):
         mock_sub = SubmissionDAO(
             id=1,
             filing=1,
@@ -152,23 +121,8 @@ class TestSubmissionProcessor:
             submitter="123456-7890-ABCDEF-GHIJ",
             filename="submission.csv",
         )
-        return_sub = SubmissionDAO(
-            id=1,
-            filing=1,
-            state=SubmissionState.VALIDATION_IN_PROGRESS,
-            submitter="123456-7890-ABCDEF-GHIJ",
-            filename="submission.csv",
-        )
-        mock_update_submission = mocker.patch("services.submission_processor.update_submission")
-        mock_update_submission.return_value = return_sub
-
-        mock_read_csv = mocker.patch("pandas.read_csv")
-        mock_read_csv.return_value = pd.DataFrame([["0", "1"]], columns=["Submission_Column_1", "Submission_Column_2"])
-
-        mock_validation = mocker.patch("services.submission_processor.validate_phases")
-        mock_validation.return_value = (False, pd.DataFrame([["error"]], columns=["validation_severity"]))
 
         await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
-        assert mock_update_submission.call_args_list[0][0][0].state == SubmissionState.VALIDATION_IN_PROGRESS
-        assert mock_update_submission.call_args_list[0][0][0].validation_ruleset_version == "0.1.0"
-        assert mock_update_submission.call_args_list[1][0][0].state == "VALIDATION_WITH_ERRORS"
+        assert error_submission_mock.call_args_list[0][0][0].state == SubmissionState.VALIDATION_IN_PROGRESS
+        assert error_submission_mock.call_args_list[0][0][0].validation_ruleset_version == "0.1.0"
+        assert error_submission_mock.call_args_list[1][0][0].state == "VALIDATION_WITH_ERRORS"
