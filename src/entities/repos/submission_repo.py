@@ -90,7 +90,7 @@ async def add_submission(session: AsyncSession, filing_id: int, submitter: str, 
     new_sub = SubmissionDAO(
         filing=filing_id,
         submitter=submitter,
-        state=SubmissionState.SUBMISSION_UPLOADED,
+        state=SubmissionState.SUBMISSION_STARTED,
         filename=filename,
     )
     # this returns the attached object, most importantly with the new submission id
