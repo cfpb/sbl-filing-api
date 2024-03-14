@@ -24,17 +24,20 @@ def validate_submission_mock(mocker: MockerFixture):
 
     return mock_update_submission
 
+
 @pytest.fixture(scope="function")
 def error_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
     mock_validation = mocker.patch("services.submission_processor.validate_phases")
     mock_validation.return_value = (False, pd.DataFrame([["error"]], columns=["validation_severity"]))
     return validate_submission_mock
 
+
 @pytest.fixture(scope="function")
 def successful_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
     mock_validation = mocker.patch("services.submission_processor.validate_phases")
     mock_validation.return_value = (True, pd.DataFrame(columns=[], index=[]))
     return validate_submission_mock
+
 
 @pytest.fixture(scope="function")
 def warning_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
