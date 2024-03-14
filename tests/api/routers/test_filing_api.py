@@ -189,7 +189,7 @@ class TestFilingApi:
         mock_validate_file.return_value = None
         mock_upload = mocker.patch("services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
-        mock_validate_submission = mocker.patch("services.submission_processor.validate_submission")
+        mock_validate_submission = mocker.patch("services.submission_processor.validate_and_update_submission")
         mock_validate_submission.return_value = None
         async_mock = AsyncMock(return_value=return_sub)
         mock_add_submission = mocker.patch("entities.repos.submission_repo.add_submission", side_effect=async_mock)

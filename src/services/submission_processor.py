@@ -1,7 +1,7 @@
 import json
 
 from io import BytesIO
-from fastapi import BackgroundTasks, UploadFile
+from fastapi import UploadFile
 from regtech_data_validator.create_schemas import validate_phases
 import pandas as pd
 import importlib.metadata as imeta
@@ -45,17 +45,14 @@ async def upload_to_storage(lei: str, submission_id: str, content: bytes, extens
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to upload file")
 
 
-async def validate_submission(lei: str, submission: SubmissionDAO, content: bytes, background_tasks: BackgroundTasks):
-    df = pd.read_csv(BytesIO(content), dtype=str, na_filter=False)
+async def validate_and_update_submission(lei: str, submission: SubmissionDAO, content: bytes):
     validator_version = imeta.version("regtech-data-validator")
-    submission.state = SubmissionState.VALIDATION_IN_PROGRESS
     submission.validation_ruleset_version = validator_version
-    # Set VALIDATION_IN_PROGRESS
+    submission.state = SubmissionState.VALIDATION_IN_PROGRESS
     submission = await update_submission(submission)
-    background_tasks.add_task(validate_and_update_submission, df, lei, submission)
 
+    df = pd.read_csv(BytesIO(content), dtype=str, na_filter=False)
 
-async def validate_and_update_submission(df: pd.DataFrame, lei: str, submission: SubmissionDAO):
     # Validate Phases
     result = validate_phases(df, {"lei": lei})
 
