@@ -130,6 +130,7 @@ async def certify_submission(request: Request, id: int, lei: str, period_name: s
             content=f"Submission {id} for LEI {lei} in filing period {period_name} is not in a certifiable state.  Submissions must be validated successfully or with only warnings to be signed",
         )
     result.state = SubmissionState.SUBMISSION_CERTIFIED
+    result.certifier = request.user.id
     return await repo.update_submission(result, request.state.db_session)
 
 

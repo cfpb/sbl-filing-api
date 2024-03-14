@@ -1,4 +1,4 @@
-"""change submission enum
+"""certify updates
 
 Revision ID: 7a1b7eab0167
 Revises: b3bfb504ae7e
@@ -46,6 +46,7 @@ def upgrade() -> None:
             existing_type=sa.Enum(*old_options, name="submissionstate"),
             existing_server_default=sa.text("'text'"),
         )
+        batch_op.add_column(sa.Column("certifier", sa.String))
 
 
 def downgrade() -> None:
@@ -56,3 +57,4 @@ def downgrade() -> None:
             existing_type=sa.Enum(*new_options, name="submissionstate"),
             existing_server_default=sa.text("'text'"),
         )
+        batch_op.drop_column("certifier")

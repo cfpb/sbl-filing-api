@@ -451,6 +451,7 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/certify")
         update_mock.assert_called_once()
         assert update_mock.call_args.args[0].state == "SUBMISSION_CERTIFIED"
+        assert update_mock.call_args.args[0].certifier == "123456-7890-ABCDEF-GHIJ"
         assert res.status_code == 200
 
         mock.return_value = None
