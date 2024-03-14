@@ -122,7 +122,6 @@ class TestSubmissionProcessor:
         )
 
         await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
-        print(f"{error_submission_mock.mock_calls[0].args[0]}")
         assert error_submission_mock.mock_calls[0].args[0].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert error_submission_mock.mock_calls[0].args[0].validation_ruleset_version == "0.1.0"
         assert error_submission_mock.mock_calls[1].args[0].state == "VALIDATION_WITH_ERRORS"
