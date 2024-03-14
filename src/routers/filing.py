@@ -7,7 +7,16 @@ from services import submission_processor
 from typing import Annotated, List
 
 from entities.engine import get_session
-from entities.models import FilingPeriodDTO, SubmissionDTO, FilingDTO, SnapshotUpdateDTO, StateUpdateDTO, ContactInfoDTO, SubmissionState, SignatureDAO
+from entities.models import (
+    FilingPeriodDTO,
+    SubmissionDTO,
+    FilingDTO,
+    SnapshotUpdateDTO,
+    StateUpdateDTO,
+    ContactInfoDTO,
+    SubmissionState,
+    SignatureDAO,
+)
 from entities.repos import submission_repo as repo
 
 from sqlalchemy.exc import IntegrityError
@@ -101,6 +110,27 @@ async def get_submission(request: Request, id: int):
     if result:
         return result
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+
+
+@router.put("/institutions/{lei}/filings/{period_name}/submissions/{id}/certify", response_model=SubmissionDTO)
+@requires("authenticated")
+async def certify_submission(request: Request, id: int, lei: str, period_name: str):
+    result = await repo.get_submission(request.state.db_session, id)
+    if not result:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=f"Submission ID {id} does not exist, cannot sign a non-existing submission.",
+        )
+    if (
+        result.state != SubmissionState.VALIDATION_SUCCESSFUL
+        and result.state != SubmissionState.VALIDATION_WITH_WARNINGS
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=f"Submission {id} for LEI {lei} in filing period {period_name} is not in a certifiable state.  Submissions must be validated successfully or with only warnings to be signed",
+        )
+    result.state = SubmissionState.SUBMISSION_CERTIFIED
+    return await repo.update_submission(result, request.state.db_session)
 
 
 @router.put("/institutions/{lei}/filings/{period_name}/institution-snapshot-id", response_model=FilingDTO)

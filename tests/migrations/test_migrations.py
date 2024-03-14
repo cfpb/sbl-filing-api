@@ -178,6 +178,10 @@ def test_migration_to_8eaef8ce4c23(alembic_runner: MigrationContext, alembic_eng
 def test_migrations_to_fb46d55283d6(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("fb46d55283d6")
 
+def test_migrations_to_7a1b7eab0167(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("7a1b7eab0167")
+
+
 def test_migration_to_b3bfb504ae7e(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("b3bfb504ae7e")
 

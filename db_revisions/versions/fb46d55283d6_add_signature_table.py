@@ -1,7 +1,7 @@
 """add signature table
 
 Revision ID: fb46d55283d6
-Revises: 0581ef952d37
+Revises: 7a1b7eab0167
 Create Date: 2024-03-13 11:41:47.815220
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'fb46d55283d6'
-down_revision: Union[str, None] = '0581ef952d37'
+down_revision: Union[str, None] = '7a1b7eab0167'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

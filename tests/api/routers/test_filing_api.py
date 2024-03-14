@@ -417,3 +417,43 @@ class TestFilingApi:
                 phone="112-345-6789",
             ),
         )
+
+    async def test_certify_submission(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+        mock = mocker.patch("entities.repos.submission_repo.get_submission")
+        mock.return_value = SubmissionDAO(
+            id=1,
+            submitter="test1@cfpb.gov",
+            filing=1,
+            state=SubmissionState.VALIDATION_WITH_ERRORS,
+            validation_ruleset_version="v1",
+            submission_time=datetime.datetime.now(),
+            filename="file1.csv",
+        )
+        update_mock = mocker.patch("entities.repos.submission_repo.update_submission")
+        update_mock.return_value = SubmissionDAO(
+            id=1,
+            submitter="test1@cfpb.gov",
+            filing=1,
+            state=SubmissionState.SUBMISSION_CERTIFIED,
+            validation_ruleset_version="v1",
+            submission_time=datetime.datetime.now(),
+            filename="file1.csv",
+        )
+        client = TestClient(app_fixture)
+        res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/certify")
+        assert res.status_code == 403
+        assert (
+            res.json()
+            == "Submission 1 for LEI 1234567890 in filing period 2024 is not in a certifiable state.  Submissions must be validated successfully or with only warnings to be signed"
+        )
+
+        mock.return_value.state = SubmissionState.VALIDATION_SUCCESSFUL
+        res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/certify")
+        update_mock.assert_called_once()
+        assert update_mock.call_args.args[0].state == "SUBMISSION_CERTIFIED"
+        assert res.status_code == 200
+
+        mock.return_value = None
+        res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/certify")
+        assert res.status_code == 422
+        assert res.json() == "Submission ID 1 does not exist, cannot sign a non-existing submission."

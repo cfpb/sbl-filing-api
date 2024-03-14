@@ -1,8 +1,8 @@
-"""updates for signing filing
+"""change submission enum
 
-Revision ID: 0581ef952d37
+Revision ID: 7a1b7eab0167
 Revises: b3bfb504ae7e
-Create Date: 2024-03-13 11:26:55.619109
+Create Date: 2024-03-13 14:38:34.324557
 
 """
 from typing import Sequence, Union
@@ -12,10 +12,11 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0581ef952d37'
-down_revision: Union[str, None] = 'b3bfb504ae7e'
+revision: str = "7a1b7eab0167"
+down_revision: Union[str, None] = "b3bfb504ae7e"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
 
 old_options = (
     "SUBMISSION_SIGNED",
@@ -36,6 +37,7 @@ new_options = (
     "VALIDATION_SUCCESSFUL",
 )
 
+
 def upgrade() -> None:
     with op.batch_alter_table("submission", schema=None) as batch_op:
         batch_op.alter_column(
@@ -54,4 +56,3 @@ def downgrade() -> None:
             existing_type=sa.Enum(*new_options, name="submissionstate"),
             existing_server_default=sa.text("'text'"),
         )
-    
