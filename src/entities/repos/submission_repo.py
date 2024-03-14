@@ -24,6 +24,7 @@ from entities.models import (
     FilingTaskState,
     ContactInfoDAO,
     ContactInfoDTO,
+    SignatureDAO,
 )
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,12 @@ async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSe
             await session.rollback()
             logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
             raise
+
+
+async def add_signature(session: AsyncSession, filing_id: int, signer: str) -> SignatureDAO:
+    new_sig = await session.merge(SignatureDAO(signer=signer, filing=filing_id))
+    await session.commit()
+    return new_sig
 
 
 async def upsert_filing_period(session: AsyncSession, filing_period: FilingPeriodDTO) -> FilingPeriodDAO:

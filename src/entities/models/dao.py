@@ -86,8 +86,8 @@ class SignatureDAO(Base):
     signer: Mapped[str]
     signed_date: Mapped[datetime] = mapped_column(server_default=func.now())
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
-    
-    
+
+
 class FilingDAO(Base):
     __tablename__ = "filing"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -96,7 +96,7 @@ class FilingDAO(Base):
     tasks: Mapped[List[FilingTaskProgressDAO] | None] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
-    signature: Mapped[SignatureDAO] = relationship("SignatureDAO", lazy="joined") 
+    signatures: Mapped[List[SignatureDAO] | None] = relationship("SignatureDAO", lazy="selectin")
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
 
     def __str__(self):

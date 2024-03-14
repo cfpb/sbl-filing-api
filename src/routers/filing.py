@@ -15,7 +15,6 @@ from entities.models import (
     StateUpdateDTO,
     ContactInfoDTO,
     SubmissionState,
-    SignatureDAO,
 )
 from entities.repos import submission_repo as repo
 
@@ -69,11 +68,17 @@ async def sign_filing(request: Request, lei: str, period_name: str):
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_name)
     if not latest_sub or latest_sub.state != SubmissionState.SUBMISSION_CERTIFIED:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"Cannot sign filing.  Filing for {lei} for period {period_name} does not have a latest submission the SUBMISSION_CERTIFIED state.")
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"Cannot sign filing.  Filing for {lei} for period {period_name} does not have a latest submission the SUBMISSION_CERTIFIED state.",
+        )
     if not res.contact_info:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"Cannot sign filing. Filing for {lei} for period {period_name} does not have contact info defined.")
-    res.signer = SignatureDAO(signer=request.user.id, filing=res.id)
-    res.confirmation_id = (lei+"-"+period_name+"-"+latest_sub.id+"-"+datetime.now().timestamp())
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"Cannot sign filing. Filing for {lei} for period {period_name} does not have contact info defined.",
+        )
+    await repo.add_signature(request.state.db_session, signer=request.user.id, filing_id=res.id)
+    res.confirmation_id = lei + "-" + period_name + "-" + str(latest_sub.id) + "-" + str(datetime.now().timestamp())
     return await repo.upsert_filing(request.state.db_session, res)
 
 

@@ -21,7 +21,16 @@ __all__ = [
     "SignatureDTO",
 ]
 
-from .dao import Base, SubmissionDAO, FilingPeriodDAO, FilingDAO, FilingTaskProgressDAO, FilingTaskDAO, ContactInfoDAO, SignatureDAO
+from .dao import (
+    Base,
+    SubmissionDAO,
+    FilingPeriodDAO,
+    FilingDAO,
+    FilingTaskProgressDAO,
+    FilingTaskDAO,
+    ContactInfoDAO,
+    SignatureDAO,
+)
 from .dto import (
     SubmissionDTO,
     FilingDTO,

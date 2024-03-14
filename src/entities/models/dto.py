@@ -65,7 +65,8 @@ class FilingDTO(BaseModel):
     institution_snapshot_id: str
     contact_info: ContactInfoDTO | None = None
     confirmation_id: str | None = None
-    signature: SignatureDTO | None = None
+    signatures: List[SignatureDTO] = []
+
 
 class FilingPeriodDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
