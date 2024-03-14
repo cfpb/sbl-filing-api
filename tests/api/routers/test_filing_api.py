@@ -456,4 +456,4 @@ class TestFilingApi:
         mock.return_value = None
         res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/certify")
         assert res.status_code == 422
-        assert res.json() == "Submission ID 1 does not exist, cannot sign a non-existing submission."
+        assert res.json() == "Submission ID 1 does not exist, cannot certify a non-existing submission."

@@ -119,7 +119,7 @@ async def certify_submission(request: Request, id: int, lei: str, period_name: s
     if not result:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=f"Submission ID {id} does not exist, cannot sign a non-existing submission.",
+            content=f"Submission ID {id} does not exist, cannot certify a non-existing submission.",
         )
     if (
         result.state != SubmissionState.VALIDATION_SUCCESSFUL
