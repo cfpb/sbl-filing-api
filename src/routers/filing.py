@@ -73,6 +73,7 @@ async def sign_filing(request: Request, lei: str, period_name: str):
 async def upload_file(
     request: Request, lei: str, submission_id: str, file: UploadFile, background_tasks: BackgroundTasks
 ):
+    submission_processor.validate_file_processable(file)
     content = await file.read()
     await submission_processor.upload_to_storage(lei, submission_id, content, file.filename.split(".")[-1])
     background_tasks.add_task(submission_processor.validate_submission, lei, submission_id, content, background_tasks)
@@ -95,7 +96,7 @@ async def get_submission_latest(request: Request, lei: str, period_name: str):
 
 @router.get("/institutions/{lei}/filings/{period_name}/submissions/{id}", response_model=SubmissionDTO)
 @requires("authenticated")
-async def get_submission(request: Request, id: str):
+async def get_submission(request: Request, id: int):
     result = await repo.get_submission(request.state.db_session, id)
     if result:
         return result
@@ -127,7 +128,7 @@ async def get_contact_info(request: Request, lei: str, period_name: str):
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
 
-@router.post("/institutions/{lei}/filings/{period_name}/contact-info", response_model=ContactInfoDTO)
+@router.put("/institutions/{lei}/filings/{period_name}/contact-info", response_model=ContactInfoDTO)
 @requires("authenticated")
-async def post_contact_info(request: Request, lei: str, period_name: str, contact_info: ContactInfoDTO):
+async def put_contact_info(request: Request, lei: str, period_name: str, contact_info: ContactInfoDTO):
     return await repo.update_contact_info(request.state.db_session, lei, period_name, contact_info)

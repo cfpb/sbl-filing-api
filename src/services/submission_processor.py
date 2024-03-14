@@ -1,5 +1,5 @@
 from io import BytesIO
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, UploadFile
 from regtech_data_validator.create_schemas import validate_phases
 import pandas as pd
 import importlib.metadata as imeta
@@ -12,6 +12,23 @@ from fsspec import AbstractFileSystem, filesystem
 from config import settings, FsProtocol
 
 log = logging.getLogger(__name__)
+
+
+def validate_file_processable(file: UploadFile) -> None:
+    extension = file.filename.split(".")[-1].lower()
+    if file.content_type != settings.submission_file_type or extension != settings.submission_file_extension:
+        raise HTTPException(
+            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            detail=(
+                f"Only {settings.submission_file_type} file type with extension {settings.submission_file_extension} is supported; "
+                f'submitted file is "{file.content_type}" with "{extension}" extension',
+            ),
+        )
+    if file.size > settings.submission_file_size:
+        raise HTTPException(
+            status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Uploaded file size of {file.size} bytes exceeds the limit of {settings.submission_file_size} bytes.",
+        )
 
 
 async def upload_to_storage(lei: str, submission_id: str, content: bytes, extension: str = "csv"):

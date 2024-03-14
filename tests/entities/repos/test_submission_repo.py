@@ -320,7 +320,7 @@ class TestSubmissionRepo:
         assert res.id == 4
         assert res.submitter == "test@cfpb.gov"
         assert res.filing == 1
-        assert res.state == SubmissionState.SUBMISSION_UPLOADED
+        assert res.state == SubmissionState.SUBMISSION_STARTED
 
     async def test_update_submission(self, session_generator: async_scoped_session):
         async with session_generator() as add_session:

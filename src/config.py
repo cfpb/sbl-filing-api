@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     if using `s3` for the protocol, this should be the bucket name (e.g. `my-s3-bucket`)
     """
     upload_fs_root: str
+    submission_file_type: str = "text/csv"
+    submission_file_extension: str = "csv"
+    submission_file_size: int = 2 * (1024**3)
 
     user_fi_api_url: str = "http://sbl-project-user_fi-1:8888/v1/institutions/"
 
