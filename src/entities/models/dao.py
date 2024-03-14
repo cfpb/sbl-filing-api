@@ -20,7 +20,6 @@ class SubmissionDAO(Base):
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
-    confirmation_id: Mapped[str] = mapped_column(nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
 
@@ -88,6 +87,7 @@ class FilingDAO(Base):
     tasks: Mapped[List[FilingTaskProgressDAO] | None] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str]
     contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
+    confirmation_id: Mapped[str] = mapped_column(nullable=True)
 
     def __str__(self):
         return f"ID: {self.id}, Filing Period: {self.filing_period}, LEI: {self.lei}, Tasks: {self.tasks}, Institution Snapshot ID: {self.institution_snapshot_id}, Contact Info: {self.contact_info}"

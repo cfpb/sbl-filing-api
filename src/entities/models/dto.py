@@ -12,7 +12,6 @@ class SubmissionDTO(BaseModel):
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
     validation_json: Dict[str, Any] | None = None
-    confirmation_id: str | None = None
     submission_time: datetime | None = None
     filename: str
 
@@ -58,6 +57,7 @@ class FilingDTO(BaseModel):
     tasks: List[FilingTaskProgressDTO] | None = None
     institution_snapshot_id: str
     contact_info: ContactInfoDTO | None = None
+    confirmation_id: str | None = None
 
 
 class FilingPeriodDTO(BaseModel):

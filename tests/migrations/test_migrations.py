@@ -176,5 +176,15 @@ def test_migration_to_8eaef8ce4c23(alembic_runner: MigrationContext, alembic_eng
     assert "contact_info" not in [c["name"] for c in inspector.get_columns("contact_info")]
 
 
+def test_migration_to_b3bfb504ae7e(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("b3bfb504ae7e")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "confirmation_id" not in [c["name"] for c in inspector.get_columns("submission")]
+
+    assert "confirmation_id" in [c["name"] for c in inspector.get_columns("filing")]
+
+
 def test_migration_to_b70d06f93029(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("b70d06f93029")
