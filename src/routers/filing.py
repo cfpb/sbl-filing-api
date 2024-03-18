@@ -53,7 +53,8 @@ async def get_filing(request: Request, lei: str, period_name: str):
 async def post_filing(request: Request, lei: str, period_name: str):
     try:
         return await repo.create_new_filing(request.state.db_session, lei, period_name)
-    except IntegrityError:
+    except IntegrityError as ie:
+        print(f'{ie}')
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Filing already exists for Filing Period {period_name} and LEI {lei}",
