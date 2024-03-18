@@ -13,7 +13,6 @@ from async_lru import alru_cache
 
 from entities.models import (
     SubmissionDAO,
-    SubmissionDTO,
     SubmissionState,
     FilingPeriodDAO,
     FilingPeriodDTO,
@@ -88,31 +87,29 @@ async def get_contact_info(session: AsyncSession, lei: str, filing_period: str) 
     return filing.contact_info
 
 
-async def add_submission(session: AsyncSession, submission: SubmissionDTO) -> SubmissionDAO:
-    async with session.begin():
-        new_sub = SubmissionDAO(
-            filing=submission.filing,
-            submitter=submission.submitter,
-            state=SubmissionState.SUBMISSION_STARTED,
-            filename=submission.filename,
-        )
-        # this returns the attached object, most importantly with the new submission id
-        new_sub = await session.merge(new_sub)
-        await session.commit()
-        return new_sub
+async def add_submission(session: AsyncSession, filing_id: int, submitter: str, filename: str) -> SubmissionDAO:
+    new_sub = SubmissionDAO(
+        filing=filing_id,
+        submitter=submitter,
+        state=SubmissionState.SUBMISSION_STARTED,
+        filename=filename,
+    )
+    # this returns the attached object, most importantly with the new submission id
+    new_sub = await session.merge(new_sub)
+    await session.commit()
+    return new_sub
 
 
 async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSession = None) -> SubmissionDAO:
     session = incoming_session if incoming_session else SessionLocal()
-    async with session.begin():
-        try:
-            new_sub = await session.merge(submission)
-            await session.commit()
-            return new_sub
-        except Exception as e:
-            await session.rollback()
-            logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
-            raise
+    try:
+        new_sub = await session.merge(submission)
+        await session.commit()
+        return new_sub
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
+        raise
 
 
 async def add_signature(session: AsyncSession, filing_id: int, signer: str) -> SignatureDAO:
@@ -156,7 +153,7 @@ async def update_task_state(
 
 async def update_contact_info(
     session: AsyncSession, lei: str, filing_period: str, new_contact_info: ContactInfoDTO
-) -> ContactInfoDAO:
+) -> FilingDAO:
     filing = await get_filing(session, lei=lei, filing_period=filing_period)
     filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
     newfiling = await upsert_helper(session, filing, FilingDAO)

@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 from datetime import datetime
 from http import HTTPStatus
+=======
+>>>>>>> main
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
 from fastapi.responses import JSONResponse
 from regtech_api_commons.api import Router
@@ -83,15 +86,29 @@ async def sign_filing(request: Request, lei: str, period_name: str):
     return await repo.upsert_filing(request.state.db_session, res)
 
 
-@router.post("/{lei}/submissions/{submission_id}", status_code=HTTPStatus.ACCEPTED)
+@router.post("/institutions/{lei}/filings/{period_name}/submissions", response_model=SubmissionDTO)
 @requires("authenticated")
 async def upload_file(
-    request: Request, lei: str, submission_id: str, file: UploadFile, background_tasks: BackgroundTasks
+    request: Request, lei: str, period_name: str, file: UploadFile, background_tasks: BackgroundTasks
 ):
     submission_processor.validate_file_processable(file)
     content = await file.read()
-    await submission_processor.upload_to_storage(lei, submission_id, content, file.filename.split(".")[-1])
-    background_tasks.add_task(submission_processor.validate_submission, lei, submission_id, content, background_tasks)
+
+    filing = await repo.get_filing(request.state.db_session, lei, period_name)
+    if not filing:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=f"There is no Filing for LEI {lei} in period {period_name}, unable to submit file.",
+        )
+
+    submission = await repo.add_submission(request.state.db_session, filing.id, request.user.id, file.filename)
+    await submission_processor.upload_to_storage(lei, submission.id, content, file.filename.split(".")[-1])
+
+    submission.state = SubmissionState.SUBMISSION_UPLOADED
+    submission = await repo.update_submission(submission)
+    background_tasks.add_task(submission_processor.validate_and_update_submission, lei, submission, content)
+
+    return submission
 
 
 @router.get("/institutions/{lei}/filings/{period_name}/submissions", response_model=List[SubmissionDTO])
@@ -165,7 +182,7 @@ async def get_contact_info(request: Request, lei: str, period_name: str):
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
 
-@router.put("/institutions/{lei}/filings/{period_name}/contact-info", response_model=ContactInfoDTO)
+@router.put("/institutions/{lei}/filings/{period_name}/contact-info", response_model=FilingDTO)
 @requires("authenticated")
 async def put_contact_info(request: Request, lei: str, period_name: str, contact_info: ContactInfoDTO):
     return await repo.update_contact_info(request.state.db_session, lei, period_name, contact_info)

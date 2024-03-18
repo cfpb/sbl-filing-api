@@ -6,13 +6,13 @@ import pytest
 
 from copy import deepcopy
 
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, Mock, AsyncMock
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from entities.models import SubmissionDAO, SubmissionState, FilingTaskState, ContactInfoDAO, ContactInfoDTO
+from entities.models import SubmissionDAO, SubmissionState, FilingTaskState, ContactInfoDAO, ContactInfoDTO, FilingDAO
 
 from routers.dependencies import verify_lei
 
@@ -170,21 +170,53 @@ class TestFilingApi:
         assert res.status_code == 204
 
     def test_authed_upload_file(
-        self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, submission_csv: str
+        self,
+        mocker: MockerFixture,
+        app_fixture: FastAPI,
+        authed_user_mock: Mock,
+        submission_csv: str,
+        get_filing_mock: Mock,
     ):
+        return_sub = SubmissionDAO(
+            id=1,
+            filing=1,
+            state=SubmissionState.SUBMISSION_UPLOADED,
+            submitter="123456-7890-ABCDEF-GHIJ",
+            filename="submission.csv",
+        )
+
+        mock_validate_file = mocker.patch("services.submission_processor.validate_file_processable")
+        mock_validate_file.return_value = None
         mock_upload = mocker.patch("services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
-        mock_validate_submission = mocker.patch("services.submission_processor.validate_submission")
+        mock_validate_submission = mocker.patch("services.submission_processor.validate_and_update_submission")
         mock_validate_submission.return_value = None
+        async_mock = AsyncMock(return_value=return_sub)
+        mock_add_submission = mocker.patch("entities.repos.submission_repo.add_submission", side_effect=async_mock)
+        mock_update_submission = mocker.patch(
+            "entities.repos.submission_repo.update_submission", side_effect=async_mock
+        )
+
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
         client = TestClient(app_fixture)
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
-        assert res.status_code == 202
+
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
+        mock_add_submission.assert_called_with(ANY, 1, "123456-7890-ABCDEF-GHIJ", "submission.csv")
+        assert mock_update_submission.call_args.args[0].state == SubmissionState.SUBMISSION_UPLOADED
+        assert res.status_code == 200
+        assert res.json()["id"] == 1
+        assert res.json()["state"] == SubmissionState.SUBMISSION_UPLOADED
+        assert res.json()["submitter"] == "123456-7890-ABCDEF-GHIJ"
+
+        get_filing_mock.return_value = None
+        res = client.post("/v1/filing/institutions/ABCDEFG/filings/2024/submissions", files=files)
+        assert res.status_code == 422
+        assert res.json() == "There is no Filing for LEI ABCDEFG in period 2024, unable to submit file."
 
     def test_unauthed_upload_file(self, mocker: MockerFixture, app_fixture: FastAPI, submission_csv: str):
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
         client = TestClient(app_fixture)
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == 403
 
     def test_upload_file_invalid_type(
@@ -194,7 +226,7 @@ class TestFilingApi:
         mock.side_effect = HTTPException(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
         client = TestClient(app_fixture)
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
     def test_upload_file_invalid_size(
@@ -204,7 +236,7 @@ class TestFilingApi:
         mock.side_effect = HTTPException(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
         client = TestClient(app_fixture)
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
-        res = client.post("/v1/filing/123456790/submissions/1", files=files)
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     async def test_unauthed_patch_filing(self, app_fixture: FastAPI):
@@ -370,19 +402,26 @@ class TestFilingApi:
 
     def test_put_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         mock = mocker.patch("entities.repos.submission_repo.update_contact_info")
-        mock.return_value = ContactInfoDAO(
+        mock.return_value = FilingDAO(
             id=1,
-            filing=1,
-            first_name="test_first_name_1",
-            last_name="test_last_name_1",
-            hq_address_street_1="address street 1",
-            hq_address_street_2="",
-            hq_address_city="Test City 1",
-            hq_address_state="TS",
-            hq_address_zip="12345",
-            phone="112-345-6789",
-            email="name_1@email.test",
+            lei="1234567890",
+            institution_snapshot_id="Snapshot-1",
+            filing_period="2024",
+            contact_info=ContactInfoDAO(
+                id=1,
+                filing=1,
+                first_name="test_first_name_1",
+                last_name="test_last_name_1",
+                hq_address_street_1="address street 1",
+                hq_address_street_2="",
+                hq_address_city="Test City 1",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                phone="112-345-6789",
+                email="name_1@email.test",
+            ),
         )
+
         client = TestClient(app_fixture)
         contact_info_json = {
             "id": 1,
@@ -400,6 +439,23 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890/filings/2024/contact-info", json=contact_info_json)
 
         assert res.status_code == 200
+
+        result = res.json()
+        assert result["id"] == 1
+        assert result["lei"] == "1234567890"
+        assert result["institution_snapshot_id"] == "Snapshot-1"
+        assert result["filing_period"] == "2024"
+        assert result["contact_info"]["id"] == 1
+        assert result["contact_info"]["first_name"] == "test_first_name_1"
+        assert result["contact_info"]["last_name"] == "test_last_name_1"
+        assert result["contact_info"]["hq_address_street_1"] == "address street 1"
+        assert result["contact_info"]["hq_address_street_2"] == ""
+        assert result["contact_info"]["hq_address_city"] == "Test City 1"
+        assert result["contact_info"]["hq_address_state"] == "TS"
+        assert result["contact_info"]["hq_address_zip"] == "12345"
+        assert result["contact_info"]["phone"] == "112-345-6789"
+        assert result["contact_info"]["email"] == "name_1@email.test"
+
         mock.assert_called_with(
             ANY,
             "1234567890",
