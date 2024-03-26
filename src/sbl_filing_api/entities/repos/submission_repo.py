@@ -157,8 +157,7 @@ async def update_contact_info(
 ) -> FilingDAO:
     filing = await get_filing(session, lei=lei, filing_period=filing_period)
     filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
-    newfiling = await upsert_helper(session, filing, FilingDAO)
-    return newfiling
+    return await upsert_helper(session, filing, FilingDAO)
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
