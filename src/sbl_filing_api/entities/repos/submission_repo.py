@@ -116,9 +116,7 @@ async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSe
 
 async def add_signature(session: AsyncSession, filing_id: int, signer_id: str, signer_name: str = None) -> SignatureDAO:
     sig = SignatureDAO(signer_id=signer_id, signer_name=signer_name, filing=filing_id)
-    new_sig = await session.merge(sig)
-    await session.commit()
-    return new_sig
+    return await upsert_helper(session, sig, SignatureDAO)
 
 
 async def upsert_filing_period(session: AsyncSession, filing_period: FilingPeriodDTO) -> FilingPeriodDAO:
