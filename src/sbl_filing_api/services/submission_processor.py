@@ -33,12 +33,12 @@ def validate_file_processable(file: UploadFile) -> None:
         )
 
 
-async def upload_to_storage(period_name: str, lei: str, submission_id: str, content: bytes, extension: str = "csv"):
+async def upload_to_storage(period_code: str, lei: str, submission_id: str, content: bytes, extension: str = "csv"):
     try:
         fs: AbstractFileSystem = filesystem(settings.upload_fs_protocol.value)
         if settings.upload_fs_protocol == FsProtocol.FILE:
-            fs.mkdirs(f"{settings.upload_fs_root}/upload/{period_name}/{lei}", exist_ok=True)
-        with fs.open(f"{settings.upload_fs_root}/upload/{period_name}/{lei}/{submission_id}.{extension}", "wb") as f:
+            fs.mkdirs(f"{settings.upload_fs_root}/upload/{period_code}/{lei}", exist_ok=True)
+        with fs.open(f"{settings.upload_fs_root}/upload/{period_code}/{lei}/{submission_id}.{extension}", "wb") as f:
             f.write(content)
     except Exception as e:
         log.error("Failed to upload file", e, exc_info=True, stack_info=True)
