@@ -52,8 +52,7 @@ async def get_filing(request: Request, lei: str, period_name: str):
 async def post_filing(request: Request, lei: str, period_name: str):
     try:
         return await repo.create_new_filing(request.state.db_session, lei, period_name)
-    except IntegrityError as ie:
-        print(f"{ie}")
+    except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Filing already exists for Filing Period {period_name} and LEI {lei}",
@@ -83,7 +82,6 @@ async def sign_filing(request: Request, lei: str, period_name: str):
     sig = await repo.add_signature(
         request.state.db_session, signer_id=request.user.id, signer_name=request.user.name, filing_id=filing.id
     )
-    print(f"{sig}")
     filing.confirmation_id = lei + "-" + period_name + "-" + str(latest_sub.id) + "-" + str(sig.signed_date.timestamp())
     filing.signatures.append(sig)
     return await repo.upsert_filing(request.state.db_session, filing)
