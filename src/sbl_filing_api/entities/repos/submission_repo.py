@@ -20,6 +20,7 @@ from sbl_filing_api.entities.models.dao import (
     FilingTaskProgressDAO,
     FilingTaskState,
     ContactInfoDAO,
+    SignatureDAO,
 )
 from sbl_filing_api.entities.models.dto import (
     FilingPeriodDTO,
@@ -111,6 +112,11 @@ async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSe
         await session.rollback()
         logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
         raise
+
+
+async def add_signature(session: AsyncSession, filing_id: int, signer_id: str, signer_name: str = None) -> SignatureDAO:
+    sig = SignatureDAO(signer_id=signer_id, signer_name=signer_name, filing=filing_id)
+    return await upsert_helper(session, sig, SignatureDAO)
 
 
 async def upsert_filing_period(session: AsyncSession, filing_period: FilingPeriodDTO) -> FilingPeriodDAO:

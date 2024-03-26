@@ -59,6 +59,34 @@ async def post_filing(request: Request, lei: str, period_code: str):
         )
 
 
+@router.put("/institutions/{lei}/filings/{period_code}/sign", response_model=FilingDTO)
+@requires("authenticated")
+async def sign_filing(request: Request, lei: str, period_code: str):
+    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+    if not filing:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=f"There is no Filing for LEI {lei} in period {period_code}, unable to sign a non-existent Filing.",
+        )
+    latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
+    if not latest_sub or latest_sub.state != SubmissionState.SUBMISSION_ACCEPTED:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a latest submission the SUBMISSION_ACCEPTED state.",
+        )
+    if not filing.contact_info:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have contact info defined.",
+        )
+    sig = await repo.add_signature(
+        request.state.db_session, signer_id=request.user.id, signer_name=request.user.name, filing_id=filing.id
+    )
+    filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.id) + "-" + str(sig.signed_date.timestamp())
+    filing.signatures.append(sig)
+    return await repo.upsert_filing(request.state.db_session, filing)
+
+
 @router.post("/institutions/{lei}/filings/{period_code}/submissions", response_model=SubmissionDTO)
 @requires("authenticated")
 async def upload_file(
@@ -123,7 +151,7 @@ async def accept_submission(request: Request, id: int, lei: str, period_code: st
     ):
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            content=f"Submission {id} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be signed",
+            content=f"Submission {id} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
     result.state = SubmissionState.SUBMISSION_ACCEPTED
     result.accepter = request.user.id

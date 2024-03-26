@@ -32,7 +32,7 @@ def auth_mock(mocker: MockerFixture) -> Mock:
 @pytest.fixture
 def authed_user_mock(auth_mock: Mock) -> Mock:
     claims = {
-        "name": "test",
+        "name": "Test User",
         "preferred_username": "test_user",
         "email": "test@local.host",
         "institutions": ["123456ABCDEF", "654321FEDCBA"],
@@ -72,7 +72,7 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filing")
     mock.return_value = FilingDAO(
         id=1,
-        lei="1234567890",
+        lei="123456ABCDEF",
         filing_period="2024",
         institution_snapshot_id="v1",
         contact_info=ContactInfoDAO(

@@ -213,6 +213,18 @@ class TestSubmissionRepo:
             seconds_now, abs=1.5
         )  # allow for possible 1.5 second difference
 
+    async def test_add_signature(self, query_session: AsyncSession, transaction_session: AsyncSession):
+        await repo.add_signature(
+            transaction_session, filing_id=1, signer_id="1234-5678-ABCD-EFGH", signer_name="Test User"
+        )
+        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
+
+        assert filing.signatures[0].id == 1
+        assert filing.signatures[0].signer_id == "1234-5678-ABCD-EFGH"
+        assert filing.signatures[0].signer_name == "Test User"
+        assert filing.signatures[0].filing == 1
+        assert filing.signatures[0].signed_date.timestamp() == pytest.approx(dt.utcnow().timestamp(), abs=1.0)
+
     async def test_add_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
         user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
         await repo.update_task_state(

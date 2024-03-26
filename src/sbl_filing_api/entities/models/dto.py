@@ -49,6 +49,13 @@ class ContactInfoDTO(BaseModel):
     phone: str
 
 
+class SignatureDTO(BaseModel):
+    id: int
+    signer_id: str
+    signer_name: str | None = None
+    signed_date: datetime
+
+
 class FilingDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -59,6 +66,7 @@ class FilingDTO(BaseModel):
     institution_snapshot_id: str
     contact_info: ContactInfoDTO | None = None
     confirmation_id: str | None = None
+    signatures: List[SignatureDTO] = []
 
 
 class FilingPeriodDTO(BaseModel):
