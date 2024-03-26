@@ -9,7 +9,7 @@ from alembic import context
 
 from dotenv import load_dotenv
 
-from entities.models import Base
+from sbl_filing_api.entities.models.dao import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -26,7 +26,7 @@ ENV = os.getenv("ENV", "LOCAL")
 
 if ENV == "LOCAL":
     file_dir = os.path.dirname(os.path.realpath(__file__))
-    load_dotenv(f"{file_dir}/../src/.env.local")
+    load_dotenv(f"{file_dir}/../src/sbl_filing_api/.env.local")
 else:
     load_dotenv()
 

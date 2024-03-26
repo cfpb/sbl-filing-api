@@ -5,13 +5,13 @@ from fastapi import UploadFile
 from regtech_data_validator.create_schemas import validate_phases
 import pandas as pd
 import importlib.metadata as imeta
-from entities.models import SubmissionDAO, SubmissionState
-from entities.repos.submission_repo import update_submission
+from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
+from sbl_filing_api.entities.repos.submission_repo import update_submission
 from http import HTTPStatus
 from fastapi import HTTPException
 import logging
 from fsspec import AbstractFileSystem, filesystem
-from config import settings, FsProtocol
+from sbl_filing_api.config import settings, FsProtocol
 
 log = logging.getLogger(__name__)
 
@@ -33,12 +33,12 @@ def validate_file_processable(file: UploadFile) -> None:
         )
 
 
-async def upload_to_storage(lei: str, submission_id: str, content: bytes, extension: str = "csv"):
+async def upload_to_storage(period_name: str, lei: str, submission_id: str, content: bytes, extension: str = "csv"):
     try:
         fs: AbstractFileSystem = filesystem(settings.upload_fs_protocol.value)
         if settings.upload_fs_protocol == FsProtocol.FILE:
-            fs.mkdirs(f"{settings.upload_fs_root}/{lei}", exist_ok=True)
-        with fs.open(f"{settings.upload_fs_root}/{lei}/{submission_id}.{extension}", "wb") as f:
+            fs.mkdirs(f"{settings.upload_fs_root}/upload/{period_name}/{lei}", exist_ok=True)
+        with fs.open(f"{settings.upload_fs_root}/upload/{period_name}/{lei}/{submission_id}.{extension}", "wb") as f:
             f.write(content)
     except Exception as e:
         log.error("Failed to upload file", e, exc_info=True, stack_info=True)

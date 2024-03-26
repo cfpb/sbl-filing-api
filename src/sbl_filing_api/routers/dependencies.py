@@ -1,7 +1,7 @@
 import httpx
 import os
 
-from config import settings
+from sbl_filing_api.config import settings
 from http import HTTPStatus
 from fastapi import Request, HTTPException
 

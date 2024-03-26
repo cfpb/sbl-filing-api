@@ -178,13 +178,33 @@ def test_migration_to_8eaef8ce4c23(alembic_runner: MigrationContext, alembic_eng
 
 def test_migrations_to_fb46d55283d6(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("fb46d55283d6")
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    tables = inspector.get_table_names()
+
+    assert "signature" in tables
+    assert {
+        "id",
+        "filing",
+        "signer_id",
+        "signer_name",
+        "signed_date",
+    } == set([c["name"] for c in inspector.get_columns("signature")])
+
+    sig_filing_fk = inspector.get_foreign_keys("signature")[0]
+    assert sig_filing_fk["name"] == "signature_filing_fkey"
+    assert (
+        "filing" in sig_filing_fk["constrained_columns"]
+        and "filing" == sig_filing_fk["referred_table"]
+        and "id" in sig_filing_fk["referred_columns"]
+    )
 
 
 def test_migrations_to_7a1b7eab0167(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("7a1b7eab0167")
     inspector = sqlalchemy.inspect(alembic_engine)
 
-    assert "certifier" in [c["name"] for c in inspector.get_columns("submission")]
+    assert "accepter" in [c["name"] for c in inspector.get_columns("submission")]
 
 
 def test_migration_to_b3bfb504ae7e(alembic_runner: MigrationContext, alembic_engine: Engine):

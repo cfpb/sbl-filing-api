@@ -3,27 +3,29 @@ import logging
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
-from entities.engine.engine import SessionLocal
+from sbl_filing_api.entities.engine.engine import SessionLocal
 
-from regtech_api_commons.models import AuthenticatedUser
+from regtech_api_commons.models.auth import AuthenticatedUser
 
 from copy import deepcopy
 
 from async_lru import alru_cache
 
-from entities.models import (
+from sbl_filing_api.entities.models.dao import (
     SubmissionDAO,
     SubmissionState,
     FilingPeriodDAO,
-    FilingPeriodDTO,
-    FilingDTO,
     FilingDAO,
     FilingTaskDAO,
     FilingTaskProgressDAO,
     FilingTaskState,
     ContactInfoDAO,
-    ContactInfoDTO,
     SignatureDAO,
+)
+from sbl_filing_api.entities.models.dto import (
+    FilingPeriodDTO,
+    FilingDTO,
+    ContactInfoDTO,
 )
 
 logger = logging.getLogger(__name__)
@@ -112,8 +114,9 @@ async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSe
         raise
 
 
-async def add_signature(session: AsyncSession, filing_id: int, signer: str) -> SignatureDAO:
-    new_sig = await session.merge(SignatureDAO(signer=signer, filing=filing_id))
+async def add_signature(session: AsyncSession, filing_id: int, signer_id: str, signer_name: str = None) -> SignatureDAO:
+    sig = SignatureDAO(signer_id=signer_id, signer_name=signer_name, filing=filing_id)
+    new_sig = await session.merge(sig)
     await session.commit()
     return new_sig
 
@@ -157,8 +160,8 @@ async def update_contact_info(
     filing = await get_filing(session, lei=lei, filing_period=filing_period)
     filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
     newfiling = await upsert_helper(session, filing, FilingDAO)
-    print(f'{newfiling}')
     return newfiling
+
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:
     copy_data = original_data.__dict__.copy()

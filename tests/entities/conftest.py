@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import (
     async_scoped_session,
     async_sessionmaker,
 )
-from entities.models import Base
+from sbl_filing_api.entities.models.dao import Base
 
 
 @pytest.fixture(scope="session")

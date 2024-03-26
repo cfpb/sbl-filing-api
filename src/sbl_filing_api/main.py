@@ -11,12 +11,12 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from regtech_api_commons.oauth2.oauth2_backend import BearerTokenAuthBackend
 from regtech_api_commons.oauth2.oauth2_admin import OAuth2Admin
 
-from routers import filing_router
+from sbl_filing_api.routers.filing import router as filing_router
 
 from alembic.config import Config
 from alembic import command
 
-from config import kc_settings
+from sbl_filing_api.config import kc_settings
 
 log = logging.getLogger()
 
@@ -33,9 +33,9 @@ async def lifespan(app_: FastAPI):
 
 def run_migrations():
     file_dir = os.path.dirname(os.path.realpath(__file__))
-    alembic_cfg = Config(f"{file_dir}/../alembic.ini")
-    alembic_cfg.set_main_option("script_location", f"{file_dir}/../db_revisions")
-    alembic_cfg.set_main_option("prepend_sys_path", f"{file_dir}/../")
+    alembic_cfg = Config(f"{file_dir}/../../alembic.ini")
+    alembic_cfg.set_main_option("script_location", f"{file_dir}/../../db_revisions")
+    alembic_cfg.set_main_option("prepend_sys_path", f"{file_dir}/../../")
     command.upgrade(alembic_cfg, "head")
 
 

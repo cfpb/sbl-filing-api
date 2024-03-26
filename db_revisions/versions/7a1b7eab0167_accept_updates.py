@@ -1,4 +1,4 @@
-"""certify updates
+"""accept updates
 
 Revision ID: 7a1b7eab0167
 Revises: b3bfb504ae7e
@@ -28,7 +28,7 @@ old_options = (
     'VALIDATION_SUCCESSFUL',
 )
 new_options = (
-    'SUBMISSION_CERTIFIED',
+    'SUBMISSION_ACCEPTED',
     'SUBMISSION_STARTED',
     'SUBMISSION_UPLOADED',
     'VALIDATION_IN_PROGRESS',
@@ -45,7 +45,7 @@ def upgrade() -> None:
         op.execute(f"CREATE TYPE submissionstate AS ENUM{new_options}")
         op.execute("ALTER TABLE submission ALTER COLUMN state TYPE submissionstate USING state::text::submissionstate")
         op.execute("DROP TYPE submissionstate_old")
-    op.add_column("submission", sa.Column("certifier", sa.String))
+    op.add_column("submission", sa.Column("accepter", sa.String))
 
 
 def downgrade() -> None:
@@ -54,4 +54,4 @@ def downgrade() -> None:
         op.execute(f"CREATE TYPE submissionstate AS ENUM{old_options}")
         op.execute("ALTER TABLE submission ALTER COLUMN state TYPE submissionstate USING state::text::submissionstate")
         op.execute("DROP TYPE submissionstate_old")
-    op.drop_column("submission", "certifier")
+    op.drop_column("submission", "accepter")

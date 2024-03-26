@@ -1,4 +1,4 @@
-from .model_enums import FilingType, FilingTaskState, SubmissionState
+from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState
 from datetime import datetime
 from typing import Any, List
 from sqlalchemy import Enum as SAEnum, String
@@ -22,7 +22,7 @@ class SubmissionDAO(Base):
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
-    certifier: Mapped[str] = mapped_column(nullable=True)
+    accepter: Mapped[str] = mapped_column(nullable=True)
 
     def __str__(self):
         return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"
@@ -83,9 +83,15 @@ class ContactInfoDAO(Base):
 class SignatureDAO(Base):
     __tablename__ = "signature"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    signer: Mapped[str]
+    signer_id: Mapped[str]
+    signer_name: Mapped[str] = mapped_column(
+        nullable=True
+    )  # Some users may not have populated keycloak first/last name
     signed_date: Mapped[datetime] = mapped_column(server_default=func.now())
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
+
+    def __str__(self):
+        return f"ID: {self.id}, Filing: {self.filing}, Signer ID: {self.signer_id}, Signer Name: {self.signer_name}, Signing Date: {self.signed_date}"
 
 
 class FilingDAO(Base):

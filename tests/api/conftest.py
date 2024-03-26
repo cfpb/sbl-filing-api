@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 from unittest.mock import Mock
 import pandas as pd
 
-from entities.models import (
+from sbl_filing_api.entities.models.dao import (
     FilingPeriodDAO,
     FilingType,
     FilingDAO,
@@ -19,7 +19,7 @@ from starlette.authentication import AuthCredentials, UnauthenticatedUser
 
 @pytest.fixture
 def app_fixture(mocker: MockerFixture) -> FastAPI:
-    from main import app
+    from sbl_filing_api.main import app
 
     return app
 
@@ -32,7 +32,7 @@ def auth_mock(mocker: MockerFixture) -> Mock:
 @pytest.fixture
 def authed_user_mock(auth_mock: Mock) -> Mock:
     claims = {
-        "name": "test",
+        "name": "Test User",
         "preferred_username": "test_user",
         "email": "test@local.host",
         "institutions": ["123456ABCDEF", "654321FEDCBA"],
@@ -53,7 +53,7 @@ def unauthed_user_mock(auth_mock: Mock) -> Mock:
 
 @pytest.fixture
 def get_filing_period_mock(mocker: MockerFixture) -> Mock:
-    mock = mocker.patch("entities.repos.submission_repo.get_filing_periods")
+    mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filing_periods")
     mock.return_value = [
         FilingPeriodDAO(
             code="2024",
@@ -69,10 +69,10 @@ def get_filing_period_mock(mocker: MockerFixture) -> Mock:
 
 @pytest.fixture
 def get_filing_mock(mocker: MockerFixture) -> Mock:
-    mock = mocker.patch("entities.repos.submission_repo.get_filing")
+    mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filing")
     mock.return_value = FilingDAO(
         id=1,
-        lei="1234567890",
+        lei="123456ABCDEF",
         filing_period="2024",
         institution_snapshot_id="v1",
         contact_info=ContactInfoDAO(
@@ -94,7 +94,7 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
 
 @pytest.fixture
 def post_filing_mock(mocker: MockerFixture) -> Mock:
-    mock = mocker.patch("entities.repos.submission_repo.create_new_filing")
+    mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.create_new_filing")
     mock.return_value = FilingDAO(
         id=3,
         lei="ZXWVUTSRQP",

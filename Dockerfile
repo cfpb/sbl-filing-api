@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.12-alpine
 
 WORKDIR /usr/app
 
@@ -16,4 +16,4 @@ WORKDIR /usr/app/src
 
 EXPOSE 8888
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8888"]
+CMD ["uvicorn", "sbl_filing_api.main:app", "--host", "0.0.0.0", "--port", "8888"]

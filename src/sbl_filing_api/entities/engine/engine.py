@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import (
     async_scoped_session,
 )
 from asyncio import current_task
-from config import settings
+from sbl_filing_api.config import settings
 
 engine = create_async_engine(settings.conn.unicode_string(), echo=True).execution_options(
     schema_translate_map={None: settings.db_schema}

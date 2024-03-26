@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, ConfigDict
-from .model_enums import FilingType, FilingTaskState, SubmissionState
+from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState
 
 
 class SubmissionDTO(BaseModel):
@@ -14,7 +14,7 @@ class SubmissionDTO(BaseModel):
     validation_json: Dict[str, Any] | None = None
     submission_time: datetime | None = None
     filename: str
-    certifier: str | None = None
+    accepter: str | None = None
 
 
 class FilingTaskDTO(BaseModel):
@@ -51,7 +51,8 @@ class ContactInfoDTO(BaseModel):
 
 class SignatureDTO(BaseModel):
     id: int
-    signer: str
+    signer_id: str
+    signer_name: str | None = None
     signed_date: datetime
 
 

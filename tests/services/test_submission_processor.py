@@ -1,22 +1,22 @@
 from http import HTTPStatus
-from services import submission_processor
+from sbl_filing_api.services import submission_processor
 from fastapi import HTTPException
 import pytest
 from unittest.mock import Mock, ANY
 from pytest_mock import MockerFixture
-from config import FsProtocol, settings
-from entities.models import SubmissionDAO, SubmissionState
+from sbl_filing_api.config import FsProtocol, settings
+from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
 
 
 class TestSubmissionProcessor:
     @pytest.fixture
     def mock_fs(self, mocker: MockerFixture) -> Mock:
-        fs_mock_patch = mocker.patch("services.submission_processor.AbstractFileSystem")
+        fs_mock_patch = mocker.patch("sbl_filing_api.services.submission_processor.AbstractFileSystem")
         return fs_mock_patch.return_value
 
     @pytest.fixture
     def mock_fs_func(self, mocker: MockerFixture, mock_fs: Mock) -> Mock:
-        fs_func_mock = mocker.patch("services.submission_processor.filesystem")
+        fs_func_mock = mocker.patch("sbl_filing_api.services.submission_processor.filesystem")
         fs_func_mock.return_value = mock_fs
         return fs_func_mock
 
@@ -27,10 +27,10 @@ class TestSubmissionProcessor:
 
     async def test_upload(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
         with mocker.mock_open(mock_fs.open):
-            await submission_processor.upload_to_storage("test", "test", b"test content local")
+            await submission_processor.upload_to_storage("test_period", "test", "test", b"test content local")
         mock_fs_func.assert_called()
         mock_fs.mkdirs.assert_called()
-        mock_fs.open.assert_called_with(ANY, "wb")
+        mock_fs.open.assert_called_with("../upload/upload/test_period/test/test.csv", "wb")
         file_handle = mock_fs.open()
         file_handle.write.assert_called_with(b"test content local")
 
@@ -38,19 +38,19 @@ class TestSubmissionProcessor:
         default_fs_proto = settings.upload_fs_protocol
         settings.upload_fs_protocol = FsProtocol.S3
         with mocker.mock_open(mock_fs.open):
-            await submission_processor.upload_to_storage("test", "test", b"test content s3")
+            await submission_processor.upload_to_storage("test_period", "test", "test", b"test content s3")
         mock_fs_func.assert_called()
         mock_fs.mkdirs.assert_not_called()
-        mock_fs.open.assert_called_with(ANY, "wb")
+        mock_fs.open.assert_called_with("../upload/upload/test_period/test/test.csv", "wb")
         file_handle = mock_fs.open()
         file_handle.write.assert_called_with(b"test content s3")
         settings.upload_fs_protocol = default_fs_proto
 
     async def test_upload_failure(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
-        log_mock = mocker.patch("services.submission_processor.log")
+        log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")
         mock_fs.mkdirs.side_effect = IOError("test")
         with pytest.raises(Exception) as e:
-            await submission_processor.upload_to_storage("test", "test", b"test content")
+            await submission_processor.upload_to_storage("test_period", "test", "test", b"test content")
         log_mock.error.assert_called_with("Failed to upload file", ANY, exc_info=True, stack_info=True)
         assert isinstance(e.value, HTTPException)
 

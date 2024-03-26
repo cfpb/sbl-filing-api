@@ -1,4 +1,4 @@
-from config import Settings
+from sbl_filing_api.config import Settings
 
 
 def test_postgres_dsn_building():
