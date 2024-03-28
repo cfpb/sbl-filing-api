@@ -88,10 +88,13 @@ async def get_contact_info(session: AsyncSession, lei: str, filing_period: str) 
     return filing.contact_info
 
 
-async def add_submission(session: AsyncSession, filing_id: int, submitter: str, filename: str) -> SubmissionDAO:
+async def add_submission(
+    session: AsyncSession, filing_id: int, submitter: str, submitter_name, filename: str
+) -> SubmissionDAO:
     new_sub = SubmissionDAO(
         filing=filing_id,
         submitter=submitter,
+        submitter_name=submitter_name,
         state=SubmissionState.SUBMISSION_STARTED,
         filename=filename,
     )

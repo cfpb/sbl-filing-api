@@ -319,10 +319,12 @@ class TestSubmissionRepo:
             transaction_session,
             filing_id=1,
             submitter="123456-7890-ABCDEF-GHIJ",
+            submitter_name="Submitter Name",
             filename="file1.csv",
         )
         assert res.id == 4
         assert res.submitter == "123456-7890-ABCDEF-GHIJ"
+        assert res.submitter_name == "Submitter Name"
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_STARTED
 
@@ -332,6 +334,7 @@ class TestSubmissionRepo:
                 add_session,
                 filing_id=1,
                 submitter="123456-7890-ABCDEF-GHIJ",
+                submitter_name="Submitter Name",
                 filename="file1.csv",
             )
 

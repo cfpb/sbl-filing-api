@@ -74,7 +74,9 @@ async def upload_file(
             content=f"There is no Filing for LEI {lei} in period {period_code}, unable to submit file.",
         )
 
-    submission = await repo.add_submission(request.state.db_session, filing.id, request.user.id, file.filename)
+    submission = await repo.add_submission(
+        request.state.db_session, filing.id, request.user.id, request.user.name, file.filename
+    )
     await submission_processor.upload_to_storage(period_code, lei, submission.id, content, file.filename.split(".")[-1])
 
     submission.state = SubmissionState.SUBMISSION_UPLOADED
@@ -127,6 +129,7 @@ async def accept_submission(request: Request, id: int, lei: str, period_code: st
         )
     result.state = SubmissionState.SUBMISSION_ACCEPTED
     result.accepter = request.user.id
+    result.acceptor_name = request.user.name
     return await repo.update_submission(result, request.state.db_session)
 
 

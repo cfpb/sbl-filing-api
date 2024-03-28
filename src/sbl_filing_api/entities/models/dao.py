@@ -23,6 +23,8 @@ class SubmissionDAO(Base):
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
     accepter: Mapped[str] = mapped_column(nullable=True)
+    acceptor_name: Mapped[str] = mapped_column(nullable=True)
+    submitter_name: Mapped[str] = mapped_column(nullable=True)
 
     def __str__(self):
         return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"

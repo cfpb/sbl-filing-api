@@ -189,6 +189,7 @@ class TestFilingApi:
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
             submitter="123456-7890-ABCDEF-GHIJ",
+            submitter_name="test",
             filename="submission.csv",
         )
 
@@ -212,12 +213,13 @@ class TestFilingApi:
         client = TestClient(app_fixture)
 
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
-        mock_add_submission.assert_called_with(ANY, 1, "123456-7890-ABCDEF-GHIJ", "submission.csv")
+        mock_add_submission.assert_called_with(ANY, 1, "123456-7890-ABCDEF-GHIJ", "test", "submission.csv")
         assert mock_update_submission.call_args.args[0].state == SubmissionState.SUBMISSION_UPLOADED
         assert res.status_code == 200
         assert res.json()["id"] == 1
         assert res.json()["state"] == SubmissionState.SUBMISSION_UPLOADED
         assert res.json()["submitter"] == "123456-7890-ABCDEF-GHIJ"
+        assert res.json()["submitter_name"] == "test"
 
         get_filing_mock.return_value = None
         res = client.post("/v1/filing/institutions/ABCDEFG/filings/2024/submissions", files=files)
@@ -538,6 +540,7 @@ class TestFilingApi:
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
+            acceptor_name="test",
         )
         client = TestClient(app_fixture)
         res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/accept")
@@ -549,9 +552,9 @@ class TestFilingApi:
 
         mock.return_value.state = SubmissionState.VALIDATION_SUCCESSFUL
         res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/accept")
-        update_mock.assert_called_once()
         assert update_mock.call_args.args[0].state == "SUBMISSION_ACCEPTED"
         assert update_mock.call_args.args[0].accepter == "123456-7890-ABCDEF-GHIJ"
+        assert update_mock.call_args.args[0].acceptor_name == "test"
         assert res.status_code == 200
 
         mock.return_value = None

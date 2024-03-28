@@ -15,6 +15,8 @@ class SubmissionDTO(BaseModel):
     submission_time: datetime | None = None
     filename: str
     accepter: str | None = None
+    accepter_name: str | None = None
+    submitter_name: str | None = None
 
 
 class FilingTaskDTO(BaseModel):

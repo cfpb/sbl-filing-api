@@ -195,3 +195,13 @@ def test_migration_to_b3bfb504ae7e(alembic_runner: MigrationContext, alembic_eng
 
 def test_migration_to_b70d06f93029(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("b70d06f93029")
+
+
+def test_migration_to_d0ab7f051052(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("d0ab7f051052")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "submitter_name" in [c["name"] for c in inspector.get_columns("submission")]
+
+    assert "acceptor_name" in [c["name"] for c in inspector.get_columns("submission")]
