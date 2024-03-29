@@ -600,6 +600,7 @@ class TestFilingApi:
             filing=1,
             signer_id="1234",
             signer_name="Test user",
+            signer_email="test@local.host",
             signed_date=datetime.datetime.now(),
         )
 
@@ -609,7 +610,7 @@ class TestFilingApi:
 
         client = TestClient(app_fixture)
         res = client.put("/v1/filing/institutions/123456ABCDEF/filings/2024/sign")
-        add_sig_mock.assert_called_with(ANY, signer_id="123456-7890-ABCDEF-GHIJ", signer_name="Test User", filing_id=1)
+        add_sig_mock.assert_called_with(ANY, filing_id=1, user=authed_user_mock.return_value[1])
         assert upsert_mock.call_args.args[1].confirmation_id.startswith("123456ABCDEF-2024-1-")
         assert res.status_code == 200
         assert float(upsert_mock.call_args.args[1].confirmation_id.split("-")[3]) == pytest.approx(

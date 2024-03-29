@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import (
     async_scoped_session,
     async_sessionmaker,
 )
+from unittest.mock import Mock
 from sbl_filing_api.entities.models.dao import Base
+from regtech_api_commons.models.auth import AuthenticatedUser
 
 
 @pytest.fixture(scope="session")
@@ -59,3 +61,15 @@ async def query_session(session_generator: async_scoped_session):
 @pytest.fixture(scope="function")
 def session_generator(engine: AsyncEngine):
     return async_scoped_session(async_sessionmaker(engine, expire_on_commit=False), current_task)
+
+
+@pytest.fixture
+def authed_user_mock() -> Mock:
+    claims = {
+        "name": "Test User",
+        "preferred_username": "test_user",
+        "email": "test@local.host",
+        "institutions": ["123456ABCDEF", "654321FEDCBA"],
+        "sub": "123456-7890-ABCDEF-GHIJ",
+    }
+    return AuthenticatedUser.from_claim(claims)

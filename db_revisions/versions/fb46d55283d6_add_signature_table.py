@@ -25,6 +25,7 @@ def upgrade() -> None:
         sa.Column("filing", sa.Integer),
         sa.Column("signer_id", sa.String, nullable=False),
         sa.Column("signer_name", sa.String),
+        sa.Column("signer_email", sa.String, nullable=False),
         sa.Column("signed_date", sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.PrimaryKeyConstraint("id", name="signature_pkey"),
         sa.ForeignKeyConstraint(["filing"], ["filing.id"], name="signature_filing_fkey"),

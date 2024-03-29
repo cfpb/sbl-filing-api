@@ -87,6 +87,7 @@ class SignatureDAO(Base):
     signer_name: Mapped[str] = mapped_column(
         nullable=True
     )  # Some users may not have populated keycloak first/last name
+    signer_email: Mapped[str]
     signed_date: Mapped[datetime] = mapped_column(server_default=func.now())
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
 

@@ -53,6 +53,7 @@ class SignatureDTO(BaseModel):
     id: int
     signer_id: str
     signer_name: str | None = None
+    signer_email: str
     signed_date: datetime
 
 

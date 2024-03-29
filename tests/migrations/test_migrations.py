@@ -188,6 +188,7 @@ def test_migrations_to_fb46d55283d6(alembic_runner: MigrationContext, alembic_en
         "filing",
         "signer_id",
         "signer_name",
+        "signer_email",
         "signed_date",
     } == set([c["name"] for c in inspector.get_columns("signature")])
 
