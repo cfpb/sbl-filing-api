@@ -50,12 +50,20 @@ async def get_filing(request: Request, lei: str, period_code: str):
 @router.post("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
 @requires("authenticated")
 async def post_filing(request: Request, lei: str, period_code: str):
-    try:
-        return await repo.create_new_filing(request.state.db_session, lei, period_code)
-    except IntegrityError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
+    period = await repo.get_filing_period(request.state.db_session, filing_period=period_code)
+
+    if period:
+        try:
+            return await repo.create_new_filing(request.state.db_session, lei, period_code)
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
+            )
+    else:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period.",
         )
 
 
@@ -171,7 +179,7 @@ async def put_institution_snapshot(request: Request, lei: str, period_code: str,
     )
 
 
-@router.post("/institutions/{lei}/filings/{period_code}/tasks/{task_name}")
+@router.post("/institutions/{lei}/filings/{period_code}/tasks/{task_name}", deprecated=True)
 @requires("authenticated")
 async def update_task_state(request: Request, lei: str, period_code: str, task_name: str, state: StateUpdateDTO):
     await repo.update_task_state(request.state.db_session, lei, period_code, task_name, state.state, request.user)

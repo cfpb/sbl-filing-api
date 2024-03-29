@@ -67,8 +67,27 @@ class TestFilingApi:
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
         assert res.status_code == 403
 
-    def test_post_filing(self, app_fixture: FastAPI, post_filing_mock: Mock, authed_user_mock: Mock):
+    def test_post_filing(
+        self,
+        mocker: MockerFixture,
+        app_fixture: FastAPI,
+        get_filing_period_mock,
+        post_filing_mock: Mock,
+        authed_user_mock: Mock,
+    ):
         client = TestClient(app_fixture)
+        get_filing_period_by_code_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filing_period")
+
+        # testing with a period that does not exist
+        get_filing_period_by_code_mock.return_value = None
+        res = client.post("/v1/filing/institutions/1234567890/filings/2025/")
+        assert res.status_code == 422
+
+        assert (
+            res.content == b'"The period (2025) does not exist, therefore a Filing can not be created for this period."'
+        )
+
+        get_filing_period_by_code_mock.return_value = get_filing_period_mock.return_value
         post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/")
         assert res.status_code == 409

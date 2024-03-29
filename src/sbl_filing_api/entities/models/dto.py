@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict, Any, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState
 
 
@@ -62,7 +62,7 @@ class FilingDTO(BaseModel):
     id: int
     filing_period: str
     lei: str
-    tasks: List[FilingTaskProgressDTO] | None = None
+    tasks: List[FilingTaskProgressDTO] | None = Field(None, deprecated=True)
     institution_snapshot_id: str
     contact_info: ContactInfoDTO | None = None
     confirmation_id: str | None = None
