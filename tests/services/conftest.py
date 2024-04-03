@@ -28,7 +28,7 @@ def validate_submission_mock(mocker: MockerFixture):
 @pytest.fixture(scope="function")
 def error_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
     mock_validation = mocker.patch("sbl_filing_api.services.submission_processor.validate_phases")
-    mock_validation.return_value = (False, pd.DataFrame([["error"]], columns=["validation_severity"]))
+    mock_validation.return_value = (False, pd.DataFrame([["Error"]], columns=["validation_severity"]))
     return validate_submission_mock
 
 
@@ -42,5 +42,12 @@ def successful_submission_mock(mocker: MockerFixture, validate_submission_mock: 
 @pytest.fixture(scope="function")
 def warning_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
     mock_validation = mocker.patch("sbl_filing_api.services.submission_processor.validate_phases")
-    mock_validation.return_value = (False, pd.DataFrame([["warning"]], columns=["validation_severity"]))
+    mock_validation.return_value = (False, pd.DataFrame([["Warning"]], columns=["validation_severity"]))
     return validate_submission_mock
+
+
+@pytest.fixture(scope="function")
+def df_to_json_mock(mocker: MockerFixture, validate_submission_mock: Mock):
+    mock_json_formatting = mocker.patch("sbl_filing_api.services.submission_processor.df_to_json")
+    mock_json_formatting.return_value = "[{}]"
+    return mock_json_formatting

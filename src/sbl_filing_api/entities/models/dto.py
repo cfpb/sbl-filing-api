@@ -11,7 +11,7 @@ class SubmissionDTO(BaseModel):
     submitter: str
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
-    validation_json: Dict[str, Any] | None = None
+    validation_json: List[Dict[str, Any]] | None = None
     submission_time: datetime | None = None
     filename: str
     accepter: str | None = None

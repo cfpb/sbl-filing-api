@@ -3,6 +3,8 @@ import json
 from io import BytesIO
 from fastapi import UploadFile
 from regtech_data_validator.create_schemas import validate_phases
+from regtech_data_validator.data_formatters import df_to_json
+from regtech_data_validator.checks import Severity
 import pandas as pd
 import importlib.metadata as imeta
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
@@ -60,10 +62,10 @@ async def validate_and_update_submission(lei: str, submission: SubmissionDAO, co
     if not result[0]:
         submission.state = (
             SubmissionState.VALIDATION_WITH_ERRORS
-            if "error" in result[1]["validation_severity"].values
+            if Severity.ERROR.value in result[1]["validation_severity"].values
             else SubmissionState.VALIDATION_WITH_WARNINGS
         )
     else:
         submission.state = SubmissionState.VALIDATION_SUCCESSFUL
-    submission.validation_json = json.loads(result[1].to_json())
+    submission.validation_json = json.loads(df_to_json(result[1]))
     await update_submission(submission)

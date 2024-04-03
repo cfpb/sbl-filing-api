@@ -84,7 +84,9 @@ class TestSubmissionProcessor:
             submission_processor.validate_file_processable(mock_upload_file)
         assert e.value.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
-    async def test_validate_and_update_successful(self, mocker: MockerFixture, successful_submission_mock: Mock):
+    async def test_validate_and_update_successful(
+        self, mocker: MockerFixture, successful_submission_mock: Mock, df_to_json_mock: Mock
+    ):
         mock_sub = SubmissionDAO(
             id=1,
             filing=1,
@@ -98,7 +100,9 @@ class TestSubmissionProcessor:
         assert successful_submission_mock.mock_calls[0].args[0].validation_ruleset_version == "0.1.0"
         assert successful_submission_mock.mock_calls[1].args[0].state == "VALIDATION_SUCCESSFUL"
 
-    async def test_validate_and_update_warnings(self, mocker: MockerFixture, warning_submission_mock: Mock):
+    async def test_validate_and_update_warnings(
+        self, mocker: MockerFixture, warning_submission_mock: Mock, df_to_json_mock: Mock
+    ):
         mock_sub = SubmissionDAO(
             id=1,
             filing=1,
@@ -112,7 +116,9 @@ class TestSubmissionProcessor:
         assert warning_submission_mock.mock_calls[0].args[0].validation_ruleset_version == "0.1.0"
         assert warning_submission_mock.mock_calls[1].args[0].state == "VALIDATION_WITH_WARNINGS"
 
-    async def test_validate_and_update_errors(self, mocker: MockerFixture, error_submission_mock: Mock):
+    async def test_validate_and_update_errors(
+        self, mocker: MockerFixture, error_submission_mock: Mock, df_to_json_mock: Mock
+    ):
         mock_sub = SubmissionDAO(
             id=1,
             filing=1,
