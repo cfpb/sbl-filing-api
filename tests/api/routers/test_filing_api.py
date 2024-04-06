@@ -608,3 +608,38 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890/filings/2024/submissions/1/accept")
         assert res.status_code == 422
         assert res.json() == "Submission ID 1 does not exist, cannot accept a non-existing submission."
+
+    def test_unauthed_get_filings_by_user_and_period(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_period_mock: Mock, unauthed_user_mock: Mock
+    ):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/1234567890/filings/2024")
+        assert res.status_code == 403
+
+    def test_get_filings_by_user_and_period(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filings_by_user_and_period")
+        mock.return_value = [
+            FilingDAO(
+                id=1,
+                lei="1234567890",
+                filing_period="2024",
+                institution_snapshot_id="v1",
+            ),
+            FilingDAO(
+                id=2,
+                lei="1234567890",
+                filing_period="2024",
+                institution_snapshot_id="v1",
+            ),
+        ]
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/1234567890/filings/2024")
+        mock.assert_called_once_with(ANY, "1234567890", "2024")
+        assert res.status_code == 200
+        assert len(res.json()) == 2
+        assert res.json()[0]["id"] == 1
+        assert res.json()[0]["lei"] == "1234567890"
+        assert res.json()[0]["filing_period"] == "2024"
+        assert res.json()[1]["id"] == 2
+        assert res.json()[1]["lei"] == "1234567890"
+        assert res.json()[1]["filing_period"] == "2024"

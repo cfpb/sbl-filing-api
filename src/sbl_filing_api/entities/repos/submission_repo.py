@@ -71,6 +71,13 @@ async def get_period_filings(session: AsyncSession, filing_period: str) -> List[
     return filings
 
 
+async def get_filings_by_user_and_period(session: AsyncSession, lei: str, filing_period: str) -> List[FilingDAO]:
+    filings = await query_helper(session, FilingDAO, lei=lei, filing_period=filing_period)
+    if filings:
+        filings = await populate_missing_tasks(session, filings)
+    return filings
+
+
 async def get_filing_period(session: AsyncSession, filing_period: str) -> FilingPeriodDAO:
     result = await query_helper(session, FilingPeriodDAO, code=filing_period)
     return result[0] if result else None

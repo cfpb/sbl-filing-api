@@ -69,9 +69,17 @@ class TestSubmissionRepo:
             institution_snapshot_id="Snapshot-1",
             filing_period="2024",
         )
+        filing4 = FilingDAO(
+            id=4,
+            lei="ZYXWVUTSRQP",
+            institution_snapshot_id="Snapshot-1",
+            filing_period="2024",
+        )
+
         transaction_session.add(filing1)
         transaction_session.add(filing2)
         transaction_session.add(filing3)
+        transaction_session.add(filing4)
 
         filing_task1 = FilingTaskProgressDAO(
             id=1,
@@ -187,7 +195,7 @@ class TestSubmissionRepo:
 
     async def test_add_filing(self, transaction_session: AsyncSession):
         res = await repo.create_new_filing(transaction_session, lei="12345ABCDE", filing_period="2024")
-        assert res.id == 4
+        assert res.id == 5
         assert res.filing_period == "2024"
         assert res.lei == "12345ABCDE"
         assert res.institution_snapshot_id == "v1"
@@ -286,7 +294,7 @@ class TestSubmissionRepo:
 
     async def test_get_period_filings(self, query_session: AsyncSession, mocker: MockerFixture):
         results = await repo.get_period_filings(query_session, filing_period="2024")
-        assert len(results) == 3
+        assert len(results) == 4
         assert results[0].id == 1
         assert results[0].lei == "1234567890"
         assert results[0].filing_period == "2024"
@@ -499,6 +507,16 @@ class TestSubmissionRepo:
         assert submitter.submitter == "test2@cfpb.gov"
         assert submitter.submitter_name == "test2 submitter name"
         assert submitter.submitter_email == "test2@cfpb.gov"
+
+    async def test_get_filings_by_user_and_period(self, query_session: AsyncSession, mocker: MockerFixture):
+        results = await repo.get_filings_by_user_and_period(query_session, lei="ZYXWVUTSRQP", filing_period="2024")
+        assert len(results) == 2
+        assert results[0].id == 3
+        assert results[0].lei == "ZYXWVUTSRQP"
+        assert results[0].filing_period == "2024"
+        assert results[1].id == 4
+        assert results[1].lei == "ZYXWVUTSRQP"
+        assert results[1].filing_period == "2024"
 
     def get_error_json(self):
         df_columns = [
