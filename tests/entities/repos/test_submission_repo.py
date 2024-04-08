@@ -16,6 +16,8 @@ from sbl_filing_api.entities.models.dao import (
     FilingTaskState,
     SubmissionState,
     ContactInfoDAO,
+    AccepterDAO,
+    SubmitterDAO,
 )
 from sbl_filing_api.entities.models.dto import (
     FilingPeriodDTO,
@@ -82,7 +84,6 @@ class TestSubmissionRepo:
 
         submission1 = SubmissionDAO(
             id=1,
-            submitter="test1@cfpb.gov",
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
@@ -91,7 +92,6 @@ class TestSubmissionRepo:
         )
         submission2 = SubmissionDAO(
             id=2,
-            submitter="test2@cfpb.gov",
             filing=2,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
@@ -100,13 +100,13 @@ class TestSubmissionRepo:
         )
         submission3 = SubmissionDAO(
             id=3,
-            submitter="test2@cfpb.gov",
             filing=2,
             state=SubmissionState.SUBMISSION_UPLOADED,
             validation_ruleset_version="v1",
             submission_time=dt.now(),
             filename="file3.csv",
         )
+
         transaction_session.add(submission1)
         transaction_session.add(submission2)
         transaction_session.add(submission3)
@@ -139,7 +139,25 @@ class TestSubmissionRepo:
         )
         transaction_session.add(contact_info1)
         transaction_session.add(contact_info2)
-        # transaction_session.add(contact_info3)
+
+        accepter1 = AccepterDAO(
+            id=1,
+            submission=3,
+            accepter="test@local.host",
+            accepter_name="test accepter name",
+            accepter_email="test@local.host",
+            acception_time=dt.now(),
+        )
+        transaction_session.add(accepter1)
+
+        submitter1 = SubmitterDAO(
+            id=1,
+            submission=3,
+            submitter="test@local.host",
+            submitter_name="test submitter name",
+            submitter_email="test@local.host",
+        )
+        transaction_session.add(submitter1)
 
         await transaction_session.commit()
 
@@ -296,14 +314,12 @@ class TestSubmissionRepo:
         res = await repo.get_latest_submission(query_session, lei="ABCDEFGHIJ", filing_period="2024")
         assert res.id == 3
         assert res.filing == 2
-        assert res.submitter == "test2@cfpb.gov"
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
         assert res.validation_ruleset_version == "v1"
 
     async def test_get_submission(self, query_session: AsyncSession):
         res = await repo.get_submission(query_session, submission_id=1)
         assert res.id == 1
-        assert res.submitter == "test1@cfpb.gov"
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
         assert res.validation_ruleset_version == "v1"
@@ -312,14 +328,12 @@ class TestSubmissionRepo:
         res = await repo.get_submissions(query_session)
         assert len(res) == 3
         assert {1, 2, 3} == set([s.id for s in res])
-        assert res[0].submitter == "test1@cfpb.gov"
         assert res[1].filing == 2
         assert res[2].state == SubmissionState.SUBMISSION_UPLOADED
 
         res = await repo.get_submissions(query_session, lei="ABCDEFGHIJ", filing_period="2024")
         assert len(res) == 2
         assert {2, 3} == set([s.id for s in res])
-        assert {"test2@cfpb.gov"} == set([s.submitter for s in res])
         assert {2} == set([s.filing for s in res])
         assert {SubmissionState.SUBMISSION_UPLOADED} == set([s.state for s in res])
 
@@ -331,11 +345,9 @@ class TestSubmissionRepo:
         res = await repo.add_submission(
             transaction_session,
             filing_id=1,
-            submitter="123456-7890-ABCDEF-GHIJ",
             filename="file1.csv",
         )
         assert res.id == 4
-        assert res.submitter == "123456-7890-ABCDEF-GHIJ"
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_STARTED
 
@@ -344,7 +356,6 @@ class TestSubmissionRepo:
             res = await repo.add_submission(
                 add_session,
                 filing_id=1,
-                submitter="123456-7890-ABCDEF-GHIJ",
                 filename="file1.csv",
             )
 
@@ -381,6 +392,7 @@ class TestSubmissionRepo:
 
     async def test_get_contact_info(self, query_session: AsyncSession):
         res = await repo.get_contact_info(session=query_session, lei="ABCDEFGHIJ", filing_period="2024")
+
         assert res.id == 2
         assert res.filing == 2
         assert res.first_name == "test_first_name_2"
@@ -456,6 +468,50 @@ class TestSubmissionRepo:
         assert filing.contact_info.hq_address_zip == "12345"
         assert filing.contact_info.phone == "212-345-6789_upd"
         assert filing.contact_info.email == "test2_upd@cfpb.gov"
+
+    async def test_get_accepter(self, query_session: AsyncSession):
+        res = await repo.get_accepter(session=query_session, submission_id=3)
+
+        assert res.accepter == "test@local.host"
+        assert res.accepter_name == "test accepter name"
+        assert res.accepter_email == "test@local.host"
+
+    async def test_add_accepter(self, transaction_session: AsyncSession):
+        accepter = await repo.add_accepter(
+            session=transaction_session,
+            submission_id=2,
+            accepter="test2@cfpb.gov",
+            accepter_name="test2 accepter name",
+            accepter_email="test2@cfpb.gov",
+        )
+
+        assert accepter.id == 2
+        assert accepter.submission == 2
+        assert accepter.accepter == "test2@cfpb.gov"
+        assert accepter.accepter_name == "test2 accepter name"
+        assert accepter.accepter_email == "test2@cfpb.gov"
+
+    async def test_get_submitter(self, query_session: AsyncSession):
+        res = await repo.get_submitter(session=query_session, submission_id=3)
+
+        assert res.submitter == "test@local.host"
+        assert res.submitter_name == "test submitter name"
+        assert res.submitter_email == "test@local.host"
+
+    async def test_add_submitter(self, transaction_session: AsyncSession):
+        submitter = await repo.add_submitter(
+            session=transaction_session,
+            submission_id=2,
+            submitter="test2@cfpb.gov",
+            submitter_name="test2 submitter name",
+            submitter_email="test2@cfpb.gov",
+        )
+
+        assert submitter.id == 2
+        assert submitter.submission == 2
+        assert submitter.submitter == "test2@cfpb.gov"
+        assert submitter.submitter_name == "test2 submitter name"
+        assert submitter.submitter_email == "test2@cfpb.gov"
 
     def get_error_json(self):
         df_columns = [

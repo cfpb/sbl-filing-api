@@ -220,3 +220,65 @@ def test_migration_to_b3bfb504ae7e(alembic_runner: MigrationContext, alembic_eng
 
 def test_migration_to_b70d06f93029(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("b70d06f93029")
+
+
+def test_migration_to_d0ab7f051052(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("d0ab7f051052")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "accepter" not in [c["name"] for c in inspector.get_columns("submission")]
+    assert "submitter" not in [c["name"] for c in inspector.get_columns("submission")]
+
+
+def test_migration_to_4a5e42bb5efa(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("4a5e42bb5efa")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    tables = inspector.get_table_names()
+
+    assert "accepter" in tables
+
+    assert {
+        "id",
+        "submission",
+        "accepter",
+        "accepter_name",
+        "accepter_email",
+        "acception_time",
+    } == set([c["name"] for c in inspector.get_columns("accepter")])
+
+    accepter_fk = inspector.get_foreign_keys("accepter")[0]
+    assert accepter_fk["name"] == "accepter_submission_fkey"
+    assert (
+        "submission" in accepter_fk["constrained_columns"]
+        and "submission" == accepter_fk["referred_table"]
+        and "id" in accepter_fk["referred_columns"]
+    )
+
+
+def test_migration_to_ffd779216f6d(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("ffd779216f6d")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    tables = inspector.get_table_names()
+
+    assert "submitter" in tables
+
+    assert {
+        "id",
+        "submission",
+        "submitter",
+        "submitter_name",
+        "submitter_email",
+    } == set([c["name"] for c in inspector.get_columns("submitter")])
+
+    submitter_fk = inspector.get_foreign_keys("submitter")[0]
+    assert submitter_fk["name"] == "submitter_submission_fkey"
+    assert (
+        "submission" in submitter_fk["constrained_columns"]
+        and "submission" == submitter_fk["referred_table"]
+        and "id" in submitter_fk["referred_columns"]
+    )

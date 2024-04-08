@@ -13,7 +13,6 @@ def validate_submission_mock(mocker: MockerFixture):
         id=1,
         filing=1,
         state=SubmissionState.VALIDATION_IN_PROGRESS,
-        submitter="123456-7890-ABCDEF-GHIJ",
         filename="submission.csv",
     )
     mock_update_submission = mocker.patch("sbl_filing_api.services.submission_processor.update_submission")

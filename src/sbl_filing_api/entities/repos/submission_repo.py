@@ -21,12 +21,10 @@ from sbl_filing_api.entities.models.dao import (
     FilingTaskState,
     ContactInfoDAO,
     SignatureDAO,
+    AccepterDAO,
+    SubmitterDAO,
 )
-from sbl_filing_api.entities.models.dto import (
-    FilingPeriodDTO,
-    FilingDTO,
-    ContactInfoDTO,
-)
+from sbl_filing_api.entities.models.dto import FilingPeriodDTO, FilingDTO, ContactInfoDTO
 
 logger = logging.getLogger(__name__)
 
@@ -89,13 +87,22 @@ async def get_contact_info(session: AsyncSession, lei: str, filing_period: str) 
     return filing.contact_info
 
 
-async def add_submission(session: AsyncSession, filing_id: int, submitter: str, filename: str) -> SubmissionDAO:
-    new_sub = SubmissionDAO(
-        filing=filing_id,
-        submitter=submitter,
-        state=SubmissionState.SUBMISSION_STARTED,
-        filename=filename,
-    )
+async def get_accepter(session: AsyncSession, submission_id: int) -> AccepterDAO:
+    result = await query_helper(session, AccepterDAO, submission=submission_id)
+    return result[0] if result else None
+
+
+async def get_submitter(session: AsyncSession, submission_id: int) -> SubmitterDAO:
+    result = await query_helper(session, SubmitterDAO, submission=submission_id)
+    return result[0] if result else None
+
+
+async def add_submission(
+    session: AsyncSession,
+    filing_id: int,
+    filename: str,
+) -> SubmissionDAO:
+    new_sub = SubmissionDAO(filing=filing_id, state=SubmissionState.SUBMISSION_STARTED, filename=filename)
     # this returns the attached object, most importantly with the new submission id
     new_sub = await session.merge(new_sub)
     await session.commit()
@@ -158,6 +165,24 @@ async def update_contact_info(
     filing = await get_filing(session, lei=lei, filing_period=filing_period)
     filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
     return await upsert_helper(session, filing, FilingDAO)
+
+
+async def add_accepter(
+    session: AsyncSession, submission_id: int, accepter: str, accepter_name, accepter_email
+) -> AccepterDAO:
+    new_accepter = AccepterDAO(
+        accepter=accepter, accepter_name=accepter_name, accepter_email=accepter_email, submission=submission_id
+    )
+    return await upsert_helper(session, new_accepter, AccepterDAO)
+
+
+async def add_submitter(
+    session: AsyncSession, submission_id: int, submitter: str, submitter_name: str, submitter_email: str
+) -> AccepterDAO:
+    new_submitter = SubmitterDAO(
+        submitter=submitter, submitter_name=submitter_name, submitter_email=submitter_email, submission=submission_id
+    )
+    return await upsert_helper(session, new_submitter, SubmitterDAO)
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:

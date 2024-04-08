@@ -108,7 +108,16 @@ async def upload_file(
             content=f"There is no Filing for LEI {lei} in period {period_code}, unable to submit file.",
         )
 
-    submission = await repo.add_submission(request.state.db_session, filing.id, request.user.id, file.filename)
+    submission = await repo.add_submission(request.state.db_session, filing.id, file.filename)
+    submitter = await repo.add_submitter(
+        request.state.db_session,
+        submission_id=submission.id,
+        submitter=request.user.id,
+        submitter_name=request.user.name,
+        submitter_email=request.user.email,
+    )
+    submission.submitter = submitter
+    submission = await repo.update_submission(submission)
     await submission_processor.upload_to_storage(period_code, lei, submission.id, content, file.filename.split(".")[-1])
 
     submission.state = SubmissionState.SUBMISSION_UPLOADED
@@ -145,23 +154,32 @@ async def get_submission(request: Request, id: int):
 @router.put("/institutions/{lei}/filings/{period_code}/submissions/{id}/accept", response_model=SubmissionDTO)
 @requires("authenticated")
 async def accept_submission(request: Request, id: int, lei: str, period_code: str):
-    result = await repo.get_submission(request.state.db_session, id)
-    if not result:
+    submission = await repo.get_submission(request.state.db_session, id)
+    if not submission:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=f"Submission ID {id} does not exist, cannot accept a non-existing submission.",
         )
     if (
-        result.state != SubmissionState.VALIDATION_SUCCESSFUL
-        and result.state != SubmissionState.VALIDATION_WITH_WARNINGS
+        submission.state != SubmissionState.VALIDATION_SUCCESSFUL
+        and submission.state != SubmissionState.VALIDATION_WITH_WARNINGS
     ):
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=f"Submission {id} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
-    result.state = SubmissionState.SUBMISSION_ACCEPTED
-    result.accepter = request.user.id
-    return await repo.update_submission(result, request.state.db_session)
+
+    updated_accepter = await repo.add_accepter(
+        request.state.db_session,
+        submission_id=id,
+        accepter=request.user.id,
+        accepter_name=request.user.name,
+        accepter_email=request.user.email,
+    )
+    submission.accepter = updated_accepter
+    submission.state = SubmissionState.SUBMISSION_ACCEPTED
+    submission = await repo.update_submission(submission, request.state.db_session)
+    return submission
 
 
 @router.put("/institutions/{lei}/filings/{period_code}/institution-snapshot-id", response_model=FilingDTO)

@@ -91,7 +91,6 @@ class TestSubmissionProcessor:
             id=1,
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
-            submitter="123456-7890-ABCDEF-GHIJ",
             filename="submission.csv",
         )
 
@@ -107,7 +106,6 @@ class TestSubmissionProcessor:
             id=1,
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
-            submitter="123456-7890-ABCDEF-GHIJ",
             filename="submission.csv",
         )
 
@@ -123,7 +121,6 @@ class TestSubmissionProcessor:
             id=1,
             filing=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
-            submitter="123456-7890-ABCDEF-GHIJ",
             filename="submission.csv",
         )
 

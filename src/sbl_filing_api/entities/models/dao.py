@@ -12,20 +12,42 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
+class SubmitterDAO(Base):
+    __tablename__ = "submitter"
+    id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
+    submission: Mapped[int] = mapped_column(ForeignKey("submission.id"))
+    submitter: Mapped[str]
+    submitter_name: Mapped[str] = mapped_column(nullable=True)
+    submitter_email: Mapped[str]
+
+
+class AccepterDAO(Base):
+    __tablename__ = "accepter"
+    id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
+    submission: Mapped[int] = mapped_column(ForeignKey("submission.id"))
+    accepter: Mapped[str] = mapped_column(nullable=True)
+    accepter_name: Mapped[str] = mapped_column(nullable=True)
+    accepter_email: Mapped[str]
+    acception_time: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    def __str__(self):
+        return f"Acception ID: {self.id}, Accepter: {self.accepter}, Accepter Name: {self.accepter_name}, Accepter Email: {self.accepter_email}, Submission: {self.submission} Acception: {self.acception_time}"
+
+
 class SubmissionDAO(Base):
     __tablename__ = "submission"
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
-    submitter: Mapped[str]
+    submitter: Mapped[SubmitterDAO] = relationship("SubmitterDAO", lazy="joined")
+    accepter: Mapped[AccepterDAO] = relationship("AccepterDAO", lazy="joined")
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_json: Mapped[List[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
-    accepter: Mapped[str] = mapped_column(nullable=True)
 
     def __str__(self):
-        return f"Submission ID: {self.id}, Submitter: {self.submitter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"
+        return f"Submission ID: {self.id}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"
 
 
 class FilingPeriodDAO(Base):
