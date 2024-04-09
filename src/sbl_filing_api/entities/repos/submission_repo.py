@@ -111,14 +111,7 @@ async def add_submission(
 
 async def update_submission(submission: SubmissionDAO, incoming_session: AsyncSession = None) -> SubmissionDAO:
     session = incoming_session if incoming_session else SessionLocal()
-    try:
-        new_sub = await session.merge(submission)
-        await session.commit()
-        return new_sub
-    except Exception as e:
-        await session.rollback()
-        logger.error(f"There was an exception storing the updated SubmissionDAO, rolling back transaction: {e}")
-        raise
+    return await upsert_helper(session, submission, SubmissionDAO)
 
 
 async def add_signature(session: AsyncSession, filing_id: int, user: AuthenticatedUser) -> SignatureDAO:

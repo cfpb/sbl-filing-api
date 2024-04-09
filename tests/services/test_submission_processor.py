@@ -34,6 +34,14 @@ class TestSubmissionProcessor:
         file_handle = mock_fs.open()
         file_handle.write.assert_called_with(b"test content local")
 
+    async def test_read_from_storage(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
+        with mocker.mock_open(mock_fs.open):
+            await submission_processor.get_from_storage("2024", "1234567890", "1_report")
+        mock_fs_func.assert_called()
+        mock_fs.open.assert_called_with("../upload/upload/2024/1234567890/1_report.csv", "r")
+        file_handle = mock_fs.open()
+        file_handle.read.assert_called_with()
+
     async def test_upload_s3_no_mkdir(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
         default_fs_proto = settings.upload_fs_protocol
         settings.upload_fs_protocol = FsProtocol.S3
@@ -52,6 +60,16 @@ class TestSubmissionProcessor:
         with pytest.raises(Exception) as e:
             await submission_processor.upload_to_storage("test_period", "test", "test", b"test content")
         log_mock.error.assert_called_with("Failed to upload file", ANY, exc_info=True, stack_info=True)
+        assert isinstance(e.value, HTTPException)
+
+    async def test_read_failure(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
+        log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")
+        mock_fs.open.side_effect = IOError("test")
+        with pytest.raises(Exception) as e:
+            await submission_processor.get_from_storage("2024", "1234567890", "1_report")
+        log_mock.error.assert_called_with(
+            "Failed to read file ../upload/upload/2024/1234567890/1_report.csv:", ANY, exc_info=True, stack_info=True
+        )
         assert isinstance(e.value, HTTPException)
 
     def test_validate_file_supported(self, mock_upload_file: Mock):
@@ -85,7 +103,7 @@ class TestSubmissionProcessor:
         assert e.value.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     async def test_validate_and_update_successful(
-        self, mocker: MockerFixture, successful_submission_mock: Mock, df_to_json_mock: Mock
+        self, mocker: MockerFixture, successful_submission_mock: Mock, df_to_json_mock: Mock, df_to_download_mock: Mock
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -93,14 +111,23 @@ class TestSubmissionProcessor:
             state=SubmissionState.SUBMISSION_UPLOADED,
             filename="submission.csv",
         )
+        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+        df_to_download_mock.return_value = ""
 
-        await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
+        await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
+        encoded_results = df_to_download_mock.return_value.encode("utf-8")
+        assert file_mock.mock_calls[0].args == (
+            "2024",
+            "123456790",
+            "1" + submission_processor.REPORT_QUALIFIER,
+            encoded_results,
+        )
         assert successful_submission_mock.mock_calls[0].args[0].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert successful_submission_mock.mock_calls[0].args[0].validation_ruleset_version == "0.1.0"
         assert successful_submission_mock.mock_calls[1].args[0].state == "VALIDATION_SUCCESSFUL"
 
     async def test_validate_and_update_warnings(
-        self, mocker: MockerFixture, warning_submission_mock: Mock, df_to_json_mock: Mock
+        self, mocker: MockerFixture, warning_submission_mock: Mock, df_to_json_mock: Mock, df_to_download_mock: Mock
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -108,14 +135,22 @@ class TestSubmissionProcessor:
             state=SubmissionState.SUBMISSION_UPLOADED,
             filename="submission.csv",
         )
+        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
 
-        await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
+        await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
+        encoded_results = df_to_download_mock.return_value.encode("utf-8")
+        assert file_mock.mock_calls[0].args == (
+            "2024",
+            "123456790",
+            "1" + submission_processor.REPORT_QUALIFIER,
+            encoded_results,
+        )
         assert warning_submission_mock.mock_calls[0].args[0].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert warning_submission_mock.mock_calls[0].args[0].validation_ruleset_version == "0.1.0"
         assert warning_submission_mock.mock_calls[1].args[0].state == "VALIDATION_WITH_WARNINGS"
 
     async def test_validate_and_update_errors(
-        self, mocker: MockerFixture, error_submission_mock: Mock, df_to_json_mock: Mock
+        self, mocker: MockerFixture, error_submission_mock: Mock, df_to_json_mock: Mock, df_to_download_mock: Mock
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -124,7 +159,16 @@ class TestSubmissionProcessor:
             filename="submission.csv",
         )
 
-        await submission_processor.validate_and_update_submission("123456790", mock_sub, None)
+        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+
+        await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
+        encoded_results = df_to_download_mock.return_value.encode("utf-8")
+        assert file_mock.mock_calls[0].args == (
+            "2024",
+            "123456790",
+            "1" + submission_processor.REPORT_QUALIFIER,
+            encoded_results,
+        )
         assert error_submission_mock.mock_calls[0].args[0].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert error_submission_mock.mock_calls[0].args[0].validation_ruleset_version == "0.1.0"
         assert error_submission_mock.mock_calls[1].args[0].state == "VALIDATION_WITH_ERRORS"

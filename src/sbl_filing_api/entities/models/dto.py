@@ -61,6 +61,8 @@ class ContactInfoDTO(BaseModel):
     last_name: str
     hq_address_street_1: str
     hq_address_street_2: str | None = None
+    hq_address_street_3: str | None = None
+    hq_address_street_4: str | None = None
     hq_address_city: str
     hq_address_state: str
     hq_address_zip: str

@@ -282,3 +282,12 @@ def test_migration_to_ffd779216f6d(alembic_runner: MigrationContext, alembic_eng
         and "submission" == submitter_fk["referred_table"]
         and "id" in submitter_fk["referred_columns"]
     )
+
+
+def test_migration_to_2e81179924b5(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("2e81179924b5")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "hq_address_street_3" in [c["name"] for c in inspector.get_columns("contact_info")]
+    assert "hq_address_street_4" in [c["name"] for c in inspector.get_columns("contact_info")]

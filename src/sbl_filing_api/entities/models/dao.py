@@ -92,6 +92,8 @@ class ContactInfoDAO(Base):
     last_name: Mapped[str]
     hq_address_street_1: Mapped[str]
     hq_address_street_2: Mapped[str] = mapped_column(nullable=True)
+    hq_address_street_3: Mapped[str] = mapped_column(nullable=True)
+    hq_address_street_4: Mapped[str] = mapped_column(nullable=True)
     hq_address_city: Mapped[str]
     hq_address_state: Mapped[str]
     hq_address_zip: Mapped[str] = mapped_column(String(5))

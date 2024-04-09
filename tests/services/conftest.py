@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from pytest_mock import MockerFixture
+from textwrap import dedent
 from unittest.mock import Mock
 
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
@@ -50,3 +51,21 @@ def df_to_json_mock(mocker: MockerFixture, validate_submission_mock: Mock):
     mock_json_formatting = mocker.patch("sbl_filing_api.services.submission_processor.df_to_json")
     mock_json_formatting.return_value = "[{}]"
     return mock_json_formatting
+
+
+@pytest.fixture(scope="function")
+def df_to_download_mock(mocker: MockerFixture):
+    expected_output = dedent(
+        """
+                validation_type,validation_id,validation_name,row,unique_identifier,fig_link,validation_description,field_1,value_1
+                Warning,W0003,uid.invalid_uid_lei,1,ZZZZZZZZZZZZZZZZZZZZZ1,https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1,"* The first 20 characters of the 'unique identifier' should
+                match the Legal Entity Identifier (LEI) for the financial institution.
+                ",uid,ZZZZZZZZZZZZZZZZZZZZZ1
+                Warning,W0003,uid.invalid_uid_lei,2,ZZZZZZZZZZZZZZZZZZZZZS,https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1,"* The first 20 characters of the 'unique identifier' should
+                match the Legal Entity Identifier (LEI) for the financial institution.
+                ",uid,ZZZZZZZZZZZZZZZZZZZZZS
+        """
+    ).strip("\n")
+    mock_download_formatting = mocker.patch("sbl_filing_api.services.submission_processor.df_to_download")
+    mock_download_formatting.return_value = expected_output
+    return mock_download_formatting

@@ -3,7 +3,7 @@ import json
 from io import BytesIO
 from fastapi import UploadFile
 from regtech_data_validator.create_schemas import validate_phases
-from regtech_data_validator.data_formatters import df_to_json
+from regtech_data_validator.data_formatters import df_to_json, df_to_download
 from regtech_data_validator.checks import Severity
 import pandas as pd
 import importlib.metadata as imeta
@@ -16,6 +16,8 @@ from fsspec import AbstractFileSystem, filesystem
 from sbl_filing_api.config import settings, FsProtocol
 
 log = logging.getLogger(__name__)
+
+REPORT_QUALIFIER = "_report"
 
 
 def validate_file_processable(file: UploadFile) -> None:
@@ -35,19 +37,31 @@ def validate_file_processable(file: UploadFile) -> None:
         )
 
 
-async def upload_to_storage(period_code: str, lei: str, submission_id: str, content: bytes, extension: str = "csv"):
+async def upload_to_storage(period_code: str, lei: str, file_identifier: str, content: bytes, extension: str = "csv"):
     try:
         fs: AbstractFileSystem = filesystem(settings.upload_fs_protocol.value)
         if settings.upload_fs_protocol == FsProtocol.FILE:
             fs.mkdirs(f"{settings.upload_fs_root}/upload/{period_code}/{lei}", exist_ok=True)
-        with fs.open(f"{settings.upload_fs_root}/upload/{period_code}/{lei}/{submission_id}.{extension}", "wb") as f:
+        with fs.open(f"{settings.upload_fs_root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb") as f:
             f.write(content)
     except Exception as e:
         log.error("Failed to upload file", e, exc_info=True, stack_info=True)
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to upload file")
 
 
-async def validate_and_update_submission(lei: str, submission: SubmissionDAO, content: bytes):
+async def get_from_storage(period_code: str, lei: str, file_identifier: str, extension: str = "csv"):
+    try:
+        fs: AbstractFileSystem = filesystem(settings.upload_fs_protocol.value)
+        file_path = f"{settings.upload_fs_root}/upload/{period_code}/{lei}/{file_identifier}.{extension}"
+        with fs.open(file_path, "r") as f:
+            file_data = f.read()
+            return file_data
+    except Exception as e:
+        log.error(f"Failed to read file {file_path}:", e, exc_info=True, stack_info=True)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to read file.")
+
+
+async def validate_and_update_submission(period_code: str, lei: str, submission: SubmissionDAO, content: bytes):
     validator_version = imeta.version("regtech-data-validator")
     submission.validation_ruleset_version = validator_version
     submission.state = SubmissionState.VALIDATION_IN_PROGRESS
@@ -68,4 +82,6 @@ async def validate_and_update_submission(lei: str, submission: SubmissionDAO, co
     else:
         submission.state = SubmissionState.VALIDATION_SUCCESSFUL
     submission.validation_json = json.loads(df_to_json(result[1]))
+    submission_report = df_to_download(result[1])
+    await upload_to_storage(period_code, lei, str(submission.id) + REPORT_QUALIFIER, submission_report.encode("utf-8"))
     await update_submission(submission)
