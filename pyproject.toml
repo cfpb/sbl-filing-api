@@ -71,8 +71,8 @@ env = [
   "TOKEN_URL=http://localhost",
   "CERTS_URL=http://localhost",
   "AUTH_CLIENT=",
-  "UPLOAD_FS_PROTOCOL=file",
-  "UPLOAD_FS_ROOT=../upload",
+  "FS_UPLOAD_CONFIG={{\"protocol\": \"file\", \"root\":\"../upload\", \"mkdir\":true}}",
+  "FS_DOWNLOAD_CONFIG={{\"protocol\": \"file\"}}"
 ]
 testpaths = ["tests"]
 

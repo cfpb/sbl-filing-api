@@ -12,7 +12,6 @@ from unittest.mock import ANY, Mock, AsyncMock
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
-from textwrap import dedent
 
 from sbl_filing_api.entities.models.dao import (
     SubmissionDAO,
@@ -29,6 +28,7 @@ from sbl_filing_api.routers.dependencies import verify_lei
 from sbl_filing_api.services import submission_processor
 
 from sqlalchemy.exc import IntegrityError
+from tempfile import NamedTemporaryFile
 
 
 class TestFilingApi:
@@ -741,26 +741,19 @@ class TestFilingApi:
             filename="file1.csv",
         )
 
-        expected_output = dedent(
-            """
-            validation_type,validation_id,validation_name,row,unique_identifier,fig_link,validation_description,field_1,value_1
-            Warning,W0003,uid.invalid_uid_lei,1,ZZZZZZZZZZZZZZZZZZZZZ1,https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1,"* The first 20 characters of the 'unique identifier' should
-            match the Legal Entity Identifier (LEI) for the financial institution.
-            ",uid,ZZZZZZZZZZZZZZZZZZZZZ1
-            Warning,W0003,uid.invalid_uid_lei,2,ZZZZZZZZZZZZZZZZZZZZZS,https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1,"* The first 20 characters of the 'unique identifier' should
-            match the Legal Entity Identifier (LEI) for the financial institution.
-            ",uid,ZZZZZZZZZZZZZZZZZZZZZS
-        """
-        ).strip("\n")
+        file_content = b"Test"
+        temp_file = NamedTemporaryFile(delete=False, suffix=".csv")
+        temp_file.write(file_content)
+        temp_file.close()
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.get_from_storage")
-        file_mock.return_value = expected_output
+        file_mock.return_value = temp_file.name
 
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest/report")
         sub_mock.assert_called_with(ANY, "1234567890", "2024")
         file_mock.assert_called_with("2024", "1234567890", "1" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
-        assert res.text == expected_output
+        assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
 
         sub_mock.return_value = []
@@ -768,6 +761,8 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/latest/report")
         sub_mock.assert_called_with(ANY, "1234567890", "2024")
         assert res.status_code == 204
+
+        os.unlink(temp_file.name)
 
     async def test_get_sub_report(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
@@ -787,26 +782,19 @@ class TestFilingApi:
             filename="file1.csv",
         )
 
-        expected_output = dedent(
-            """
-            validation_type,validation_id,validation_name,row,unique_identifier,fig_link,validation_description,field_1,value_1
-            Warning,W0003,uid.invalid_uid_lei,1,ZZZZZZZZZZZZZZZZZZZZZ1,https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1,"* The first 20 characters of the 'unique identifier' should
-            match the Legal Entity Identifier (LEI) for the financial institution.
-            ",uid,ZZZZZZZZZZZZZZZZZZZZZ1
-            Warning,W0003,uid.invalid_uid_lei,2,ZZZZZZZZZZZZZZZZZZZZZS,https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1,"* The first 20 characters of the 'unique identifier' should
-            match the Legal Entity Identifier (LEI) for the financial institution.
-            ",uid,ZZZZZZZZZZZZZZZZZZZZZS
-        """
-        ).strip("\n")
+        file_content = b"Test"
+        temp_file = NamedTemporaryFile(delete=False, suffix=".csv")
+        temp_file.write(file_content)
+        temp_file.close()
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.get_from_storage")
-        file_mock.return_value = expected_output
+        file_mock.return_value = temp_file.name
 
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/1/report")
         sub_mock.assert_called_with(ANY, 1)
         file_mock.assert_called_with("2024", "1234567890", "1" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
-        assert res.text == expected_output
+        assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
 
         sub_mock.return_value = []
@@ -814,3 +802,5 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/1/report")
         sub_mock.assert_called_with(ANY, 1)
         assert res.status_code == 204
+
+        os.unlink(temp_file.name)

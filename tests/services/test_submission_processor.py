@@ -35,16 +35,16 @@ class TestSubmissionProcessor:
         file_handle.write.assert_called_with(b"test content local")
 
     async def test_read_from_storage(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
-        with mocker.mock_open(mock_fs.open):
-            await submission_processor.get_from_storage("2024", "1234567890", "1_report")
-        mock_fs_func.assert_called()
+        await submission_processor.get_from_storage("2024", "1234567890", "1_report")
+        mock_fs_func.assert_called_with(settings.fs_download_config.protocol)
         mock_fs.open.assert_called_with("../upload/upload/2024/1234567890/1_report.csv", "r")
-        file_handle = mock_fs.open()
-        file_handle.read.assert_called_with()
 
     async def test_upload_s3_no_mkdir(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
-        default_fs_proto = settings.upload_fs_protocol
-        settings.upload_fs_protocol = FsProtocol.S3
+        default_fs_proto = settings.fs_upload_config.protocol
+        settings.fs_upload_config.protocol = FsProtocol.S3.value
+        default_mkdir = settings.fs_upload_config.mkdir
+        settings.fs_upload_config.mkdir = False
+
         with mocker.mock_open(mock_fs.open):
             await submission_processor.upload_to_storage("test_period", "test", "test", b"test content s3")
         mock_fs_func.assert_called()
@@ -52,7 +52,9 @@ class TestSubmissionProcessor:
         mock_fs.open.assert_called_with("../upload/upload/test_period/test/test.csv", "wb")
         file_handle = mock_fs.open()
         file_handle.write.assert_called_with(b"test content s3")
-        settings.upload_fs_protocol = default_fs_proto
+
+        settings.fs_upload_config.protocol = default_fs_proto
+        settings.fs_upload_config.mkdir = default_mkdir
 
     async def test_upload_failure(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
         log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")

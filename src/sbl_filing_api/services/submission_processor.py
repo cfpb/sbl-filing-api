@@ -13,7 +13,7 @@ from http import HTTPStatus
 from fastapi import HTTPException
 import logging
 from fsspec import AbstractFileSystem, filesystem
-from sbl_filing_api.config import settings, FsProtocol
+from sbl_filing_api.config import settings
 
 log = logging.getLogger(__name__)
 
@@ -39,10 +39,12 @@ def validate_file_processable(file: UploadFile) -> None:
 
 async def upload_to_storage(period_code: str, lei: str, file_identifier: str, content: bytes, extension: str = "csv"):
     try:
-        fs: AbstractFileSystem = filesystem(settings.upload_fs_protocol.value)
-        if settings.upload_fs_protocol == FsProtocol.FILE:
-            fs.mkdirs(f"{settings.upload_fs_root}/upload/{period_code}/{lei}", exist_ok=True)
-        with fs.open(f"{settings.upload_fs_root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb") as f:
+        fs: AbstractFileSystem = filesystem(settings.fs_upload_config.protocol)
+        if settings.fs_upload_config.mkdir:
+            fs.mkdirs(f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}", exist_ok=True)
+        with fs.open(
+            f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb"
+        ) as f:
             f.write(content)
     except Exception as e:
         log.error("Failed to upload file", e, exc_info=True, stack_info=True)
@@ -51,11 +53,12 @@ async def upload_to_storage(period_code: str, lei: str, file_identifier: str, co
 
 async def get_from_storage(period_code: str, lei: str, file_identifier: str, extension: str = "csv"):
     try:
-        fs: AbstractFileSystem = filesystem(settings.upload_fs_protocol.value)
-        file_path = f"{settings.upload_fs_root}/upload/{period_code}/{lei}/{file_identifier}.{extension}"
+        fs: AbstractFileSystem = filesystem(
+            settings.fs_download_config.protocol, **settings.fs_download_config.download_args
+        )
+        file_path = f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}"
         with fs.open(file_path, "r") as f:
-            file_data = f.read()
-            return file_data
+            return f.name
     except Exception as e:
         log.error(f"Failed to read file {file_path}:", e, exc_info=True, stack_info=True)
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to read file.")

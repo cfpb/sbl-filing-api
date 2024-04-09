@@ -1,7 +1,5 @@
-import io
-
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, FileResponse
 from regtech_api_commons.api.router_wrapper import Router
 from sbl_filing_api.services import submission_processor
 from typing import Annotated, List
@@ -226,7 +224,11 @@ async def put_contact_info(request: Request, lei: str, period_code: str, contact
     )
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/submissions/latest/report")
+@router.get(
+    "/institutions/{lei}/filings/{period_code}/submissions/latest/report",
+    response_class=FileResponse,
+    responses={200: {"content": {"text/csv"}}},
+)
 @requires("authenticated")
 async def get_latest_submission_report(request: Request, lei: str, period_code: str):
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
@@ -234,11 +236,15 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(latest_sub.id) + submission_processor.REPORT_QUALIFIER
         )
-        return StreamingResponse(io.StringIO(file_data), media_type="text/csv")
+        return file_data
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/submissions/{id}/report")
+@router.get(
+    "/institutions/{lei}/filings/{period_code}/submissions/{id}/report",
+    response_class=FileResponse,
+    responses={200: {"content": {"text/csv"}}},
+)
 @requires("authenticated")
 async def get_submission_report(request: Request, lei: str, period_code: str, id: int):
     sub = await repo.get_submission(request.state.db_session, id)
@@ -246,5 +252,5 @@ async def get_submission_report(request: Request, lei: str, period_code: str, id
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
         )
-        return StreamingResponse(io.StringIO(file_data), media_type="text/csv")
+        return file_data
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
