@@ -27,7 +27,11 @@ class FsUploadConfig(BaseModel):
 
 class FsDownloadConfig(BaseModel):
     protocol: str = FsProtocol.FILE.value
-    download_args: Dict[str, Any] = {}
+    target_protocol: str = None
+    cache_storage: str = None
+    check_files: bool = True
+    version_aware: bool = True
+    
 
 
 class Settings(BaseSettings):
@@ -63,7 +67,7 @@ class Settings(BaseSettings):
         )
         return str(postgres_dsn)
 
-    model_config = SettingsConfigDict(env_file=env_files_to_load, extra="allow")
+    model_config = SettingsConfigDict(env_file=env_files_to_load, extra="allow", env_nested_delimiter='__')
 
 
 settings = Settings()

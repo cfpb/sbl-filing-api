@@ -54,7 +54,7 @@ async def upload_to_storage(period_code: str, lei: str, file_identifier: str, co
 async def get_from_storage(period_code: str, lei: str, file_identifier: str, extension: str = "csv"):
     try:
         fs: AbstractFileSystem = filesystem(
-            settings.fs_download_config.protocol, **settings.fs_download_config.download_args
+            **settings.fs_download_config.__dict__
         )
         file_path = f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}"
         with fs.open(file_path, "r") as f:
