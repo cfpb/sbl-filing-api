@@ -226,9 +226,7 @@ async def put_contact_info(request: Request, lei: str, period_code: str, contact
 
 @router.get(
     "/institutions/{lei}/filings/{period_code}/submissions/latest/report",
-    response_class=FileResponse,
-    responses={200: {"content": {"text/csv"}}},
-)
+    responses={200: {"content":{"text/plain; charset=utf-8": {}}}})
 @requires("authenticated")
 async def get_latest_submission_report(request: Request, lei: str, period_code: str):
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
@@ -236,14 +234,13 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(latest_sub.id) + submission_processor.REPORT_QUALIFIER
         )
-        return file_data
+        return FileResponse(path=file_data, media_type="text/csv")
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
 
 @router.get(
     "/institutions/{lei}/filings/{period_code}/submissions/{id}/report",
-    response_class=FileResponse,
-    responses={200: {"content": {"text/csv"}}},
+    responses={200: {"content":{"text/plain; charset=utf-8": {}}}}
 )
 @requires("authenticated")
 async def get_submission_report(request: Request, lei: str, period_code: str, id: int):
@@ -252,5 +249,5 @@ async def get_submission_report(request: Request, lei: str, period_code: str, id
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
         )
-        return file_data
+        return FileResponse(path=file_data, media_type="text/csv")
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
