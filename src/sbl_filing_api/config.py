@@ -1,7 +1,7 @@
 from enum import StrEnum
 import os
 from urllib import parse
-from typing import Any, Dict
+from typing import Any
 
 from pydantic import field_validator, ValidationInfo, BaseModel
 from pydantic.networks import PostgresDsn
@@ -31,7 +31,6 @@ class FsDownloadConfig(BaseModel):
     cache_storage: str = None
     check_files: bool = True
     version_aware: bool = True
-    
 
 
 class Settings(BaseSettings):
@@ -67,7 +66,7 @@ class Settings(BaseSettings):
         )
         return str(postgres_dsn)
 
-    model_config = SettingsConfigDict(env_file=env_files_to_load, extra="allow", env_nested_delimiter='__')
+    model_config = SettingsConfigDict(env_file=env_files_to_load, extra="allow", env_nested_delimiter="__")
 
 
 settings = Settings()

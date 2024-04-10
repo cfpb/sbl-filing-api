@@ -226,7 +226,8 @@ async def put_contact_info(request: Request, lei: str, period_code: str, contact
 
 @router.get(
     "/institutions/{lei}/filings/{period_code}/submissions/latest/report",
-    responses={200: {"content":{"text/plain; charset=utf-8": {}}}})
+    responses={200: {"content": {"text/plain; charset=utf-8": {}}}},
+)
 @requires("authenticated")
 async def get_latest_submission_report(request: Request, lei: str, period_code: str):
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
@@ -240,7 +241,7 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
 
 @router.get(
     "/institutions/{lei}/filings/{period_code}/submissions/{id}/report",
-    responses={200: {"content":{"text/plain; charset=utf-8": {}}}}
+    responses={200: {"content": {"text/plain; charset=utf-8": {}}}},
 )
 @requires("authenticated")
 async def get_submission_report(request: Request, lei: str, period_code: str, id: int):

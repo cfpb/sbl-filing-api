@@ -36,7 +36,7 @@ class TestSubmissionProcessor:
 
     async def test_read_from_storage(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
         await submission_processor.get_from_storage("2024", "1234567890", "1_report")
-        mock_fs_func.assert_called_with(settings.fs_download_config.protocol)
+        mock_fs_func.assert_called_with(**settings.fs_download_config.__dict__)
         mock_fs.open.assert_called_with("../upload/upload/2024/1234567890/1_report.csv", "r")
 
     async def test_upload_s3_no_mkdir(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
