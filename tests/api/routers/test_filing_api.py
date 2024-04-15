@@ -379,6 +379,19 @@ class TestFilingApi:
             ANY, "1234567890", "2024", "Task-1", FilingTaskState.COMPLETED, authed_user_mock.return_value[1]
         )
 
+    def test_unauthed_user_lei_association(
+        self,
+        mocker: MockerFixture,
+        app_fixture: FastAPI,
+        unauthed_user_mock: Mock,
+        get_filing_mock: Mock,
+        get_filing_period_mock: Mock,
+    ):
+        client = TestClient(app_fixture)
+
+        res = client.get("/v1/filing/institutions/123456ABCDEF/filings/2024/")
+        assert res.status_code == 403
+
     def test_user_lei_association(
         self,
         mocker: MockerFixture,
