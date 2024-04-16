@@ -768,7 +768,7 @@ class TestFilingApi:
         assert res.status_code == 200
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
-        assert res.headers["content-disposition"] == 'attachment; filename="1validation_report.csv"'
+        assert res.headers["content-disposition"] == 'attachment; filename="1_validation_report.csv"'
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
@@ -810,7 +810,7 @@ class TestFilingApi:
         assert res.status_code == 200
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
-        assert res.headers["content-disposition"] == 'attachment; filename="2validation_report.csv"'
+        assert res.headers["content-disposition"] == 'attachment; filename="2_validation_report.csv"'
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
