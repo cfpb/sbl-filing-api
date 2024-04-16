@@ -768,6 +768,7 @@ class TestFilingApi:
         assert res.status_code == 200
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
+        assert res.headers["content-disposition"] == 'attachment; filename="1validation_report.csv"'
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
@@ -780,7 +781,7 @@ class TestFilingApi:
     async def test_get_sub_report(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
         sub_mock.return_value = SubmissionDAO(
-            id=1,
+            id=2,
             submitter=SubmitterDAO(
                 id=1,
                 submission=1,
@@ -803,12 +804,13 @@ class TestFilingApi:
         file_mock.return_value = temp_file.name
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/1/report")
-        sub_mock.assert_called_with(ANY, 1)
-        file_mock.assert_called_with("2024", "1234567890", "1" + submission_processor.REPORT_QUALIFIER)
+        res = client.get("/v1/filing/institutions/1234567890/filings/2024/submissions/2/report")
+        sub_mock.assert_called_with(ANY, 2)
+        file_mock.assert_called_with("2024", "1234567890", "2" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
+        assert res.headers["content-disposition"] == 'attachment; filename="2validation_report.csv"'
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
