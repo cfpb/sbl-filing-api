@@ -127,7 +127,8 @@ async def check_expired_submissions():
     stmt = select(SubmissionDAO).filter(SubmissionDAO.state.in_(check_states))
     submissions = (await session.scalars(stmt)).all()
     for s in submissions:
-        if abs(s.submission_time.timestamp() - datetime.now().timestamp()) > settings.expired_submission_diff_secs:
+        if (datetime.now().timestamp() - s.submission_time.timestamp()) > settings.expired_submission_diff_secs:
+            logger.warn(f"Submission {s.id} is still in state {s.state} passed the allowable expiration delta, will be set to VALIDATION_EXPIRED")
             s.state = SubmissionState.VALIDATION_EXPIRED
             await session.merge(s)
     await session.commit()
