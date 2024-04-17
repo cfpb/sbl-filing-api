@@ -15,6 +15,9 @@ def verify_lei(request: Request, lei: str) -> None:
 
 def verify_user_lei_relation(request: Request, lei: str = None) -> None:
     if os.getenv("ENV", "LOCAL") != "LOCAL" and lei:
-        institutions = request.user.institutions
-        if lei not in institutions:
-            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"LEI {lei} is not associated with the user.")
+        if request.user.is_authenticated:
+            institutions = request.user.institutions
+            if lei not in institutions:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN, detail=f"LEI {lei} is not associated with the user."
+                )

@@ -235,7 +235,7 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(latest_sub.id) + submission_processor.REPORT_QUALIFIER
         )
-        return FileResponse(path=file_data, media_type="text/csv")
+        return FileResponse(path=file_data, media_type="text/csv", filename=f"{latest_sub.id}_validation_report.csv")
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
 
@@ -250,5 +250,5 @@ async def get_submission_report(request: Request, lei: str, period_code: str, id
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
         )
-        return FileResponse(path=file_data, media_type="text/csv")
+        return FileResponse(path=file_data, media_type="text/csv", filename=f"{sub.id}_validation_report.csv")
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
