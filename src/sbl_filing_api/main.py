@@ -6,19 +6,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_utilities import repeat_every
 from starlette.middleware.authentication import AuthenticationMiddleware
 
 from regtech_api_commons.oauth2.oauth2_backend import BearerTokenAuthBackend
 from regtech_api_commons.oauth2.oauth2_admin import OAuth2Admin
 
 from sbl_filing_api.routers.filing import router as filing_router
-from sbl_filing_api.entities.repos import submission_repo
 
 from alembic.config import Config
 from alembic import command
 
-from sbl_filing_api.config import kc_settings, settings
+from sbl_filing_api.config import kc_settings
 
 log = logging.getLogger()
 
@@ -29,7 +27,6 @@ async def lifespan(app_: FastAPI):
     log.info("Running alembic migrations...")
     run_migrations()
     log.info("Migrations complete, API is ready to start serving requests.")
-    await check_expired_submissions()
     yield
     log.info("Shutting down filing-api server...")
 
@@ -43,11 +40,6 @@ def run_migrations():
 
 
 app = FastAPI(lifespan=lifespan)
-
-
-@repeat_every(seconds=settings.expired_submission_check_secs, wait_first=True, logger=log)
-async def check_expired_submissions() -> None:
-    await submission_repo.check_expired_submissions()
 
 
 token_bearer = OAuth2AuthorizationCodeBearer(

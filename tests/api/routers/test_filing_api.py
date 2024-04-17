@@ -215,9 +215,7 @@ class TestFilingApi:
         mock_validate_file.return_value = None
         mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
-        mock_validate_submission = mocker.patch(
-            "sbl_filing_api.services.submission_processor.validate_and_update_submission"
-        )
+        mock_validate_submission = mocker.patch("sbl_filing_api.services.submission_processor.validation_monitor")
         mock_validate_submission.return_value = None
         async_mock = AsyncMock(return_value=return_sub)
         mock_add_submission = mocker.patch(
@@ -240,6 +238,7 @@ class TestFilingApi:
 
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         mock_add_submission.assert_called_with(ANY, 1, "submission.csv")
+        mock_validate_submission.assert_called_with("2024", "1234567890", return_sub, open(submission_csv, "rb").read())
         assert mock_update_submission.call_args.args[0].state == SubmissionState.SUBMISSION_UPLOADED
         assert res.status_code == 200
         assert res.json()["id"] == 1

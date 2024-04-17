@@ -535,23 +535,7 @@ class TestSubmissionRepo:
         assert submitter.submitter == "test2@cfpb.gov"
         assert submitter.submitter_name == "test2 submitter name"
         assert submitter.submitter_email == "test2@cfpb.gov"
-
-    async def test_expired_submission(
-        self, query_session: AsyncSession, mocker: MockerFixture, session_generator: async_scoped_session
-    ):
-        mocker.patch.object(repo, "SessionLocal", return_value=session_generator)
-
-        await repo.check_expired_submissions()
-
-        async def query_expired_submission():
-            async with session_generator() as search_session:
-                stmt = select(SubmissionDAO).filter(SubmissionDAO.state == SubmissionState.VALIDATION_EXPIRED.value)
-                exp_sub = (await search_session.scalars(stmt)).all()
-                assert len(exp_sub) == 1
-                assert exp_sub[0].state == SubmissionState.VALIDATION_EXPIRED
-                assert exp_sub[0].id == 4
-
-        await query_expired_submission()
+        
 
     def get_error_json(self):
         df_columns = [

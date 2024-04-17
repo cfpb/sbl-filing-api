@@ -1,4 +1,5 @@
 import json
+import asyncio
 
 from io import BytesIO
 from fastapi import UploadFile
@@ -18,6 +19,23 @@ from sbl_filing_api.config import settings
 log = logging.getLogger(__name__)
 
 REPORT_QUALIFIER = "_report"
+
+
+async def validation_monitor(period_code: str, lei: str, submission: SubmissionDAO, content: bytes):
+    try:
+        await asyncio.wait_for(
+            validate_and_update_submission(period_code, lei, submission, content),
+            timeout=settings.expired_submission_check_secs,
+        )
+    except asyncio.TimeoutError as te:
+        log.warn(
+            f"Validation for submission {submission.id} did not complete within the expected timeframe, will be set to VALIDATION_EXPIRED.",
+            te,
+            exc_info=True,
+            stack_info=True,
+        )
+        submission.state = SubmissionState.VALIDATION_EXPIRED
+        update_submission(submission)
 
 
 def validate_file_processable(file: UploadFile) -> None:
@@ -94,4 +112,3 @@ async def validate_and_update_submission(period_code: str, lei: str, submission:
         log.error("The file is malformed", re, exc_info=True, stack_info=True)
         submission.state = SubmissionState.SUBMISSION_UPLOAD_MALFORMED
         await update_submission(submission)
-        raise HTTPException(status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=re)

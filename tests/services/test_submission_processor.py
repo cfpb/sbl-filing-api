@@ -1,8 +1,10 @@
+import asyncio
+import pytest
+
 from http import HTTPStatus
 from sbl_filing_api.services import submission_processor
 from fastapi import HTTPException
-import pytest
-from unittest.mock import Mock, ANY
+from unittest.mock import Mock, ANY, AsyncMock
 from pytest_mock import MockerFixture
 from sbl_filing_api.config import FsProtocol, settings
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
@@ -199,13 +201,10 @@ class TestSubmissionProcessor:
         mock_read_csv = mocker.patch("pandas.read_csv")
         mock_read_csv.side_effect = RuntimeError("File not in csv format")
 
-        with pytest.raises(HTTPException) as e:
-            await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
+        await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
 
         mock_update_submission.assert_called()
         log_mock.error.assert_called_with("The file is malformed", ANY, exc_info=True, stack_info=True)
-        assert e.value.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-        assert e.value.detail == mock_read_csv.side_effect
         assert mock_update_submission.mock_calls[0].args[0].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert mock_update_submission.mock_calls[1].args[0].state == SubmissionState.SUBMISSION_UPLOAD_MALFORMED
 
@@ -213,10 +212,44 @@ class TestSubmissionProcessor:
         mock_validation = mocker.patch("sbl_filing_api.services.submission_processor.validate_phases")
         mock_validation.side_effect = RuntimeError("File can not be parsed by validator")
 
-        with pytest.raises(HTTPException) as validate_e:
-            await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
+        await submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None)
         log_mock.error.assert_called_with("The file is malformed", ANY, exc_info=True, stack_info=True)
-        assert validate_e.value.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-        assert validate_e.value.detail == mock_validation.side_effect
         assert mock_update_submission.mock_calls[0].args[0].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert mock_update_submission.mock_calls[1].args[0].state == SubmissionState.SUBMISSION_UPLOAD_MALFORMED
+
+    @pytest.mark.asyncio
+    async def test_validation_monitor(
+        self,
+        mocker: MockerFixture,
+    ):
+        mock_sub = SubmissionDAO(
+            id=1,
+            filing=1,
+            state=SubmissionState.SUBMISSION_UPLOADED,
+            filename="submission.csv",
+        )
+
+        async def mock_validate_and_update_submission(
+            period_code: str, lei: str, submission: SubmissionDAO, content: bytes
+        ):
+            await asyncio.sleep(5)
+            return
+
+        update_sub_patch = mocker.patch("sbl_filing_api.services.submission_processor.update_submission")
+        mocker.patch("sbl_filing_api.services.submission_processor.settings.expired_submission_check_secs", 4)
+        log_patch = mocker.patch("sbl_filing_api.services.submission_processor.log")
+
+        validate_patch = mocker.patch(
+            "sbl_filing_api.services.submission_processor.validate_and_update_submission", new_callable=AsyncMock
+        )
+        validate_patch.side_effect = mock_validate_and_update_submission
+
+        await submission_processor.validation_monitor("2024", "1234TESTLEI000000001", mock_sub, b"\x00\x00")
+
+        assert update_sub_patch.mock_calls[0].args[0].state == SubmissionState.VALIDATION_EXPIRED
+        assert log_patch.mock_calls[0].warn.assert_called_with(
+            "Validation for submission 1 did not complete within the expected timeframe, will be set to VALIDATION_EXPIRED.",
+            ANY,
+            exc_info=True,
+            stack_info=True,
+        )

@@ -122,9 +122,7 @@ async def upload_file(
 
     submission.state = SubmissionState.SUBMISSION_UPLOADED
     submission = await repo.update_submission(submission)
-    background_tasks.add_task(
-        submission_processor.validate_and_update_submission, period_code, lei, submission, content
-    )
+    background_tasks.add_task(submission_processor.validation_monitor, period_code, lei, submission, content)
 
     return submission
 
