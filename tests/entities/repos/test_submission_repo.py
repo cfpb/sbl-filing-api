@@ -535,7 +535,6 @@ class TestSubmissionRepo:
         assert submitter.submitter == "test2@cfpb.gov"
         assert submitter.submitter_name == "test2 submitter name"
         assert submitter.submitter_email == "test2@cfpb.gov"
-        
 
     def get_error_json(self):
         df_columns = [

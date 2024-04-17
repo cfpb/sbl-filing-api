@@ -27,7 +27,7 @@ old_options = (
     'VALIDATION_WITH_WARNINGS',
     'VALIDATION_SUCCESSFUL',
 )
-new_options = tuple(sorted(old_options + ('VALIDATION_EXPIRED',)))
+new_options = tuple(sorted(old_options + ('VALIDATION_EXPIRED','UPLOAD_FAILED')))
 # fmt: on
 
 

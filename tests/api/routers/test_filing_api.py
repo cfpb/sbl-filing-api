@@ -279,6 +279,72 @@ class TestFilingApi:
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=files)
         assert res.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
+    def test_submission_update_fail(
+        self,
+        mocker: MockerFixture,
+        app_fixture: FastAPI,
+        authed_user_mock: Mock,
+        submission_csv: str,
+        get_filing_mock: Mock,
+    ):
+        return_sub = SubmissionDAO(
+            id=1,
+            filing=1,
+            state=SubmissionState.SUBMISSION_UPLOADED,
+            filename="submission.csv",
+        )
+
+        mock_logger = mocker.patch("sbl_filing_api.routers.filing.logger")
+
+        mock_validate_file = mocker.patch("sbl_filing_api.services.submission_processor.validate_file_processable")
+        mock_validate_file.return_value = None
+
+        async_mock = AsyncMock(return_value=return_sub)
+        mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submission", side_effect=async_mock)
+
+        mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+        mock_upload.return_value = None
+        mock_validate_submission = mocker.patch("sbl_filing_api.services.submission_processor.validation_monitor")
+        mock_validate_submission.return_value = None
+
+        mock_update_submission = mocker.patch(
+            "sbl_filing_api.entities.repos.submission_repo.update_submission", side_effect=async_mock
+        )
+
+        mock_add_submitter = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submitter")
+        mock_add_submitter.side_effect = RuntimeError("Failed to add submitter.")
+
+        file = {"file": ("submission.csv", open(submission_csv, "rb"))}
+        client = TestClient(app_fixture)
+
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=file)
+        mock_logger.mock_calls[0].error.assert_called_with(
+            "Error while trying to process Submission 1", RuntimeError, exec_info=True, stack_info=True
+        )
+        assert mock_update_submission.call_args.args[0].state == SubmissionState.UPLOAD_FAILED
+        assert res.status_code == 500
+        assert res.json() == "Failed to add submitter."
+
+        mock_add_submitter.side_effect = None
+        mock_add_submitter.return_value = SubmitterDAO(
+            id=1,
+            submission=1,
+            submitter="123456-7890-ABCDEF-GHIJ",
+            submitter_name="test",
+            submitter_email="test@local.host",
+        )
+
+        mock_upload.side_effect = HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to upload file"
+        )
+        res = client.post("/v1/filing/institutions/1234567890/filings/2024/submissions", files=file)
+        mock_logger.mock_calls[0].error.assert_called_with(
+            "Error while trying to process Submission 1", RuntimeError, exec_info=True, stack_info=True
+        )
+        assert mock_update_submission.call_args.args[0].state == SubmissionState.UPLOAD_FAILED
+        assert res.status_code == 500
+        assert res.json() == "500: Failed to upload file"
+
     async def test_unauthed_patch_filing(self, app_fixture: FastAPI):
         client = TestClient(app_fixture)
 

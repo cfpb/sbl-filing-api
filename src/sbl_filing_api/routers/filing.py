@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from regtech_api_commons.api.router_wrapper import Router
@@ -30,6 +32,7 @@ async def set_db(request: Request, session: Annotated[AsyncSession, Depends(get_
 
 
 router = Router(dependencies=[Depends(set_db), Depends(verify_user_lei_relation)])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/periods", response_model=List[FilingPeriodDTO])
@@ -109,19 +112,31 @@ async def upload_file(
         )
 
     submission = await repo.add_submission(request.state.db_session, filing.id, file.filename)
-    submitter = await repo.add_submitter(
-        request.state.db_session,
-        submission_id=submission.id,
-        submitter=request.user.id,
-        submitter_name=request.user.name,
-        submitter_email=request.user.email,
-    )
-    submission.submitter = submitter
-    submission = await repo.update_submission(submission)
-    await submission_processor.upload_to_storage(period_code, lei, submission.id, content, file.filename.split(".")[-1])
+    try:
+        submitter = await repo.add_submitter(
+            request.state.db_session,
+            submission_id=submission.id,
+            submitter=request.user.id,
+            submitter_name=request.user.name,
+            submitter_email=request.user.email,
+        )
+        submission.submitter = submitter
+        submission = await repo.update_submission(submission)
+        await submission_processor.upload_to_storage(
+            period_code, lei, submission.id, content, file.filename.split(".")[-1]
+        )
 
-    submission.state = SubmissionState.SUBMISSION_UPLOADED
-    submission = await repo.update_submission(submission)
+        submission.state = SubmissionState.SUBMISSION_UPLOADED
+        submission = await repo.update_submission(submission)
+    except Exception as e:
+        logger.error(f"Error while trying to process Submission {submission.id}", e, exec_info=True, stack_info=True)
+        submission.state = SubmissionState.UPLOAD_FAILED
+        submission = await repo.update_submission(submission)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=f"{e}",
+        )
+
     background_tasks.add_task(submission_processor.validation_monitor, period_code, lei, submission, content)
 
     return submission
