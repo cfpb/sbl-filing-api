@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     submission_file_extension: str = "csv"
     submission_file_size: int = 2 * (1024**3)
 
-    expired_submission_check_secs: int = 300
+    expired_submission_check_secs: int = 60
 
     user_fi_api_url: str = "http://sbl-project-user_fi-1:8888/v1/institutions/"
 
