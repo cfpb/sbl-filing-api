@@ -557,20 +557,6 @@ files = [
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
-name = "click-spinner"
-version = "0.1.10"
-description = "Spinner for Click"
-optional = false
-python-versions = "*"
-files = [
-    {file = "click-spinner-0.1.10.tar.gz", hash = "sha256:87eacf9d7298973a25d7615ef57d4782aebf913a532bba4b28a37e366e975daf"},
-    {file = "click_spinner-0.1.10-py2.py3-none-any.whl", hash = "sha256:d1ffcff1fdad9882396367f15fb957bcf7f5c64ab91927dee2127e0d2991ee84"},
-]
-
-[package.extras]
-test = ["click", "pytest", "six"]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -644,20 +630,6 @@ files = [
 
 [package.extras]
 toml = ["tomli"]
-
-[[package]]
-name = "croniter"
-version = "1.4.1"
-description = "croniter provides iteration for datetime object with cron like format"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-files = [
-    {file = "croniter-1.4.1-py2.py3-none-any.whl", hash = "sha256:9595da48af37ea06ec3a9f899738f1b2c1c13da3c38cea606ef7cd03ea421128"},
-    {file = "croniter-1.4.1.tar.gz", hash = "sha256:1a6df60eacec3b7a0aa52a8f2ef251ae3dd2a7c7c8b9874e73e791636d55a361"},
-]
-
-[package.dependencies]
-python-dateutil = "*"
 
 [[package]]
 name = "cryptography"
@@ -763,24 +735,6 @@ typing-extensions = ">=4.8.0"
 
 [package.extras]
 all = ["email-validator (>=2.0.0)", "httpx (>=0.23.0)", "itsdangerous (>=1.1.0)", "jinja2 (>=2.11.2)", "orjson (>=3.2.1)", "pydantic-extra-types (>=2.0.0)", "pydantic-settings (>=2.0.0)", "python-multipart (>=0.0.7)", "pyyaml (>=5.3.1)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0)", "uvicorn[standard] (>=0.12.0)"]
-
-[[package]]
-name = "fastapi-utilities"
-version = "0.2.0"
-description = "Reusable utilities for FastAPI"
-optional = false
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "fastapi_utilities-0.2.0-py3-none-any.whl", hash = "sha256:f2f0c91a279141185ed8de10f2d4c30dd85f80a983c09cb5535302ad6299444f"},
-    {file = "fastapi_utilities-0.2.0.tar.gz", hash = "sha256:8932db04060cdd55c2630065865b43f61647125368405500732cd26d125af73c"},
-]
-
-[package.dependencies]
-click-spinner = ">=0.1.10,<0.2.0"
-croniter = ">=1.0.13,<2.0.0"
-fastapi = "*"
-pydantic = "*"
-sqlalchemy = "*"
 
 [[package]]
 name = "frozenlist"
@@ -2656,4 +2610,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4"
-content-hash = "d376b341bbf369831050622e75b9667392ec4d7823cbdf65526989d2707cd447"
+content-hash = "07904b0f91f1b701073ea3fcfef08209de17baaebeae3e34e5d8f0c3b8c32211"

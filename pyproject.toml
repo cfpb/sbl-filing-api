@@ -23,7 +23,6 @@ async-lru = "^2.0.4"
 fsspec = "^2024.2.0"
 s3fs = "^2024.2.0"
 httpx = "^0.26.0"
-fastapi-utilities = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
