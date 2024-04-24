@@ -16,6 +16,7 @@ psycopg2-binary = "^2.9.9"
 asyncpg = "^0.29.0"
 regtech-api-commons = {git = "https://github.com/cfpb/regtech-api-commons.git"}
 regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.git"}
+regtech-regex = {git = "https://github.com/cfpb/regtech-regex.git"}
 python-multipart = "^0.0.7"
 boto3 = "^1.33.12"
 alembic = "^1.12.0"

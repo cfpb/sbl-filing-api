@@ -32,7 +32,7 @@ def authed_user_mock(auth_mock: Mock) -> Mock:
         "name": "Test User",
         "preferred_username": "test_user",
         "email": "test@local.host",
-        "institutions": ["123456ABCDEF", "654321FEDCBA"],
+        "institutions": ["1234567890ABCDEFGH00", "1234567890ABCDEFGH01"],
         "sub": "123456-7890-ABCDEF-GHIJ",
     }
     auth_mock.return_value = (
@@ -69,7 +69,7 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filing")
     mock.return_value = FilingDAO(
         id=1,
-        lei="123456ABCDEF",
+        lei="1234567890ABCDEFGH00",
         filing_period="2024",
         institution_snapshot_id="v1",
         contact_info=ContactInfoDAO(
@@ -82,7 +82,7 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
             hq_address_city="Test City",
             hq_address_state="TS",
             hq_address_zip="12345",
-            phone="112-345-6789",
+            phone_number="112-345-6789",
             email="test1@cfpb.gov",
         ),
         creator_id=1,
@@ -103,7 +103,7 @@ def post_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.create_new_filing")
     mock.return_value = FilingDAO(
         id=3,
-        lei="ZXWVUTSRQP",
+        lei="1234567890ZXWVUTSR00",
         filing_period="2024",
         institution_snapshot_id="v1",
         contact_info=ContactInfoDAO(
@@ -116,7 +116,7 @@ def post_filing_mock(mocker: MockerFixture) -> Mock:
             hq_address_city="Test City",
             hq_address_state="TS",
             hq_address_zip="12345",
-            phone="312-345-6789",
+            phone_number="312-345-6789",
             email="test3@cfpb.gov",
         ),
         creator_id=1,

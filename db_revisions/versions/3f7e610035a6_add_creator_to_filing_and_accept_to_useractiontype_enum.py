@@ -39,7 +39,7 @@ def upgrade() -> None:
 
     if "sqlite" not in context.get_context().dialect.name:
         op.execute("ALTER TYPE useractiontype RENAME TO useractiontype_old")
-        op.execute(f"CREATE TYPE upseractiontype AS ENUM{new_options}")
+        op.execute(f"CREATE TYPE useractiontype AS ENUM{new_options}")
         op.execute("ALTER TABLE user_action ALTER COLUMN action_type TYPE useractiontype USING user_action::text::useractiontype")
         op.execute("DROP TYPE useractiontype_old")
 

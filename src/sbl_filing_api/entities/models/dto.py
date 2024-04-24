@@ -1,6 +1,7 @@
+from sbl_filing_api.config import regex_configs
 from datetime import datetime
 from typing import Dict, Any, List
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
 
 
@@ -57,7 +58,19 @@ class ContactInfoDTO(BaseModel):
     hq_address_state: str
     hq_address_zip: str
     email: str
-    phone: str
+    phone_number: str
+
+    @model_validator(mode="after")
+    def validate_fi(self) -> "ContactInfoDTO":
+        if self.email:
+            match = regex_configs.email.regex.match(self.email)
+            if not match:
+                raise ValueError(f"Invalid email {self.email}. {regex_configs.email.error_text}")
+        if self.phone_number:
+            match = regex_configs.phone_number.regex.match(self.phone_number)
+            if not match:
+                raise ValueError(f"Invalid phone number {self.phone_number}. {regex_configs.phone_number.error_text}")
+        return self
 
 
 class FilingDTO(BaseModel):

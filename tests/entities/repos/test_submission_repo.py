@@ -178,7 +178,7 @@ class TestSubmissionRepo:
             hq_address_city="Test City 1",
             hq_address_state="TS",
             hq_address_zip="12345",
-            phone="112-345-6789",
+            phone_number="112-345-6789",
             email="test1@cfpb.gov",
         )
         contact_info2 = ContactInfoDAO(
@@ -193,7 +193,7 @@ class TestSubmissionRepo:
             hq_address_city="Test City 2",
             hq_address_state="TS",
             hq_address_zip="12345",
-            phone="212-345-6789",
+            phone_number="212-345-6789",
             email="test2@cfpb.gov",
         )
         transaction_session.add(contact_info1)
@@ -475,7 +475,7 @@ class TestSubmissionRepo:
         assert res.hq_address_city == "Test City 2"
         assert res.hq_address_state == "TS"
         assert res.hq_address_zip == "12345"
-        assert res.phone == "212-345-6789"
+        assert res.phone_number == "212-345-6789"
         assert res.email == "test2@cfpb.gov"
 
     async def test_create_contact_info(self, transaction_session: AsyncSession):
@@ -493,7 +493,7 @@ class TestSubmissionRepo:
                 hq_address_city="Test City",
                 hq_address_state="TS",
                 hq_address_zip="12345",
-                phone="312-345-6789",
+                phone_number="312-345-6789",
                 email="test3@cfpb.gov",
             ),
         )
@@ -510,7 +510,7 @@ class TestSubmissionRepo:
         assert filing.contact_info.hq_address_city == "Test City"
         assert filing.contact_info.hq_address_state == "TS"
         assert filing.contact_info.hq_address_zip == "12345"
-        assert filing.contact_info.phone == "312-345-6789"
+        assert filing.contact_info.phone_number == "312-345-6789"
         assert filing.contact_info.email == "test3@cfpb.gov"
 
     async def test_update_contact_info(self, transaction_session: AsyncSession):
@@ -530,7 +530,7 @@ class TestSubmissionRepo:
                 hq_address_city="Test City upd",
                 hq_address_state="TS",
                 hq_address_zip="12345",
-                phone="212-345-6789_upd",
+                phone_number="212-345-6789",
                 email="test2_upd@cfpb.gov",
             ),
         )
@@ -547,7 +547,7 @@ class TestSubmissionRepo:
         assert filing.contact_info.hq_address_city == "Test City upd"
         assert filing.contact_info.hq_address_state == "TS"
         assert filing.contact_info.hq_address_zip == "12345"
-        assert filing.contact_info.phone == "212-345-6789_upd"
+        assert filing.contact_info.phone_number == "212-345-6789"
         assert filing.contact_info.email == "test2_upd@cfpb.gov"
 
     async def test_get_user_action(self, query_session: AsyncSession):
