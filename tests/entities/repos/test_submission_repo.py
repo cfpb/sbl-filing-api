@@ -18,11 +18,7 @@ from sbl_filing_api.entities.models.dao import (
     ContactInfoDAO,
     UserActionDAO,
 )
-from sbl_filing_api.entities.models.dto import (
-    FilingPeriodDTO,
-    FilingDTO,
-    ContactInfoDTO,
-)
+from sbl_filing_api.entities.models.dto import FilingPeriodDTO, ContactInfoDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.entities.repos import submission_repo as repo
 from regtech_api_commons.models.auth import AuthenticatedUser
@@ -35,6 +31,44 @@ class TestSubmissionRepo:
         self, transaction_session: AsyncSession, mocker: MockerFixture, session_generator: async_scoped_session
     ):
         mocker.patch.object(repo, "SessionLocal", return_value=session_generator)
+
+        user_action1 = UserActionDAO(
+            id=1,
+            user_id="test@local.host",
+            user_name="signer name",
+            user_email="test@local.host",
+            action_type=UserActionType.SIGN,
+            timestamp=dt.now(),
+        )
+        user_action2 = UserActionDAO(
+            id=2,
+            user_id="test@local.host",
+            user_name="submitter name",
+            user_email="test@local.host",
+            action_type=UserActionType.SUBMIT,
+            timestamp=dt.now(),
+        )
+        user_action3 = UserActionDAO(
+            id=3,
+            user_id="test@local.host",
+            user_name="accepter name",
+            user_email="test@local.host",
+            action_type=UserActionType.ACCEPT,
+            timestamp=dt.now(),
+        )
+        user_action4 = UserActionDAO(
+            id=4,
+            user_id="test@local.host",
+            user_name="creator name",
+            user_email="test@local.host",
+            action_type=UserActionType.CREATE,
+            timestamp=dt.now(),
+        )
+
+        transaction_session.add(user_action1)
+        transaction_session.add(user_action2)
+        transaction_session.add(user_action3)
+        transaction_session.add(user_action4)
 
         filing_task_1 = FilingTaskDAO(name="Task-1", task_order=1)
         filing_task_2 = FilingTaskDAO(name="Task-2", task_order=2)
@@ -69,6 +103,10 @@ class TestSubmissionRepo:
             institution_snapshot_id="Snapshot-1",
             filing_period="2024",
         )
+        filing1.creator = user_action4
+        filing2.creator = user_action4
+        filing3.creator = user_action4
+
         transaction_session.add(filing1)
         transaction_session.add(filing2)
         transaction_session.add(filing3)
@@ -81,34 +119,6 @@ class TestSubmissionRepo:
             state="IN_PROGRESS",
         )
         transaction_session.add(filing_task1)
-
-        user_action1 = UserActionDAO(
-            id=1,
-            user_id="test@local.host",
-            user_name="signer name",
-            user_email="test@local.host",
-            action_type=UserActionType.SIGN,
-            timestamp=dt.now(),
-        )
-        user_action2 = UserActionDAO(
-            id=2,
-            user_id="test@local.host",
-            user_name="submitter name",
-            user_email="test@local.host",
-            action_type=UserActionType.SUBMIT,
-            timestamp=dt.now(),
-        )
-        user_action3 = UserActionDAO(
-            id=3,
-            user_id="test@local.host",
-            user_name="accepter name",
-            user_email="test@local.host",
-            action_type=UserActionType.ACCEPT,
-            timestamp=dt.now(),
-        )
-        transaction_session.add(user_action1)
-        transaction_session.add(user_action2)
-        transaction_session.add(user_action3)
 
         submission1 = SubmissionDAO(
             id=1,
@@ -216,25 +226,52 @@ class TestSubmissionRepo:
         assert res.filing_type == FilingType.ANNUAL
 
     async def test_add_filing(self, transaction_session: AsyncSession):
-        res = await repo.create_new_filing(transaction_session, lei="12345ABCDE", filing_period="2024")
+        user_action_create = await repo.add_user_action(
+            transaction_session,
+            user_id="123456-7890-ABCDEF-GHIJ",
+            user_name="test creator",
+            user_email="test@local.host",
+            action_type=UserActionType.CREATE,
+        )
+        res = await repo.create_new_filing(
+            transaction_session, lei="12345ABCDE", filing_period="2024", creator_id=user_action_create.id
+        )
         assert res.id == 4
         assert res.filing_period == "2024"
         assert res.lei == "12345ABCDE"
         assert res.institution_snapshot_id is None
+        assert res.creator.id == user_action_create.id
+        assert res.creator.user_id == "123456-7890-ABCDEF-GHIJ"
+        assert res.creator.user_name == "test creator"
+        assert res.creator.user_email == "test@local.host"
+        assert res.creator.action_type == UserActionType.CREATE
 
     async def test_modify_filing(self, transaction_session: AsyncSession):
-        mod_filing = FilingDTO(
+        user_action_create = await repo.add_user_action(
+            transaction_session,
+            user_id="123456-7890-ABCDEF-GHIJ",
+            user_name="test creator",
+            user_email="test@local.host",
+            action_type=UserActionType.CREATE,
+        )
+
+        mod_filing = FilingDAO(
             id=3,
             lei="ZYXWVUTSRQP",
             institution_snapshot_id="Snapshot-2",
             filing_period="2024",
             tasks=[],
+            creator_id=user_action_create.id,
         )
+
         res = await repo.upsert_filing(transaction_session, mod_filing)
         assert res.id == 3
         assert res.filing_period == "2024"
         assert res.lei == "ZYXWVUTSRQP"
         assert res.institution_snapshot_id == "Snapshot-2"
+        assert res.creator.id == user_action_create.id
+        assert res.creator.user_id == "123456-7890-ABCDEF-GHIJ"
+        assert res.creator.user_name == "test creator"
 
     async def test_get_filing_tasks(self, transaction_session: AsyncSession):
         tasks = await repo.get_filing_tasks(transaction_session)
@@ -521,7 +558,16 @@ class TestSubmissionRepo:
         assert res.user_email == "test@local.host"
         assert res.action_type == UserActionType.ACCEPT
 
-    async def test_add_user_action(self, transaction_session: AsyncSession):
+    async def test_get_user_actions(self, query_session: AsyncSession):
+        res = await repo.get_user_actions(session=query_session)
+
+        assert len(res) == 4
+        assert res[0].id == 1
+        assert res[0].user_name == "signer name"
+
+    async def test_add_user_action(self, query_session: AsyncSession, transaction_session: AsyncSession):
+        user_actions_in_repo = await repo.get_user_actions(query_session)
+
         accepter = await repo.add_user_action(
             session=transaction_session,
             user_id="test2@cfpb.gov",
@@ -530,7 +576,7 @@ class TestSubmissionRepo:
             action_type=UserActionType.ACCEPT,
         )
 
-        assert accepter.id == 4
+        assert accepter.id == len(user_actions_in_repo) + 1
         assert accepter.user_id == "test2@cfpb.gov"
         assert accepter.user_name == "test2 accepter name"
         assert accepter.user_email == "test2@cfpb.gov"

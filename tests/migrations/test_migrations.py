@@ -293,14 +293,6 @@ def test_migration_to_2e81179924b5(alembic_runner: MigrationContext, alembic_eng
     assert "hq_address_street_4" in [c["name"] for c in inspector.get_columns("contact_info")]
 
 
-def test_migration_to_4cd30d188352(alembic_runner: MigrationContext, alembic_engine: Engine):
-    alembic_runner.migrate_up_to("4cd30d188352")
-
-
-def test_migration_to_0040045eae14(alembic_runner: MigrationContext, alembic_engine: Engine):
-    alembic_runner.migrate_up_to("0040045eae14")
-
-
 def test_migration_to_102fb94a24cc(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("102fb94a24cc")
 
@@ -355,4 +347,19 @@ def test_migration_to_102fb94a24cc(alembic_runner: MigrationContext, alembic_eng
         "accepter_id" in submission_fks[2]["constrained_columns"]
         and "user_action" == submission_fks[2]["referred_table"]
         and "id" in submission_fks[2]["referred_columns"]
+    )
+
+
+def test_migration_to_3f7e610035a6(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("3f7e610035a6")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "creator_id" in [c["name"] for c in inspector.get_columns("filing")]
+
+    filing_fks = inspector.get_foreign_keys("filing")
+    assert (
+        "creator_id" in filing_fks[1]["constrained_columns"]
+        and "user_action" == filing_fks[1]["referred_table"]
+        and "id" in filing_fks[1]["referred_columns"]
     )

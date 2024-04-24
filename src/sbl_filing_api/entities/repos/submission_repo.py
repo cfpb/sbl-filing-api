@@ -91,6 +91,10 @@ async def get_user_action(session: AsyncSession, id: int) -> UserActionDAO:
     return result[0] if result else None
 
 
+async def get_user_actions(session: AsyncSession) -> List[UserActionDAO]:
+    return await query_helper(session, UserActionDAO)
+
+
 async def add_submission(session: AsyncSession, filing_id: int, filename: str, submitter_id: int) -> SubmissionDAO:
     new_sub = SubmissionDAO(
         filing=filing_id, state=SubmissionState.SUBMISSION_STARTED, filename=filename, submitter_id=submitter_id
@@ -121,8 +125,8 @@ async def upsert_filing(session: AsyncSession, filing: FilingDTO) -> FilingDAO:
     return await upsert_helper(session, filing, FilingDAO)
 
 
-async def create_new_filing(session: AsyncSession, lei: str, filing_period: str) -> FilingDAO:
-    new_filing = FilingDAO(filing_period=filing_period, lei=lei)
+async def create_new_filing(session: AsyncSession, lei: str, filing_period: str, creator_id: int) -> FilingDAO:
+    new_filing = FilingDAO(filing_period=filing_period, lei=lei, creator_id=creator_id)
     new_filing = await upsert_helper(session, new_filing, FilingDAO)
     new_filing = await populate_missing_tasks(session, [new_filing])
     return new_filing[0]

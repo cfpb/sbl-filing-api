@@ -71,6 +71,7 @@ class FilingDTO(BaseModel):
     contact_info: ContactInfoDTO | None = None
     confirmation_id: str | None = None
     signatures: List[UserActionDTO] = []
+    creator: UserActionDTO
 
 
 class FilingPeriodDTO(BaseModel):

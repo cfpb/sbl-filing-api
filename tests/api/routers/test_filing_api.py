@@ -92,6 +92,22 @@ class TestFilingApi:
         )
 
         get_filing_period_by_code_mock.return_value = get_filing_period_mock.return_value
+        user_action_create = UserActionDAO(
+            id=1,
+            user_id="123456-7890-ABCDEF-GHIJ",
+            user_name="Test Creator",
+            user_email="test@local.host",
+            action_type=UserActionType.CREATE,
+            timestamp=datetime.datetime.now(),
+        )
+        mock_add_creator = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
+        mock_add_creator.side_effect = Exception("Error while trying to process CREATE User Action")
+        res = client.post("/v1/filing/institutions/1234567890/filings/2025/")
+        assert res.status_code == 500
+        assert res.content == b'"Error while trying to process CREATE User Action"'
+
+        mock_add_creator.return_value = user_action_create
+        mock_add_creator.side_effect = None
         post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890/filings/2024/")
         assert res.status_code == 409
@@ -99,7 +115,7 @@ class TestFilingApi:
 
         post_filing_mock.side_effect = None
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
-        post_filing_mock.assert_called_with(ANY, "ZXWVUTSRQP", "2024")
+        post_filing_mock.assert_called_with(ANY, "ZXWVUTSRQP", "2024", creator_id=1)
         assert res.status_code == 200
         assert res.json()["lei"] == "ZXWVUTSRQP"
         assert res.json()["filing_period"] == "2024"
@@ -617,6 +633,15 @@ class TestFilingApi:
                 hq_address_zip="12345",
                 phone="112-345-6789",
                 email="name_1@email.test",
+            ),
+            creator_id=1,
+            creator=UserActionDAO(
+                id=1,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test creator",
+                user_email="test@local.host",
+                action_type=UserActionType.CREATE,
+                timestamp=datetime.datetime.now(),
             ),
         )
 
