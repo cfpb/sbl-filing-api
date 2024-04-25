@@ -1,4 +1,5 @@
 import logging
+import asyncio
 
 from concurrent.futures import ProcessPoolExecutor
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPException
@@ -174,7 +175,7 @@ async def upload_file(
         exec_check["continue"] = True
         executor = ProcessPoolExecutor()
         future = executor.submit(handle_submission, period_code, lei, submission, content, exec_check)
-        background_tasks.add_task(check_future, future, submission.id, exec_check)
+        asyncio.create_task(check_future(future, submission.id, exec_check))
         executor.shutdown(wait=False)
 
         return submission
