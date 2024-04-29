@@ -11,24 +11,18 @@ logger = logging.getLogger(__name__)
 
 
 def handle_submission(period_code: str, lei: str, submission: SubmissionDAO, content: bytes, exec_check):
-    loop = asyncio.new_event_loop()
+    loop = asyncio.get_event_loop()
     try:
         coro = validate_and_update_submission(period_code, lei, submission, content, exec_check)
-        asyncio.set_event_loop(loop)
         loop.run_until_complete(coro)
     except Exception as e:
         logger.error(e, exc_info=True, stack_info=True)
-    finally:
-        loop.close()
-
-
-def future_monitor(future, submission_id, exec_check):
-    asyncio.create_task(check_future(future, submission_id, exec_check))
 
 
 async def check_future(future, submission_id, exec_check):
     await asyncio.sleep(settings.expired_submission_check_secs)
     if not future.done():
+        future.cancel()
         exec_check["continue"] = False
         await repo.expire_submission(submission_id)
         logger.warning(

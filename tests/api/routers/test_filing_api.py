@@ -278,8 +278,10 @@ class TestFilingApi:
         mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
 
-        mock_validate_submission = mocker.patch("concurrent.futures.ProcessPoolExecutor.submit")
-        mock_validate_submission.return_value = asyncio.Future()
+        mock_get_loop = mocker.patch("asyncio.get_event_loop")
+        mock_event_loop = Mock()
+        mock_get_loop.return_value = mock_event_loop
+        mock_event_loop.run_in_executor.return_value = asyncio.Future()
 
         mock_background_task = mocker.patch("fastapi.BackgroundTasks.add_task")
 
@@ -298,11 +300,13 @@ class TestFilingApi:
 
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=files)
         mock_add_submission.assert_called_with(ANY, 1, "submission.csv", user_action_submit.id)
-        mock_validate_submission.assert_called_with(
+        mock_event_loop.run_in_executor.assert_called_with(
             handle_submission, "2024", "1234567890ZXWVUTSR00", return_sub, open(submission_csv, "rb").read(), ANY
         )
-        assert mock_validate_submission.call_args.args[5]["continue"]
-        mock_background_task.assert_called_with(check_future, mock_validate_submission.return_value, return_sub.id, ANY)
+        assert mock_event_loop.run_in_executor.call_args.args[5]["continue"]
+        mock_background_task.assert_called_with(
+            check_future, mock_event_loop.run_in_executor.return_value, return_sub.id, ANY
+        )
         assert mock_background_task.call_args.args[3]["continue"]
         assert mock_update_submission.call_args.args[0].state == SubmissionState.SUBMISSION_UPLOADED
         assert res.status_code == 200

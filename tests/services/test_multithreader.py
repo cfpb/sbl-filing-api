@@ -21,9 +21,11 @@ class TestMultithreader:
         log_mock = mocker.patch("sbl_filing_api.services.multithread_handler.logger")
 
         future = asyncio.get_event_loop().create_task(self.mock_future(5))
+        cancel_mock = mocker.patch.object(future, "cancel")
         await check_future(future, 1, exec_check)
 
         assert not exec_check["continue"]
+        cancel_mock.assert_called_once()
         repo_mock.assert_called_with(1)
         log_mock.warning.assert_called_with(
             "Validation for submission 1 did not complete within the expected timeframe, will be set to VALIDATION_EXPIRED."
@@ -31,11 +33,13 @@ class TestMultithreader:
 
         repo_mock.reset_mock()
         log_mock.reset_mock()
+        cancel_mock.reset_mock()
         future = asyncio.get_event_loop().create_task(self.mock_future(1))
         exec_check["continue"] = True
         await check_future(future, 2, exec_check)
 
         assert exec_check["continue"]
+        assert not cancel_mock.called
         assert not repo_mock.called
         assert not log_mock.called
 
@@ -48,17 +52,13 @@ class TestMultithreader:
         )
 
         validation_mock = mocker.patch("sbl_filing_api.services.multithread_handler.validate_and_update_submission")
-        mock_new_loop = mocker.patch("asyncio.new_event_loop")
+        mock_new_loop = mocker.patch("asyncio.get_event_loop")
         mock_event_loop = Mock()
         mock_new_loop.return_value = mock_event_loop
-
-        set_loop_mock = mocker.patch("asyncio.set_event_loop")
 
         exec_check = Manager().dict()
         exec_check["continue"] = True
 
         handle_submission("2024", "123456789TESTBANK123", mock_sub, b"\00\00", exec_check)
 
-        set_loop_mock.assert_called_with(mock_event_loop)
         validation_mock.assert_called_with("2024", "123456789TESTBANK123", mock_sub, b"\00\00", exec_check)
-        mock_event_loop.close.assert_called_once()
