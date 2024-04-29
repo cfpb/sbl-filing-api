@@ -301,9 +301,9 @@ class TestFilingApi:
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=files)
         mock_add_submission.assert_called_with(ANY, 1, "submission.csv", user_action_submit.id)
         mock_event_loop.run_in_executor.assert_called_with(
-            handle_submission, "2024", "1234567890ZXWVUTSR00", return_sub, open(submission_csv, "rb").read(), ANY
+            ANY, handle_submission, "2024", "1234567890ZXWVUTSR00", return_sub, open(submission_csv, "rb").read(), ANY
         )
-        assert mock_event_loop.run_in_executor.call_args.args[5]["continue"]
+        assert mock_event_loop.run_in_executor.call_args.args[6]["continue"]
         mock_background_task.assert_called_with(
             check_future, mock_event_loop.run_in_executor.return_value, return_sub.id, ANY
         )
