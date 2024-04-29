@@ -6,7 +6,7 @@ import logging
 
 from io import BytesIO
 from fastapi import UploadFile
-from regtech_data_validator.create_schemas import validate_phases
+from regtech_data_validator.create_schemas import validate_phases, ValidationPhase
 from regtech_data_validator.data_formatters import df_to_json, df_to_download
 from regtech_data_validator.checks import Severity
 from sbl_filing_api.entities.engine.engine import SessionLocal
@@ -14,8 +14,9 @@ from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
 from sbl_filing_api.entities.repos.submission_repo import update_submission
 from http import HTTPStatus
 from fsspec import AbstractFileSystem, filesystem
-from sbl_filing_api.config import settings
+from sbl_filing_api.config import FsProtocol, settings
 from regtech_api_commons.api.exceptions import RegTechHttpException
+import boto3
 
 log = logging.getLogger(__name__)
 
@@ -60,13 +61,27 @@ def validate_file_processable(file: UploadFile) -> None:
 
 async def upload_to_storage(period_code: str, lei: str, file_identifier: str, content: bytes, extension: str = "csv"):
     try:
-        fs: AbstractFileSystem = filesystem(settings.fs_upload_config.protocol)
-        if settings.fs_upload_config.mkdir:
+        if settings.fs_upload_config.protocol == FsProtocol.FILE:
+            fs: AbstractFileSystem = filesystem(settings.fs_upload_config.protocol)
             fs.mkdirs(f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}", exist_ok=True)
-        with fs.open(
-            f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb"
-        ) as f:
-            f.write(content)
+            with fs.open(
+                f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb"
+            ) as f:
+                f.write(content)
+        else:
+            s3 = boto3.client("s3")
+            r = s3.put_object(
+                Bucket=settings.fs_upload_config.root,
+                Key=f"upload/{period_code}/{lei}/{file_identifier}.{extension}",
+                Body=content,
+            )
+            log.debug(
+                "s3 upload response for lei: %s, period: %s file: %s, response: %s",
+                lei,
+                period_code,
+                file_identifier,
+                r,
+            )
     except Exception as e:
         raise RegTechHttpException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, name="Upload Failure", detail="Failed to upload file"
@@ -108,7 +123,8 @@ async def validate_and_update_submission(
                 )
             else:
                 submission.state = SubmissionState.VALIDATION_SUCCESSFUL
-            submission.validation_json = json.loads(df_to_json(result[1]))
+
+            submission.validation_json = build_validation_results(result)
             submission_report = df_to_download(result[1])
             await upload_to_storage(
                 period_code, lei, str(submission.id) + REPORT_QUALIFIER, submission_report.encode("utf-8")
@@ -134,3 +150,20 @@ async def validate_and_update_submission(
             )
             submission.state = SubmissionState.VALIDATION_ERROR
             await update_submission(submission, session)
+
+
+def build_validation_results(result):
+    val_json = json.loads(df_to_json(result[1]))
+
+    if result[2] == ValidationPhase.SYNTACTICAL.value:
+        val_res = {"syntax_errors": {"count": len(val_json), "details": val_json}}
+    else:
+        errors_list = [e for e in val_json if e["validation"]["severity"] == Severity.ERROR.value]
+        warnings_list = [w for w in val_json if w["validation"]["severity"] == Severity.WARNING.value]
+        val_res = {
+            "syntax_errors": {"count": 0, "details": []},
+            "logic_errors": {"count": len(errors_list), "details": errors_list},
+            "logic_warnings": {"count": len(warnings_list), "details": warnings_list},
+        }
+
+    return val_res

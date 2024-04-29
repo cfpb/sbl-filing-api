@@ -32,7 +32,7 @@ class SubmissionDAO(Base):
     accepter: Mapped[UserActionDAO] = relationship(lazy="selectin", foreign_keys=[accepter_id])
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
-    validation_json: Mapped[List[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    validation_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
 

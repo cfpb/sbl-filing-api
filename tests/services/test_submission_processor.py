@@ -1,12 +1,17 @@
+import asyncio
+
+import pandas as pd
 import pytest
 
 from http import HTTPStatus
 from sbl_filing_api.services import submission_processor
 from fastapi import HTTPException
-from unittest.mock import Mock, ANY
+from unittest.mock import Mock, ANY, AsyncMock
 from pytest_mock import MockerFixture
 from sbl_filing_api.config import FsProtocol, settings
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
+from regtech_data_validator.create_schemas import ValidationPhase
+from regtech_data_validator.checks import Severity
 from regtech_api_commons.api.exceptions import RegTechHttpException
 
 
@@ -41,22 +46,31 @@ class TestSubmissionProcessor:
         mock_fs_func.assert_called_with(**settings.fs_download_config.__dict__)
         mock_fs.open.assert_called_with("../upload/upload/2024/1234567890/1_report.csv", "r")
 
-    async def test_upload_s3_no_mkdir(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
+    async def test_upload_s3(self, mocker: MockerFixture):
         default_fs_proto = settings.fs_upload_config.protocol
         settings.fs_upload_config.protocol = FsProtocol.S3.value
-        default_mkdir = settings.fs_upload_config.mkdir
-        settings.fs_upload_config.mkdir = False
 
-        with mocker.mock_open(mock_fs.open):
-            await submission_processor.upload_to_storage("test_period", "test", "test", b"test content s3")
-        mock_fs_func.assert_called()
-        mock_fs.mkdirs.assert_not_called()
-        mock_fs.open.assert_called_with("../upload/upload/test_period/test/test.csv", "wb")
-        file_handle = mock_fs.open()
-        file_handle.write.assert_called_with(b"test content s3")
+        boto3_mock = mocker.patch("sbl_filing_api.services.submission_processor.boto3.client")
+        log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")
+        s3_mock = Mock(["put_object"])
+        s3_mock.put_object.return_value = {"test": "response"}
+        boto3_mock.return_value = s3_mock
+
+        await submission_processor.upload_to_storage("test_period", "test", "test", b"test content s3")
+
+        boto3_mock.assert_called_with("s3")
+        s3_mock.put_object.assert_called_with(
+            Bucket=settings.fs_upload_config.root, Key="upload/test_period/test/test.csv", Body=b"test content s3"
+        )
+        log_mock.debug.assert_called_with(
+            "s3 upload response for lei: %s, period: %s file: %s, response: %s",
+            "test",
+            "test_period",
+            "test",
+            {"test": "response"},
+        )
 
         settings.fs_upload_config.protocol = default_fs_proto
-        settings.fs_upload_config.mkdir = default_mkdir
 
     async def test_upload_failure(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
         mock_fs.mkdirs.side_effect = IOError("test")
@@ -103,7 +117,11 @@ class TestSubmissionProcessor:
         assert e.value.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     async def test_validate_and_update_successful(
-        self, mocker: MockerFixture, successful_submission_mock: Mock, df_to_json_mock: Mock, df_to_download_mock: Mock
+        self,
+        mocker: MockerFixture,
+        successful_submission_mock: Mock,
+        build_validation_results_mock: Mock,
+        df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -129,7 +147,11 @@ class TestSubmissionProcessor:
         assert successful_submission_mock.mock_calls[1].args[0].state == "VALIDATION_SUCCESSFUL"
 
     async def test_validate_and_update_warnings(
-        self, mocker: MockerFixture, warning_submission_mock: Mock, df_to_json_mock: Mock, df_to_download_mock: Mock
+        self,
+        mocker: MockerFixture,
+        warning_submission_mock: Mock,
+        build_validation_results_mock: Mock,
+        df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -154,7 +176,11 @@ class TestSubmissionProcessor:
         assert warning_submission_mock.mock_calls[1].args[0].state == "VALIDATION_WITH_WARNINGS"
 
     async def test_validate_and_update_errors(
-        self, mocker: MockerFixture, error_submission_mock: Mock, df_to_json_mock: Mock, df_to_download_mock: Mock
+        self,
+        mocker: MockerFixture,
+        error_submission_mock: Mock,
+        build_validation_results_mock: Mock,
+        df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -228,7 +254,7 @@ class TestSubmissionProcessor:
         mocker: MockerFixture,
         validate_submission_mock: Mock,
         error_submission_mock: Mock,
-        df_to_json_mock: Mock,
+        build_validation_results_mock: Mock,
         df_to_download_mock: Mock,
     ):
         log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")
@@ -255,3 +281,218 @@ class TestSubmissionProcessor:
         # second update shouldn't be called
         assert len(mock_update_submission.mock_calls) == 1
         log_mock.warning.assert_called_with("Submission 1 is expired, will not be updating final state with results.")
+
+    @pytest.mark.asyncio
+    async def test_validation_monitor(
+        self,
+        mocker: MockerFixture,
+    ):
+        mock_sub = SubmissionDAO(
+            id=1,
+            filing=1,
+            state=SubmissionState.SUBMISSION_UPLOADED,
+            filename="submission.csv",
+        )
+
+        async def mock_validate_and_update_submission(
+            period_code: str, lei: str, submission: SubmissionDAO, content: bytes
+        ):
+            await asyncio.sleep(5)
+            return
+
+        update_sub_patch = mocker.patch("sbl_filing_api.services.submission_processor.update_submission")
+        mocker.patch("sbl_filing_api.services.submission_processor.settings.expired_submission_check_secs", 4)
+        log_patch = mocker.patch("sbl_filing_api.services.submission_processor.log")
+
+        validate_patch = mocker.patch(
+            "sbl_filing_api.services.submission_processor.validate_and_update_submission", new_callable=AsyncMock
+        )
+        validate_patch.side_effect = mock_validate_and_update_submission
+
+        await submission_processor.validation_monitor("2024", "1234TESTLEI000000001", mock_sub, b"\x00\x00")
+
+        assert update_sub_patch.mock_calls[0].args[0].state == SubmissionState.VALIDATION_EXPIRED
+        assert log_patch.mock_calls[0].warn.assert_called_with(
+            "Validation for submission 1 did not complete within the expected timeframe, will be set to VALIDATION_EXPIRED.",
+            ANY,
+            exc_info=True,
+            stack_info=True,
+        )
+
+    async def test_build_validation_results_success(self):
+        result = (True, pd.DataFrame, ValidationPhase.LOGICAL.value)
+        validation_json = submission_processor.build_validation_results(result)
+        assert validation_json["syntax_errors"]["count"] == 0
+        assert validation_json["logic_errors"]["count"] == 0
+        assert validation_json["logic_warnings"]["count"] == 0
+
+    async def test_build_validation_results_syntax_errors(self):
+        result = (
+            False,
+            pd.DataFrame(
+                [
+                    [
+                        1,
+                        ValidationPhase.SYNTACTICAL.value,
+                        "TESTLEI1234567890123",
+                        "field_in_error",
+                        1,
+                        Severity.ERROR.value,
+                        "test_link",
+                        "VALID123",
+                        "validation_name_goes_here",
+                        "this is a val desc",
+                        "multi-field",
+                    ],
+                ],
+                columns=[
+                    "record_no",
+                    "validation_phase",
+                    "uid",
+                    "field_name",
+                    "field_value",
+                    "validation_severity",
+                    "fig_link",
+                    "validation_id",
+                    "validation_name",
+                    "validation_desc",
+                    "scope",
+                ],
+            ),
+            ValidationPhase.SYNTACTICAL.value,
+        )
+        validation_json = submission_processor.build_validation_results(result)
+        assert validation_json["syntax_errors"]["count"] > 0
+
+    async def test_build_validation_results_logic_warnings(self):
+        result = (
+            False,
+            pd.DataFrame(
+                [
+                    [
+                        1,
+                        ValidationPhase.LOGICAL.value,
+                        "TESTLEI1234567890123",
+                        "field_in_error",
+                        1,
+                        Severity.WARNING.value,
+                        "test_link",
+                        "VALID123",
+                        "validation_name_goes_here",
+                        "this is a val desc",
+                        "multi-field",
+                    ],
+                ],
+                columns=[
+                    "record_no",
+                    "validation_phase",
+                    "uid",
+                    "field_name",
+                    "field_value",
+                    "validation_severity",
+                    "fig_link",
+                    "validation_id",
+                    "validation_name",
+                    "validation_desc",
+                    "scope",
+                ],
+            ),
+            ValidationPhase.LOGICAL.value,
+        )
+        validation_json = submission_processor.build_validation_results(result)
+        assert validation_json["syntax_errors"]["count"] == 0
+        assert validation_json["logic_errors"]["count"] == 0
+        assert validation_json["logic_warnings"]["count"] > 0
+
+    async def test_build_validation_results_logic_errors(self):
+        result = (
+            False,
+            pd.DataFrame(
+                [
+                    [
+                        1,
+                        ValidationPhase.LOGICAL.value,
+                        "TESTLEI1234567890123",
+                        "field_in_error",
+                        1,
+                        Severity.ERROR.value,
+                        "test_link",
+                        "VALID123",
+                        "validation_name_goes_here",
+                        "this is a val desc",
+                        "multi-field",
+                    ],
+                ],
+                columns=[
+                    "record_no",
+                    "validation_phase",
+                    "uid",
+                    "field_name",
+                    "field_value",
+                    "validation_severity",
+                    "fig_link",
+                    "validation_id",
+                    "validation_name",
+                    "validation_desc",
+                    "scope",
+                ],
+            ),
+            ValidationPhase.LOGICAL.value,
+        )
+        validation_json = submission_processor.build_validation_results(result)
+        assert validation_json["syntax_errors"]["count"] == 0
+        assert validation_json["logic_errors"]["count"] > 0
+        assert validation_json["logic_warnings"]["count"] == 0
+
+    async def test_build_validation_results_logic_warnings_and_errors(self):
+        result = (
+            False,
+            pd.DataFrame(
+                [
+                    [
+                        1,
+                        ValidationPhase.LOGICAL.value,
+                        "TESTLEI1234567890123",
+                        "field_in_error",
+                        1,
+                        Severity.WARNING.value,
+                        "test_link",
+                        "VALID123",
+                        "validation_name_goes_here",
+                        "this is a val desc",
+                        "multi-field",
+                    ],
+                    [
+                        2,
+                        ValidationPhase.LOGICAL.value,
+                        "TESTLEI1234567890123",
+                        "field_in_error",
+                        1,
+                        Severity.ERROR.value,
+                        "test_link",
+                        "VALID234",
+                        "validation_name_goes_here",
+                        "this is a val desc",
+                        "multi-field",
+                    ],
+                ],
+                columns=[
+                    "record_no",
+                    "validation_phase",
+                    "uid",
+                    "field_name",
+                    "field_value",
+                    "validation_severity",
+                    "fig_link",
+                    "validation_id",
+                    "validation_name",
+                    "validation_desc",
+                    "scope",
+                ],
+            ),
+            ValidationPhase.LOGICAL.value,
+        )
+        validation_json = submission_processor.build_validation_results(result)
+        assert validation_json["syntax_errors"]["count"] == 0
+        assert validation_json["logic_errors"]["count"] > 0
+        assert validation_json["logic_warnings"]["count"] > 0
