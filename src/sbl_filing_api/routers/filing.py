@@ -1,4 +1,3 @@
-import logging
 import asyncio
 
 from concurrent.futures import ProcessPoolExecutor
@@ -6,6 +5,7 @@ from fastapi import Depends, Request, UploadFile, BackgroundTasks, status, HTTPE
 from fastapi.responses import JSONResponse, FileResponse
 from multiprocessing import Manager
 from regtech_api_commons.api.router_wrapper import Router
+from regtech_api_commons.api.exceptions import RegTechHttpException
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission, check_future
@@ -37,7 +37,6 @@ async def set_db(request: Request, session: Annotated[AsyncSession, Depends(get_
 
 
 router = Router(dependencies=[Depends(set_db), Depends(verify_user_lei_relation)])
-logger = logging.getLogger(__name__)
 
 
 @router.get("/periods", response_model=List[FilingPeriodDTO])
@@ -80,15 +79,17 @@ async def post_filing(request: Request, lei: str, period_code: str):
         try:
             return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
         except IntegrityError:
-            raise HTTPException(
+            raise RegTechHttpException(
                 status_code=status.HTTP_409_CONFLICT,
+                name="Filing Creation Conflict",
                 detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
             )
 
     else:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period.",
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Filing Period Not Found",
+            detail=f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period.",
         )
 
 
@@ -97,20 +98,23 @@ async def post_filing(request: Request, lei: str, period_code: str):
 async def sign_filing(request: Request, lei: str, period_code: str):
     filing = await repo.get_filing(request.state.db_session, lei, period_code)
     if not filing:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=f"There is no Filing for LEI {lei} in period {period_code}, unable to sign a non-existent Filing.",
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Filing Not Found",
+            detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to sign a non-existent Filing.",
         )
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
     if not latest_sub or latest_sub.state != SubmissionState.SUBMISSION_ACCEPTED:
-        return JSONResponse(
+        raise RegTechHttpException(
             status_code=status.HTTP_403_FORBIDDEN,
-            content=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a latest submission the SUBMISSION_ACCEPTED state.",
+            name="Filing Action Forbidden",
+            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a latest submission the SUBMISSION_ACCEPTED state.",
         )
     if not filing.contact_info:
-        return JSONResponse(
+        raise RegTechHttpException(
             status_code=status.HTTP_403_FORBIDDEN,
-            content=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have contact info defined.",
+            name="Filing Action Forbidden",
+            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have contact info defined.",
         )
     """
     if not filing.institution_snapshot_id:
@@ -142,9 +146,10 @@ async def upload_file(
 
     filing = await repo.get_filing(request.state.db_session, lei, period_code)
     if not filing:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=f"There is no Filing for LEI {lei} in period {period_code}, unable to submit file.",
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Filing Not Found",
+            detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to submit file.",
         )
     try:
         submitter = await repo.add_user_action(
@@ -163,13 +168,13 @@ async def upload_file(
             submission.state = SubmissionState.SUBMISSION_UPLOADED
             submission = await repo.update_submission(submission)
         except Exception as e:
-            logger.error(f"Error while trying to process Submission {submission.id}", e, exc_info=True, stack_info=True)
             submission.state = SubmissionState.UPLOAD_FAILED
             submission = await repo.update_submission(submission)
-            return JSONResponse(
+            raise RegTechHttpException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content=f"{e}",
-            )
+                name="Submission Unprocessable",
+                detail=f"Error while trying to process Submission {submission.id}",
+            ) from e
 
         exec_check = Manager().dict()
         exec_check["continue"] = True
@@ -181,11 +186,11 @@ async def upload_file(
         return submission
 
     except Exception as e:
-        logger.error("Error while trying to process SUBMIT User Action", e, exec_info=True, stack_info=True)
-        return JSONResponse(
+        raise RegTechHttpException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=f"{e}",
-        )
+            name="Submission Unprocessable",
+            detail="Error while trying to process SUBMIT User Action",
+        ) from e
 
 
 @router.get("/institutions/{lei}/filings/{period_code}/submissions", response_model=List[SubmissionDTO])
@@ -217,17 +222,19 @@ async def get_submission(request: Request, id: int):
 async def accept_submission(request: Request, id: int, lei: str, period_code: str):
     submission = await repo.get_submission(request.state.db_session, id)
     if not submission:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=f"Submission ID {id} does not exist, cannot accept a non-existing submission.",
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Submission Not Found",
+            detail=f"Submission ID {id} does not exist, cannot accept a non-existing submission.",
         )
     if (
         submission.state != SubmissionState.VALIDATION_SUCCESSFUL
         and submission.state != SubmissionState.VALIDATION_WITH_WARNINGS
     ):
-        return JSONResponse(
+        raise RegTechHttpException(
             status_code=status.HTTP_403_FORBIDDEN,
-            content=f"Submission {id} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
+            name="Submission Action Forbidden",
+            detail=f"Submission {id} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
 
     accepter = await repo.add_user_action(
@@ -251,9 +258,10 @@ async def put_institution_snapshot(request: Request, lei: str, period_code: str,
     if result:
         result.institution_snapshot_id = update_value.institution_snapshot_id
         return await repo.upsert_filing(request.state.db_session, result)
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=f"A Filing for the LEI ({lei}) and period ({period_code}) that was attempted to be updated does not exist.",
+    raise RegTechHttpException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        name="Filing Not Found",
+        detail=f"A Filing for the LEI ({lei}) and period ({period_code}) that was attempted to be updated does not exist.",
     )
 
 
@@ -278,9 +286,10 @@ async def put_contact_info(request: Request, lei: str, period_code: str, contact
     result = await repo.get_filing(request.state.db_session, lei, period_code)
     if result:
         return await repo.update_contact_info(request.state.db_session, lei, period_code, contact_info)
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=f"A Filing for the LEI ({lei}) and period ({period_code}) that was attempted to be updated does not exist.",
+    raise RegTechHttpException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        name="Filing Not Found",
+        detail=f"A Filing for the LEI ({lei}) and period ({period_code}) that was attempted to be updated does not exist.",
     )
 
 

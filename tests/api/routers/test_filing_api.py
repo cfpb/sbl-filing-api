@@ -86,10 +86,11 @@ class TestFilingApi:
         # testing with a period that does not exist
         get_filing_period_by_code_mock.return_value = None
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/")
-        assert res.status_code == 422
+        assert res.status_code == 404
 
         assert (
-            res.content == b'"The period (2025) does not exist, therefore a Filing can not be created for this period."'
+            res.json()["error_detail"]
+            == "The period (2025) does not exist, therefore a Filing can not be created for this period."
         )
 
         get_filing_period_by_code_mock.return_value = get_filing_period_mock.return_value
@@ -112,7 +113,7 @@ class TestFilingApi:
         post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
         assert res.status_code == 409
-        assert res.json()["detail"] == "Filing already exists for Filing Period 2024 and LEI 1234567890ZXWVUTSR00"
+        assert res.json()["error_detail"] == "Filing already exists for Filing Period 2024 and LEI 1234567890ZXWVUTSR00"
 
         post_filing_mock.side_effect = None
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
@@ -315,8 +316,8 @@ class TestFilingApi:
 
         get_filing_mock.return_value = None
         res = client.post("/v1/filing/institutions/ABCDEFG/filings/2024/submissions", files=files)
-        assert res.status_code == 422
-        assert res.json() == "There is no Filing for LEI ABCDEFG in period 2024, unable to submit file."
+        assert res.status_code == 404
+        assert res.json()["error_detail"] == "There is no Filing for LEI ABCDEFG in period 2024, unable to submit file."
 
     def test_unauthed_upload_file(self, mocker: MockerFixture, app_fixture: FastAPI, submission_csv: str):
         files = {"file": ("submission.csv", open(submission_csv, "rb"))}
@@ -359,8 +360,6 @@ class TestFilingApi:
             filename="submission.csv",
         )
 
-        mock_logger = mocker.patch("sbl_filing_api.routers.filing.logger")
-
         mock_validate_file = mocker.patch("sbl_filing_api.services.submission_processor.validate_file_processable")
         mock_validate_file.return_value = None
 
@@ -383,11 +382,8 @@ class TestFilingApi:
         client = TestClient(app_fixture)
 
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=file)
-        mock_logger.mock_calls[0].error.assert_called_with(
-            "Error while trying to process Submission 1", RuntimeError, exec_info=True, stack_info=True
-        )
         assert res.status_code == 500
-        assert res.json() == "Failed to add submitter."
+        assert res.json()["error_detail"] == "Error while trying to process SUBMIT User Action"
 
         mock_add_submitter.side_effect = None
         mock_add_submitter.return_value = UserActionDAO(
@@ -403,12 +399,9 @@ class TestFilingApi:
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to upload file"
         )
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=file)
-        mock_logger.mock_calls[0].error.assert_called_with(
-            "Error while trying to process Submission 1", RuntimeError, exec_info=True, stack_info=True
-        )
         assert mock_update_submission.call_args.args[0].state == SubmissionState.UPLOAD_FAILED
         assert res.status_code == 500
-        assert res.json() == "500: Failed to upload file"
+        assert res.json()["error_detail"] == "Error while trying to process SUBMIT User Action"
 
     async def test_unauthed_patch_filing(self, app_fixture: FastAPI):
         client = TestClient(app_fixture)
@@ -437,10 +430,10 @@ class TestFilingApi:
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/institution-snapshot-id",
             json={"institution_snapshot_id": "v3"},
         )
-        assert res.status_code == 422
+        assert res.status_code == 404
         assert (
-            res.content
-            == b'"A Filing for the LEI (1234567890ZXWVUTSR00) and period (2025) that was attempted to be updated does not exist."'
+            res.json()["error_detail"]
+            == "A Filing for the LEI (1234567890ZXWVUTSR00) and period (2025) that was attempted to be updated does not exist."
         )
 
         # no known field for endpoint
@@ -484,10 +477,10 @@ class TestFilingApi:
                 "email": "name_1@email.test",
             },
         )
-        assert res.status_code == 422
+        assert res.status_code == 404
         assert (
-            res.content
-            == b'"A Filing for the LEI (1234567890ZXWVUTSR00) and period (2024) that was attempted to be updated does not exist."'
+            res.json()["error_detail"]
+            == "A Filing for the LEI (1234567890ZXWVUTSR00) and period (2024) that was attempted to be updated does not exist."
         )
 
     async def test_unauthed_task_update(self, app_fixture: FastAPI, unauthed_user_mock: Mock):
@@ -538,7 +531,7 @@ class TestFilingApi:
 
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
         assert res.status_code == 403
-        assert res.json()["detail"] == "LEI 1234567890ZXWVUTSR00 is not associated with the user."
+        assert res.json()["error_detail"] == "LEI 1234567890ZXWVUTSR00 is not associated with the user."
 
         res = client.get("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/")
         assert res.status_code == 200
@@ -756,7 +749,7 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/accept")
         assert res.status_code == 403
         assert (
-            res.json()
+            res.json()["error_detail"]
             == "Submission 1 for LEI 1234567890ZXWVUTSR00 in filing period 2024 is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted."
         )
 
@@ -782,8 +775,8 @@ class TestFilingApi:
 
         mock.return_value = None
         res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/accept")
-        assert res.status_code == 422
-        assert res.json() == "Submission ID 1 does not exist, cannot accept a non-existing submission."
+        assert res.status_code == 404
+        assert res.json()["error_detail"] == "Submission ID 1 does not exist, cannot accept a non-existing submission."
 
     async def test_good_sign_filing(
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
@@ -860,7 +853,7 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         assert res.status_code == 403
         assert (
-            res.json()
+            res.json()["error_detail"]
             == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a latest submission the SUBMISSION_ACCEPTED state."
         )
 
@@ -868,7 +861,7 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         assert res.status_code == 403
         assert (
-            res.json()
+            res.json()["error_detail"]
             == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a latest submission the SUBMISSION_ACCEPTED state."
         )
 
@@ -903,15 +896,15 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         assert res.status_code == 403
         assert (
-            res.json()
+            res.json()["error_detail"]
             == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have contact info defined."
         )
 
         get_filing_mock.return_value = None
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
-        assert res.status_code == 422
+        assert res.status_code == 404
         assert (
-            res.json()
+            res.json()["error_detail"]
             == "There is no Filing for LEI 1234567890ABCDEFGH00 in period 2024, unable to sign a non-existent Filing."
         )
 
@@ -1021,7 +1014,8 @@ class TestFilingApi:
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
         assert (
-            res.json()["detail"][0]["msg"] == f"Value error, Invalid email test_email. {regex_configs.email.error_text}"
+            res.json()["error_detail"][0]["msg"]
+            == f"Value error, Invalid email test_email. {regex_configs.email.error_text}"
         )
         assert res.status_code == 422
 
@@ -1047,7 +1041,7 @@ class TestFilingApi:
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
         assert (
-            res.json()["detail"][0]["msg"]
+            res.json()["error_detail"][0]["msg"]
             == f"Value error, Invalid phone number 1123456789. {regex_configs.phone_number.error_text}"
         )
         assert res.status_code == 422

@@ -11,10 +11,10 @@ import importlib.metadata as imeta
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
 from sbl_filing_api.entities.repos.submission_repo import update_submission
 from http import HTTPStatus
-from fastapi import HTTPException
 import logging
 from fsspec import AbstractFileSystem, filesystem
 from sbl_filing_api.config import settings
+from regtech_api_commons.api.exceptions import RegTechHttpException
 
 log = logging.getLogger(__name__)
 
@@ -41,16 +41,18 @@ async def validation_monitor(period_code: str, lei: str, submission: SubmissionD
 def validate_file_processable(file: UploadFile) -> None:
     extension = file.filename.split(".")[-1].lower()
     if file.content_type != settings.submission_file_type or extension != settings.submission_file_extension:
-        raise HTTPException(
+        raise RegTechHttpException(
             status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            name="Unsupported File Type",
             detail=(
                 f"Only {settings.submission_file_type} file type with extension {settings.submission_file_extension} is supported; "
                 f'submitted file is "{file.content_type}" with "{extension}" extension',
             ),
         )
     if file.size > settings.submission_file_size:
-        raise HTTPException(
+        raise RegTechHttpException(
             status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            name="File Too Large",
             detail=f"Uploaded file size of {file.size} bytes exceeds the limit of {settings.submission_file_size} bytes.",
         )
 
@@ -65,8 +67,9 @@ async def upload_to_storage(period_code: str, lei: str, file_identifier: str, co
         ) as f:
             f.write(content)
     except Exception as e:
-        log.error("Failed to upload file", e, exc_info=True, stack_info=True)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to upload file")
+        raise RegTechHttpException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, name="Upload Failure", detail="Failed to upload file"
+        ) from e
 
 
 async def get_from_storage(period_code: str, lei: str, file_identifier: str, extension: str = "csv"):
@@ -76,8 +79,9 @@ async def get_from_storage(period_code: str, lei: str, file_identifier: str, ext
         with fs.open(file_path, "r") as f:
             return f.name
     except Exception as e:
-        log.error(f"Failed to read file {file_path}:", e, exc_info=True, stack_info=True)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to read file.")
+        raise RegTechHttpException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, name="Download Failure", detail="Failed to read file."
+        ) from e
 
 
 async def validate_and_update_submission(

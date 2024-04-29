@@ -6,10 +6,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.exceptions import HTTPException
 
 from regtech_api_commons.oauth2.oauth2_backend import BearerTokenAuthBackend
 from regtech_api_commons.oauth2.oauth2_admin import OAuth2Admin
+from regtech_api_commons.api.exceptions import RegTechHttpException
+from regtech_api_commons.api.exception_handlers import (
+    regtech_http_exception_handler,
+    request_validation_error_handler,
+    http_exception_handler,
+    general_exception_handler,
+)
 
 from sbl_filing_api.routers.filing import router as filing_router
 
@@ -40,6 +49,12 @@ def run_migrations():
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+app.add_exception_handler(RegTechHttpException, regtech_http_exception_handler)  # type: ignore[type-arg]  # noqa: E501
+app.add_exception_handler(RequestValidationError, request_validation_error_handler)  # type: ignore[type-arg]  # noqa: E501
+app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[type-arg]  # noqa: E501
+app.add_exception_handler(Exception, general_exception_handler)  # type: ignore[type-arg]  # noqa: E501
 
 
 token_bearer = OAuth2AuthorizationCodeBearer(

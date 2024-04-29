@@ -7,6 +7,7 @@ from unittest.mock import Mock, ANY
 from pytest_mock import MockerFixture
 from sbl_filing_api.config import FsProtocol, settings
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
+from regtech_api_commons.api.exceptions import RegTechHttpException
 
 
 class TestSubmissionProcessor:
@@ -58,22 +59,18 @@ class TestSubmissionProcessor:
         settings.fs_upload_config.mkdir = default_mkdir
 
     async def test_upload_failure(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
-        log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")
         mock_fs.mkdirs.side_effect = IOError("test")
         with pytest.raises(Exception) as e:
             await submission_processor.upload_to_storage("test_period", "test", "test", b"test content")
-        log_mock.error.assert_called_with("Failed to upload file", ANY, exc_info=True, stack_info=True)
-        assert isinstance(e.value, HTTPException)
+        assert isinstance(e.value, RegTechHttpException)
+        assert e.value.name == "Upload Failure"
 
     async def test_read_failure(self, mocker: MockerFixture, mock_fs_func: Mock, mock_fs: Mock):
-        log_mock = mocker.patch("sbl_filing_api.services.submission_processor.log")
         mock_fs.open.side_effect = IOError("test")
         with pytest.raises(Exception) as e:
             await submission_processor.get_from_storage("2024", "1234567890", "1_report")
-        log_mock.error.assert_called_with(
-            "Failed to read file ../upload/upload/2024/1234567890/1_report.csv:", ANY, exc_info=True, stack_info=True
-        )
-        assert isinstance(e.value, HTTPException)
+        assert isinstance(e.value, RegTechHttpException)
+        assert e.value.name == "Download Failure"
 
     def test_validate_file_supported(self, mock_upload_file: Mock):
         mock_upload_file.filename = "test.csv"
