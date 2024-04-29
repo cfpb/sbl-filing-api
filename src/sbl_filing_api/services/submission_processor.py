@@ -13,8 +13,9 @@ from sbl_filing_api.entities.repos.submission_repo import update_submission
 from http import HTTPStatus
 import logging
 from fsspec import AbstractFileSystem, filesystem
-from sbl_filing_api.config import settings
+from sbl_filing_api.config import FsProtocol, settings
 from regtech_api_commons.api.exceptions import RegTechHttpException
+import boto3
 
 log = logging.getLogger(__name__)
 
@@ -59,13 +60,27 @@ def validate_file_processable(file: UploadFile) -> None:
 
 async def upload_to_storage(period_code: str, lei: str, file_identifier: str, content: bytes, extension: str = "csv"):
     try:
-        fs: AbstractFileSystem = filesystem(settings.fs_upload_config.protocol)
-        if settings.fs_upload_config.mkdir:
+        if settings.fs_upload_config.protocol == FsProtocol.FILE:
+            fs: AbstractFileSystem = filesystem(settings.fs_upload_config.protocol)
             fs.mkdirs(f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}", exist_ok=True)
-        with fs.open(
-            f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb"
-        ) as f:
-            f.write(content)
+            with fs.open(
+                f"{settings.fs_upload_config.root}/upload/{period_code}/{lei}/{file_identifier}.{extension}", "wb"
+            ) as f:
+                f.write(content)
+        else:
+            s3 = boto3.client("s3")
+            r = s3.put_object(
+                Bucket=settings.fs_upload_config.root,
+                Key=f"upload/{period_code}/{lei}/{file_identifier}.{extension}",
+                Body=content,
+            )
+            log.debug(
+                "s3 upload response for lei: %s, period: %s file: %s, response: %s",
+                lei,
+                period_code,
+                file_identifier,
+                r,
+            )
     except Exception as e:
         raise RegTechHttpException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, name="Upload Failure", detail="Failed to upload file"
