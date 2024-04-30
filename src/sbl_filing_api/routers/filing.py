@@ -211,7 +211,7 @@ async def get_submission_latest(request: Request, lei: str, period_code: str):
 @router.get("/institutions/{lei}/filings/{period_code}/submissions/{id}", response_model=SubmissionDTO)
 @requires("authenticated")
 async def get_submission(request: Request, id: int):
-    result = await repo.get_submission(incoming_session=request.state.db_session, submission_id=id)
+    result = await repo.get_submission(session=request.state.db_session, submission_id=id)
     if result:
         return result
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
@@ -220,7 +220,7 @@ async def get_submission(request: Request, id: int):
 @router.put("/institutions/{lei}/filings/{period_code}/submissions/{id}/accept", response_model=SubmissionDTO)
 @requires("authenticated")
 async def accept_submission(request: Request, id: int, lei: str, period_code: str):
-    submission = await repo.get_submission(request.state.db_session, id)
+    submission = await repo.get_submission(session=request.state.db_session, submission_id=id)
     if not submission:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -314,7 +314,7 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
 )
 @requires("authenticated")
 async def get_submission_report(request: Request, lei: str, period_code: str, id: int):
-    sub = await repo.get_submission(request.state.db_session, id)
+    sub = await repo.get_submission(session=request.state.db_session, submission_id=id)
     if sub:
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER

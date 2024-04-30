@@ -103,12 +103,13 @@ async def get_from_storage(period_code: str, lei: str, file_identifier: str, ext
 async def validate_and_update_submission(
     period_code: str, lei: str, submission: SubmissionDAO, content: bytes, exec_check: dict
 ):
-    validator_version = imeta.version("regtech-data-validator")
-    submission.validation_ruleset_version = validator_version
-    submission.state = SubmissionState.VALIDATION_IN_PROGRESS
-    submission = await update_submission(submission)
     async with SessionLocal() as session:
         try:
+            validator_version = imeta.version("regtech-data-validator")
+            submission.validation_ruleset_version = validator_version
+            submission.state = SubmissionState.VALIDATION_IN_PROGRESS
+            submission = await update_submission(submission)
+
             df = pd.read_csv(BytesIO(content), dtype=str, na_filter=False)
 
             # Validate Phases

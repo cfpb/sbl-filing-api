@@ -372,7 +372,7 @@ class TestSubmissionRepo:
         assert res.validation_ruleset_version == "v1"
 
     async def test_get_submission(self, query_session: AsyncSession):
-        res = await repo.get_submission(incoming_session=query_session, submission_id=1)
+        res = await repo.get_submission(session=query_session, submission_id=1)
         assert res.id == 1
         assert res.filing == 1
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
@@ -430,8 +430,9 @@ class TestSubmissionRepo:
                 add_session, filing_id=1, filename="file1.csv", submitter_id=user_action_submit.id
             )
 
-        res.state = SubmissionState.VALIDATION_IN_PROGRESS
-        res = await repo.update_submission(res)
+        async with session_generator() as update_session:
+            res.state = SubmissionState.VALIDATION_IN_PROGRESS
+            res = await repo.update_submission(session=update_session, submission=res)
 
         async def query_updated_dao():
             async with session_generator() as search_session:

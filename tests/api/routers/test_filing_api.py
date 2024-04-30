@@ -238,12 +238,12 @@ class TestFilingApi:
         client = TestClient(app_fixture)
 
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
-        mock.assert_called_with(incoming_session=ANY, submission_id=1)
+        mock.assert_called_with(session=ANY, submission_id=1)
         assert res.status_code == 200
 
         mock.return_value = None
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
-        mock.assert_called_with(incoming_session=ANY, submission_id=1)
+        mock.assert_called_with(session=ANY, submission_id=1)
         assert res.status_code == 204
 
     def test_authed_upload_file(
@@ -983,7 +983,7 @@ class TestFilingApi:
 
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/2/report")
-        sub_mock.assert_called_with(ANY, 2)
+        sub_mock.assert_called_with(session=ANY, submission_id=2)
         file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "2" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
         assert res.text == "Test"
@@ -993,7 +993,7 @@ class TestFilingApi:
         sub_mock.return_value = []
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/report")
-        sub_mock.assert_called_with(ANY, 1)
+        sub_mock.assert_called_with(session=ANY, submission_id=1)
         assert res.status_code == 204
 
         os.unlink(temp_file.name)
