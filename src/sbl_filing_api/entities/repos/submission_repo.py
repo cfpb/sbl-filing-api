@@ -51,7 +51,7 @@ async def get_filing_periods(session: AsyncSession) -> List[FilingPeriodDAO]:
     return await query_helper(session, FilingPeriodDAO)
 
 
-async def get_submission(submission_id: int, session: AsyncSession = None) -> SubmissionDAO:
+async def get_submission(submission_id: int, session: AsyncSession) -> SubmissionDAO:
     result = await query_helper(session, SubmissionDAO, id=submission_id)
     return result[0] if result else None
 
@@ -104,7 +104,7 @@ async def add_submission(session: AsyncSession, filing_id: int, filename: str, s
     return new_sub
 
 
-async def update_submission(submission: SubmissionDAO, session: AsyncSession = None) -> SubmissionDAO:
+async def update_submission(submission: SubmissionDAO, session: AsyncSession) -> SubmissionDAO:
     return await upsert_helper(session, submission, SubmissionDAO)
 
 
