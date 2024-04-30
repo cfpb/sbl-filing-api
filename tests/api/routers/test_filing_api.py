@@ -238,12 +238,12 @@ class TestFilingApi:
         client = TestClient(app_fixture)
 
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
-        mock.assert_called_with(session=ANY, submission_id=1)
+        mock.assert_called_with(ANY, 1)
         assert res.status_code == 200
 
         mock.return_value = None
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
-        mock.assert_called_with(session=ANY, submission_id=1)
+        mock.assert_called_with(ANY, 1)
         assert res.status_code == 204
 
     def test_authed_upload_file(
@@ -308,7 +308,7 @@ class TestFilingApi:
             check_future, mock_event_loop.run_in_executor.return_value, return_sub.id, ANY
         )
         assert mock_background_task.call_args.args[3]["continue"]
-        assert mock_update_submission.call_args.args[0].state == SubmissionState.SUBMISSION_UPLOADED
+        assert mock_update_submission.call_args.args[1].state == SubmissionState.SUBMISSION_UPLOADED
         assert res.status_code == 200
         assert res.json()["id"] == 1
         assert res.json()["state"] == SubmissionState.SUBMISSION_UPLOADED
@@ -372,8 +372,6 @@ class TestFilingApi:
 
         mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
-        mock_validate_submission = mocker.patch("sbl_filing_api.services.submission_processor.validation_monitor")
-        mock_validate_submission.return_value = None
 
         mock_update_submission = mocker.patch(
             "sbl_filing_api.entities.repos.submission_repo.update_submission", side_effect=async_mock
@@ -403,7 +401,7 @@ class TestFilingApi:
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="Failed to upload file"
         )
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=file)
-        assert mock_update_submission.call_args.args[0].state == SubmissionState.UPLOAD_FAILED
+        assert mock_update_submission.call_args.args[1].state == SubmissionState.UPLOAD_FAILED
         assert res.status_code == 500
         assert res.json()["error_detail"] == "Error while trying to process SUBMIT User Action"
 
@@ -983,7 +981,7 @@ class TestFilingApi:
 
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/2/report")
-        sub_mock.assert_called_with(session=ANY, submission_id=2)
+        sub_mock.assert_called_with(ANY, 2)
         file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "2" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
         assert res.text == "Test"
@@ -993,7 +991,7 @@ class TestFilingApi:
         sub_mock.return_value = []
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/report")
-        sub_mock.assert_called_with(session=ANY, submission_id=1)
+        sub_mock.assert_called_with(ANY, 1)
         assert res.status_code == 204
 
         os.unlink(temp_file.name)

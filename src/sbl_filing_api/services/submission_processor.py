@@ -1,5 +1,4 @@
 import json
-import asyncio
 import pandas as pd
 import importlib.metadata as imeta
 import logging
@@ -21,23 +20,6 @@ import boto3
 log = logging.getLogger(__name__)
 
 REPORT_QUALIFIER = "_report"
-
-
-async def validation_monitor(period_code: str, lei: str, submission: SubmissionDAO, content: bytes):
-    try:
-        await asyncio.wait_for(
-            validate_and_update_submission(period_code, lei, submission, content),
-            timeout=settings.expired_submission_check_secs,
-        )
-    except asyncio.TimeoutError as te:
-        log.warn(
-            f"Validation for submission {submission.id} did not complete within the expected timeframe, will be set to VALIDATION_EXPIRED.",
-            te,
-            exc_info=True,
-            stack_info=True,
-        )
-        submission.state = SubmissionState.VALIDATION_EXPIRED
-        await update_submission(submission)
 
 
 def validate_file_processable(file: UploadFile) -> None:
@@ -108,7 +90,7 @@ async def validate_and_update_submission(
             validator_version = imeta.version("regtech-data-validator")
             submission.validation_ruleset_version = validator_version
             submission.state = SubmissionState.VALIDATION_IN_PROGRESS
-            submission = await update_submission(submission)
+            submission = await update_submission(session, submission)
 
             df = pd.read_csv(BytesIO(content), dtype=str, na_filter=False)
 
@@ -135,12 +117,12 @@ async def validate_and_update_submission(
                 log.warning(f"Submission {submission.id} is expired, will not be updating final state with results.")
                 return
 
-            await update_submission(submission, session)
+            await update_submission(session, submission)
 
         except RuntimeError as re:
             log.error("The file is malformed", re, exc_info=True, stack_info=True)
             submission.state = SubmissionState.SUBMISSION_UPLOAD_MALFORMED
-            await update_submission(submission, session)
+            await update_submission(session, submission)
 
         except Exception as e:
             log.error(
@@ -150,7 +132,7 @@ async def validate_and_update_submission(
                 stack_info=True,
             )
             submission.state = SubmissionState.VALIDATION_ERROR
-            await update_submission(submission, session)
+            await update_submission(session, submission)
 
 
 def build_validation_results(result):

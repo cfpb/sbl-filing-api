@@ -2014,7 +2014,7 @@ requests = "^2.31.0"
 type = "git"
 url = "https://github.com/cfpb/regtech-api-commons.git"
 reference = "HEAD"
-resolved_reference = "e526c1ee2778c1f96a75d85ac9d22362da67dcb9"
+resolved_reference = "544309d41526fa373cf625c322fd363d09c87d63"
 
 [[package]]
 name = "regtech-data-validator"
@@ -2035,7 +2035,7 @@ tabulate = "^0.9.0"
 type = "git"
 url = "https://github.com/cfpb/regtech-data-validator.git"
 reference = "HEAD"
-resolved_reference = "505350764c937eb2daa6c2efc2f350a9cb6bd48b"
+resolved_reference = "a3c0f67a906397e8be81913ffe8e49dba79045d7"
 
 [[package]]
 name = "regtech-regex"
@@ -2053,7 +2053,7 @@ pyyaml = "^6.0.1"
 type = "git"
 url = "https://github.com/cfpb/regtech-regex.git"
 reference = "HEAD"
-resolved_reference = "730c9c0b79468c7884fd7b4c5d2459fc2461c12c"
+resolved_reference = "7429ca940eecf1a8ebb33255e1d95b6db1d96431"
 
 [[package]]
 name = "requests"
@@ -2267,7 +2267,7 @@ files = [
 ]
 
 [package.dependencies]
-greenlet = {version = "!=0.4.17", markers = "platform_machine == \"win32\" or platform_machine == \"WIN32\" or platform_machine == \"AMD64\" or platform_machine == \"amd64\" or platform_machine == \"x86_64\" or platform_machine == \"ppc64le\" or platform_machine == \"aarch64\""}
+greenlet = {version = "!=0.4.17", markers = "platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\""}
 typing-extensions = ">=4.6.0"
 
 [package.extras]

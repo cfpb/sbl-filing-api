@@ -167,10 +167,10 @@ async def upload_file(
             )
 
             submission.state = SubmissionState.SUBMISSION_UPLOADED
-            submission = await repo.update_submission(submission)
+            submission = await repo.update_submission(request.state.db_session, submission)
         except Exception as e:
             submission.state = SubmissionState.UPLOAD_FAILED
-            submission = await repo.update_submission(submission)
+            submission = await repo.update_submission(request.state.db_session, submission)
             raise RegTechHttpException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 name="Submission Unprocessable",
@@ -211,7 +211,7 @@ async def get_submission_latest(request: Request, lei: str, period_code: str):
 @router.get("/institutions/{lei}/filings/{period_code}/submissions/{id}", response_model=SubmissionDTO)
 @requires("authenticated")
 async def get_submission(request: Request, id: int):
-    result = await repo.get_submission(session=request.state.db_session, submission_id=id)
+    result = await repo.get_submission(request.state.db_session, id)
     if result:
         return result
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
@@ -220,7 +220,7 @@ async def get_submission(request: Request, id: int):
 @router.put("/institutions/{lei}/filings/{period_code}/submissions/{id}/accept", response_model=SubmissionDTO)
 @requires("authenticated")
 async def accept_submission(request: Request, id: int, lei: str, period_code: str):
-    submission = await repo.get_submission(session=request.state.db_session, submission_id=id)
+    submission = await repo.get_submission(request.state.db_session, id)
     if not submission:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -247,7 +247,7 @@ async def accept_submission(request: Request, id: int, lei: str, period_code: st
 
     submission.accepter_id = accepter.id
     submission.state = SubmissionState.SUBMISSION_ACCEPTED
-    submission = await repo.update_submission(submission, request.state.db_session)
+    submission = await repo.update_submission(request.state.db_session, submission)
     return submission
 
 
@@ -314,7 +314,7 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
 )
 @requires("authenticated")
 async def get_submission_report(request: Request, lei: str, period_code: str, id: int):
-    sub = await repo.get_submission(session=request.state.db_session, submission_id=id)
+    sub = await repo.get_submission(request.state.db_session, id)
     if sub:
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
