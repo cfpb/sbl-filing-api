@@ -80,11 +80,6 @@ async def get_filing_tasks(session: AsyncSession) -> List[FilingTaskDAO]:
     return await query_helper(session, FilingTaskDAO)
 
 
-async def get_contact_info(session: AsyncSession, lei: str, filing_period: str) -> ContactInfoDAO:
-    filing = await get_filing(session, lei=lei, filing_period=filing_period)
-    return filing.contact_info
-
-
 async def get_user_action(session: AsyncSession, id: int) -> UserActionDAO:
     result = await query_helper(session, UserActionDAO, id=id)
     return result[0] if result else None

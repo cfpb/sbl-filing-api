@@ -1,5 +1,5 @@
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import Response, JSONResponse, FileResponse
 from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
 from sbl_filing_api.entities.models.model_enums import UserActionType
@@ -40,13 +40,13 @@ async def get_filing_periods(request: Request):
     return await repo.get_filing_periods(request.state.db_session)
 
 
-@router.get("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
+@router.get("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO | None)
 @requires("authenticated")
-async def get_filing(request: Request, lei: str, period_code: str):
+async def get_filing(request: Request, response: Response, lei: str, period_code: str):
     res = await repo.get_filing(request.state.db_session, lei, period_code)
-    if not res:
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
-    return res
+    if res:
+        return res
+    response.status_code = status.HTTP_404_NOT_FOUND
 
 
 @router.post("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
@@ -194,16 +194,16 @@ async def get_submission_latest(request: Request, lei: str, period_code: str):
     result = await repo.get_latest_submission(request.state.db_session, lei, period_code)
     if result:
         return result
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/submissions/{id}", response_model=SubmissionDTO)
+@router.get("/institutions/{lei}/filings/{period_code}/submissions/{id}", response_model=SubmissionDTO | None)
 @requires("authenticated")
-async def get_submission(request: Request, id: int):
+async def get_submission(request: Request, response: Response, id: int):
     result = await repo.get_submission(request.state.db_session, id)
     if result:
         return result
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    response.status_code = status.HTTP_404_NOT_FOUND
 
 
 @router.put("/institutions/{lei}/filings/{period_code}/submissions/{id}/accept", response_model=SubmissionDTO)
@@ -260,13 +260,13 @@ async def update_task_state(request: Request, lei: str, period_code: str, task_n
     await repo.update_task_state(request.state.db_session, lei, period_code, task_name, state.state, request.user)
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/contact-info", response_model=ContactInfoDTO)
+@router.get("/institutions/{lei}/filings/{period_code}/contact-info", response_model=ContactInfoDTO | None)
 @requires("authenticated")
-async def get_contact_info(request: Request, lei: str, period_code: str):
-    result = await repo.get_contact_info(request.state.db_session, lei, period_code)
-    if result:
-        return result
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+async def get_contact_info(request: Request, response: Response, lei: str, period_code: str):
+    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+    if filing and filing.contact_info:
+        return filing.contact_info
+    response.status_code = status.HTTP_404_NOT_FOUND
 
 
 @router.put("/institutions/{lei}/filings/{period_code}/contact-info", response_model=FilingDTO)
@@ -302,11 +302,11 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
     responses={200: {"content": {"text/plain; charset=utf-8": {}}}},
 )
 @requires("authenticated")
-async def get_submission_report(request: Request, lei: str, period_code: str, id: int):
+async def get_submission_report(request: Request, response: Response, lei: str, period_code: str, id: int):
     sub = await repo.get_submission(request.state.db_session, id)
     if sub:
         file_data = await submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
         )
         return FileResponse(path=file_data, media_type="text/csv", filename=f"{sub.id}_validation_report.csv")
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    response.status_code = status.HTTP_404_NOT_FOUND

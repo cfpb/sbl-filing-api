@@ -462,21 +462,21 @@ class TestSubmissionRepo:
         await query_updated_dao()
 
     async def test_get_contact_info(self, query_session: AsyncSession):
-        res = await repo.get_contact_info(session=query_session, lei="ABCDEFGHIJ", filing_period="2024")
+        res = await repo.get_filing(session=query_session, lei="ABCDEFGHIJ", filing_period="2024")
 
-        assert res.id == 2
-        assert res.filing == 2
-        assert res.first_name == "test_first_name_2"
-        assert res.last_name == "test_last_name_2"
-        assert res.hq_address_street_1 == "address street 2"
-        assert res.hq_address_street_2 == ""
-        assert res.hq_address_street_3 == ""
-        assert res.hq_address_street_4 == ""
-        assert res.hq_address_city == "Test City 2"
-        assert res.hq_address_state == "TS"
-        assert res.hq_address_zip == "12345"
-        assert res.phone_number == "212-345-6789"
-        assert res.email == "test2@cfpb.gov"
+        assert res.contact_info.id == 2
+        assert res.contact_info.filing == 2
+        assert res.contact_info.first_name == "test_first_name_2"
+        assert res.contact_info.last_name == "test_last_name_2"
+        assert res.contact_info.hq_address_street_1 == "address street 2"
+        assert res.contact_info.hq_address_street_2 == ""
+        assert res.contact_info.hq_address_street_3 == ""
+        assert res.contact_info.hq_address_street_4 == ""
+        assert res.contact_info.hq_address_city == "Test City 2"
+        assert res.contact_info.hq_address_state == "TS"
+        assert res.contact_info.hq_address_zip == "12345"
+        assert res.contact_info.phone_number == "212-345-6789"
+        assert res.contact_info.email == "test2@cfpb.gov"
 
     async def test_create_contact_info(self, transaction_session: AsyncSession):
         filing = await repo.update_contact_info(
