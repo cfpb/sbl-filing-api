@@ -540,7 +540,9 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info")
         assert res.status_code == 403
 
-    async def test_get_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock):
+    async def test_get_contact_info(
+        self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock
+    ):
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info")
         result = res.json()
@@ -987,10 +989,7 @@ class TestFilingApi:
         res = client.put(
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
-        assert (
-            res.json()["error_detail"][0]["msg"]
-            == f"Value error, Invalid email test_email. {regex_configs.email.error_text}"
-        )
+        assert res.json()["error_detail"] == f"Invalid email test_email. {regex_configs.email.error_text}"
         assert res.status_code == 422
 
     def test_contact_info_invalid_phone_number(
@@ -1014,8 +1013,5 @@ class TestFilingApi:
         res = client.put(
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
-        assert (
-            res.json()["error_detail"][0]["msg"]
-            == f"Value error, Invalid phone number 1123456789. {regex_configs.phone_number.error_text}"
-        )
+        assert res.json()["error_detail"] == f"Invalid phone number 1123456789. {regex_configs.phone_number.error_text}"
         assert res.status_code == 422
