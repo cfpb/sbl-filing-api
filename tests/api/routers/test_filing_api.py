@@ -1016,8 +1016,7 @@ class TestFilingApi:
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
         assert (
-            res.json()["error_detail"][0]["msg"]
-            == f"Value error, Invalid email test_email. {regex_configs.email.error_text}"
+            res.json()["error_detail"] == f"Invalid email test_email. {regex_configs.email.error_text}"
         )
         assert res.status_code == 422
 
@@ -1043,7 +1042,6 @@ class TestFilingApi:
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
         assert (
-            res.json()["error_detail"][0]["msg"]
-            == f"Value error, Invalid phone number 1123456789. {regex_configs.phone_number.error_text}"
+            res.json()["error_detail"] == f"Invalid phone number 1123456789. {regex_configs.phone_number.error_text}"
         )
         assert res.status_code == 422
