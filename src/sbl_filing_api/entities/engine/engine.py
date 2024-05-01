@@ -3,10 +3,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     async_scoped_session,
 )
+from sqlalchemy.pool import NullPool
 from asyncio import current_task
 from sbl_filing_api.config import settings
 
-engine = create_async_engine(settings.conn.unicode_string(), echo=True).execution_options(
+engine = create_async_engine(settings.conn.unicode_string(), echo=True, poolclass=NullPool).execution_options(
     schema_translate_map={None: settings.db_schema}
 )
 SessionLocal = async_scoped_session(async_sessionmaker(engine, expire_on_commit=False), current_task)
