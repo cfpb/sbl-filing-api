@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
 from fastapi.exceptions import RequestValidationError
 
+
 class UserActionDTO(BaseModel):
     id: int | None = None
     user_id: str
@@ -69,7 +70,9 @@ class ContactInfoDTO(BaseModel):
         if self.phone_number:
             match = regex_configs.phone_number.regex.match(self.phone_number)
             if not match:
-                raise RequestValidationError(f"Invalid phone number {self.phone_number}. {regex_configs.phone_number.error_text}")
+                raise RequestValidationError(
+                    f"Invalid phone number {self.phone_number}. {regex_configs.phone_number.error_text}"
+                )
         return self
 
 
