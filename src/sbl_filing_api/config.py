@@ -12,7 +12,8 @@ from regtech_regex.regex_config import RegexConfigs
 
 env_files_to_load = [".env"]
 if os.getenv("ENV", "LOCAL") == "LOCAL":
-    env_files_to_load.append(".env.local")
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    env_files_to_load.append(f"{file_dir}/../.env.local")
 
 
 class FsProtocol(StrEnum):

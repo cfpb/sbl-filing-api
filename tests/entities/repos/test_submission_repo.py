@@ -444,8 +444,8 @@ class TestSubmissionRepo:
 
         await query_updated_dao()
 
-        validation_json = self.get_error_json()
-        res.validation_json = validation_json
+        validation_results = self.get_error_json()
+        res.validation_results = validation_results
         res.state = SubmissionState.VALIDATION_WITH_ERRORS
         # to test passing in a session to the update_submission function
         async with session_generator() as update_session:
@@ -458,7 +458,7 @@ class TestSubmissionRepo:
                 assert new_res2.id == 5
                 assert new_res2.filing == 1
                 assert new_res2.state == SubmissionState.VALIDATION_WITH_ERRORS
-                assert new_res2.validation_json == validation_json
+                assert new_res2.validation_results == validation_results
 
         await query_updated_dao()
 

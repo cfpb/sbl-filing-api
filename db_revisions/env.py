@@ -26,7 +26,7 @@ ENV = os.getenv("ENV", "LOCAL")
 
 if ENV == "LOCAL":
     file_dir = os.path.dirname(os.path.realpath(__file__))
-    load_dotenv(f"{file_dir}/../src/sbl_filing_api/.env.local")
+    load_dotenv(f"{file_dir}/../src/.env.local")
 else:
     load_dotenv()
 

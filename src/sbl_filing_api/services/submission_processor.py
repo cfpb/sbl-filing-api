@@ -107,7 +107,7 @@ async def validate_and_update_submission(
             else:
                 submission.state = SubmissionState.VALIDATION_SUCCESSFUL
 
-            submission.validation_json = build_validation_results(result)
+            submission.validation_results = build_validation_results(result)
             submission_report = df_to_download(result[1])
             await upload_to_storage(
                 period_code, lei, str(submission.id) + REPORT_QUALIFIER, submission_report.encode("utf-8")

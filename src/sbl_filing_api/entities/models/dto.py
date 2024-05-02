@@ -20,7 +20,7 @@ class SubmissionDTO(BaseModel):
     id: int | None = None
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
-    validation_json: Dict[str, Any] | None = None
+    validation_results: Dict[str, Any] | None = None
     submission_time: datetime | None = None
     filename: str
     submitter: UserActionDTO
