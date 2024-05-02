@@ -244,7 +244,7 @@ class TestFilingApi:
         mock.return_value = None
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
         mock.assert_called_with(ANY, 1)
-        assert res.status_code == 204
+        assert res.status_code == 404
 
     def test_authed_upload_file(
         self,
@@ -553,22 +553,9 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info")
         assert res.status_code == 403
 
-    async def test_get_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
-        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_contact_info")
-        mock.return_value = ContactInfoDAO(
-            id=1,
-            filing=1,
-            first_name="test_first_name_1",
-            last_name="test_last_name_1",
-            hq_address_street_1="address street 1",
-            hq_address_street_2="",
-            hq_address_city="Test City",
-            hq_address_state="TS",
-            hq_address_zip="12345",
-            phone_number="112-345-6789",
-            email="name_1@email.test",
-        )
-
+    async def test_get_contact_info(
+        self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock
+    ):
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info")
         result = res.json()
@@ -578,17 +565,17 @@ class TestFilingApi:
         assert result["first_name"] == "test_first_name_1"
         assert result["last_name"] == "test_last_name_1"
         assert result["hq_address_street_1"] == "address street 1"
-        assert result["hq_address_street_2"] == ""
+        assert result["hq_address_street_2"] == "address street 2"
         assert result["hq_address_city"] == "Test City"
         assert result["hq_address_state"] == "TS"
         assert result["hq_address_zip"] == "12345"
         assert result["phone_number"] == "112-345-6789"
-        assert result["email"] == "name_1@email.test"
+        assert result["email"] == "test1@cfpb.gov"
 
         # no contact_info for endpoint
-        mock.return_value = None
+        get_filing_mock.return_value = None
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info")
-        assert res.status_code == 204
+        assert res.status_code == 404
 
     async def test_unauthed_put_contact_info(self, mocker: MockerFixture, app_fixture: FastAPI, unauthed_user_mock):
         contact_info_json = {
@@ -992,7 +979,7 @@ class TestFilingApi:
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/report")
         sub_mock.assert_called_with(ANY, 1)
-        assert res.status_code == 204
+        assert res.status_code == 404
 
         os.unlink(temp_file.name)
 
@@ -1015,7 +1002,7 @@ class TestFilingApi:
         res = client.put(
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
-        assert f"Invalid email test_email. {regex_configs.email.error_text}" in res.json()["error_detail"]
+        assert f"Value error, Invalid email test_email. {regex_configs.email.error_text}" in res.json()["error_detail"]
         assert res.status_code == 422
 
     def test_contact_info_invalid_phone_number(
@@ -1039,5 +1026,8 @@ class TestFilingApi:
         res = client.put(
             "/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/contact-info", json=contact_info_json
         )
-        assert f"Invalid phone number 1123456789. {regex_configs.phone_number.error_text}" in res.json()["error_detail"]
+        assert (
+            f"Value error, Invalid phone number 1123456789. {regex_configs.phone_number.error_text}"
+            in res.json()["error_detail"]
+        )
         assert res.status_code == 422
