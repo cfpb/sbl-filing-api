@@ -405,6 +405,66 @@ class TestFilingApi:
         assert res.status_code == 500
         assert res.json()["error_detail"] == "Error while trying to process SUBMIT User Action"
 
+    def test_submission_second_update_fail(
+        self,
+        mocker: MockerFixture,
+        app_fixture: FastAPI,
+        authed_user_mock: Mock,
+        submission_csv: str,
+        get_filing_mock: Mock,
+    ):
+        return_sub = SubmissionDAO(
+            id=1,
+            filing=1,
+            state=SubmissionState.SUBMISSION_UPLOADED,
+            filename="submission.csv",
+        )
+
+        log_mock = mocker.patch("sbl_filing_api.routers.filing.logger.error")
+
+        mock_validate_file = mocker.patch("sbl_filing_api.services.submission_processor.validate_file_processable")
+        mock_validate_file.return_value = None
+
+        async_mock = AsyncMock(return_value=return_sub)
+        mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submission", side_effect=async_mock)
+
+        mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+        mock_upload.return_value = None
+
+        mocker.patch(
+            "sbl_filing_api.entities.repos.submission_repo.update_submission",
+            side_effect=Exception("Can't connect to database"),
+        )
+
+        mock_add_submitter = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
+        mock_add_submitter.side_effect = AsyncMock(
+            return_value=UserActionDAO(
+                id=2,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test submitter",
+                user_email="test@local.host",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.datetime.now(),
+            )
+        )
+
+        file = {"file": ("submission.csv", open(submission_csv, "rb"))}
+
+        client = TestClient(app_fixture)
+
+        res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=file)
+        log_mock.assert_called_with(
+            (
+                f"Error updating submission 1 to {SubmissionState.UPLOAD_FAILED} state during error handling,"
+                f" the submission may be stuck in the {SubmissionState.SUBMISSION_STARTED} or {SubmissionState.SUBMISSION_UPLOADED} state."
+            ),
+            ANY,
+            exc_info=True,
+            stack_info=True,
+        )
+        assert res.status_code == 500
+        assert res.json()["error_detail"] == "Error while trying to process SUBMIT User Action"
+
     async def test_unauthed_patch_filing(self, app_fixture: FastAPI):
         client = TestClient(app_fixture)
 

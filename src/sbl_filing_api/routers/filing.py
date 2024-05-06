@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from concurrent.futures import ProcessPoolExecutor
 from fastapi import Depends, Request, UploadFile, BackgroundTasks, status
@@ -30,6 +31,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.authentication import requires
 
 from sbl_filing_api.routers.dependencies import verify_user_lei_relation
+
+logger = logging.getLogger(__name__)
 
 
 async def set_db(request: Request, session: Annotated[AsyncSession, Depends(get_session)]):
@@ -152,6 +155,7 @@ async def upload_file(
             name="Filing Not Found",
             detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to submit file.",
         )
+    submission = None
     try:
         submitter = await repo.add_user_action(
             request.state.db_session,
@@ -186,6 +190,20 @@ async def upload_file(
         return submission
 
     except Exception as e:
+        if submission:
+            try:
+                submission.state = SubmissionState.UPLOAD_FAILED
+                submission = await repo.update_submission(request.state.db_session, submission)
+            except Exception as ex:
+                logger.error(
+                    (
+                        f"Error updating submission {submission.id} to {SubmissionState.UPLOAD_FAILED} state during error handling,"
+                        f" the submission may be stuck in the {SubmissionState.SUBMISSION_STARTED} or {SubmissionState.SUBMISSION_UPLOADED} state."
+                    ),
+                    ex,
+                    exc_info=True,
+                    stack_info=True,
+                )
         raise RegTechHttpException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             name="Submission Unprocessable",
