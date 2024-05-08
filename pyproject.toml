@@ -9,7 +9,7 @@ packages = [{ include = "sbl_filing_api", from = "src" }]
 [tool.poetry.dependencies]
 python = ">=3.12,<4"
 fastapi = "^0.109.1"
-uvicorn = "^0.24.0.post1"
+uvicorn = "^0.29.0"
 python-keycloak = "^3.7.0"
 sqlalchemy = "^2.0.23"
 psycopg2-binary = "^2.9.9"
