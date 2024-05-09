@@ -174,7 +174,9 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/123456790/filings/2024/submissions/latest")
         assert res.status_code == 403
 
-    async def test_get_latest_submission(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+    async def test_get_latest_submission(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_mock: Mock, authed_user_mock: Mock
+    ):
         user_action_submit = UserActionDAO(
             id=2,
             user_id="123456-7890-ABCDEF-GHIJ",
@@ -183,6 +185,7 @@ class TestFilingApi:
             action_type=UserActionType.SUBMIT,
             timestamp=datetime.datetime.now(),
         )
+
         mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_latest_submission")
         mock.return_value = SubmissionDAO(
             filing=1,
@@ -207,6 +210,12 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest")
         mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024")
         assert res.status_code == 204
+
+        # verify Filing Not Found RegTechHttpException returned when filing does not exist
+        get_filing_mock.return_value = None
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest")
+        assert res.status_code == 404
 
     def test_unauthed_get_submission_by_id(self, mocker: MockerFixture, app_fixture: FastAPI):
         client = TestClient(app_fixture)
@@ -956,7 +965,9 @@ class TestFilingApi:
             == "There is no Filing for LEI 1234567890ABCDEFGH00 in period 2024, unable to sign a non-existent Filing."
         )
 
-    async def test_get_latest_sub_report(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+    async def test_get_latest_sub_report(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_mock: Mock, authed_user_mock: Mock
+    ):
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_latest_submission")
         sub_mock.return_value = SubmissionDAO(
             id=1,
@@ -993,6 +1004,12 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest/report")
         sub_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024")
         assert res.status_code == 204
+
+        # verify Filing Not Found RegTechHttpException returned when filing does not exist
+        get_filing_mock.return_value = None
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest/report")
+        assert res.status_code == 404
 
     async def test_get_sub_report(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
