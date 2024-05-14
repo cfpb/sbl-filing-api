@@ -179,17 +179,17 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "boto3"
-version = "1.34.101"
+version = "1.34.104"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.34.101-py3-none-any.whl", hash = "sha256:79b93f3370ea96ce838042bc2eac0c996aee204b01e7e6452eb77abcbe697d6a"},
-    {file = "boto3-1.34.101.tar.gz", hash = "sha256:1d854b5880e185db546b4c759fcb664bf3326275064d2b44229cc217e8be9d7e"},
+    {file = "boto3-1.34.104-py3-none-any.whl", hash = "sha256:bec91a3bca63320e5f68a25b5eaa7bab65e35bb9253a544875c2e03679f1d5fb"},
+    {file = "boto3-1.34.104.tar.gz", hash = "sha256:5b37c8f4ea6f408147994a6e230c49ca755da57f5964ccea8b8fd4ff5f11759e"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.101,<1.35.0"
+botocore = ">=1.34.104,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -198,13 +198,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.101"
+version = "1.34.104"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.101-py3-none-any.whl", hash = "sha256:f145e8b4b8fc9968f5eb695bdc2fcc8e675df7fbc3c56102dc1f5471be6baf35"},
-    {file = "botocore-1.34.101.tar.gz", hash = "sha256:01f3802d25558dd7945d83884bf6885e2f84e1ff27f90b5f09614966fe18c18f"},
+    {file = "botocore-1.34.104-py3-none-any.whl", hash = "sha256:b68ed482e9b4c313129c9948af5a91d0e84840558e6d232a1a27ab0b9733e5b9"},
+    {file = "botocore-1.34.104.tar.gz", hash = "sha256:fe36dd3cea4160fbbe27dc1cf89cb7018234350555a26933b2977947052a346a"},
 ]
 
 [package.dependencies]
@@ -760,13 +760,13 @@ typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "mako"
-version = "1.3.3"
+version = "1.3.5"
 description = "A super-fast templating language that borrows the best ideas from the existing templating languages."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Mako-1.3.3-py3-none-any.whl", hash = "sha256:5324b88089a8978bf76d1629774fcc2f1c07b82acdf00f4c5dd8ceadfffc4b40"},
-    {file = "Mako-1.3.3.tar.gz", hash = "sha256:e16c01d9ab9c11f7290eef1cfefc093fb5a45ee4a3da09e2fec2e4d1bae54e73"},
+    {file = "Mako-1.3.5-py3-none-any.whl", hash = "sha256:260f1dbc3a519453a9c856dedfe4beb4e50bd5a26d96386cb6c80856556bb91a"},
+    {file = "Mako-1.3.5.tar.gz", hash = "sha256:48dbc20568c1d276a2698b36d968fa76161bf127194907ea6fc594fa81f943bc"},
 ]
 
 [package.dependencies]
@@ -993,13 +993,13 @@ xml = ["lxml (>=4.9.2)"]
 
 [[package]]
 name = "pandera"
-version = "0.19.2"
+version = "0.19.3"
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pandera-0.19.2-py3-none-any.whl", hash = "sha256:ceaef4ff85341ba7ed387546d0b7cb0669dd61cfe345ed2a15d237ba75e5179c"},
-    {file = "pandera-0.19.2.tar.gz", hash = "sha256:bb4b533e7cace01045808a60deea154848385324c81e689ea203b82c2c72d9e6"},
+    {file = "pandera-0.19.3-py3-none-any.whl", hash = "sha256:4ff2f0446f4b8dd7c2fa2aac547044911f4957d137456bfe2b281ccd02cc5ff5"},
+    {file = "pandera-0.19.3.tar.gz", hash = "sha256:1bf9dc8a30525cb5bc77edb7d6a044cc59d59c3ef405517825cf6b04c6160c07"},
 ]
 
 [package.dependencies]
@@ -1458,13 +1458,13 @@ pycryptodome = ["pyasn1", "pycryptodome (>=3.3.1,<4.0.0)"]
 
 [[package]]
 name = "python-keycloak"
-version = "3.12.0"
+version = "4.0.0"
 description = "python-keycloak is a Python package providing access to the Keycloak API."
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "python_keycloak-3.12.0-py3-none-any.whl", hash = "sha256:e8073515e6b47500cf0bda0d7eb8dd0cd2e83fa537196aed7c359dec15a2ee81"},
-    {file = "python_keycloak-3.12.0.tar.gz", hash = "sha256:21dec81992db192a462a6f12b792fd1c84d18d9bf5e91dea033a46e6f51b6694"},
+    {file = "python_keycloak-4.0.0-py3-none-any.whl", hash = "sha256:5ab0a0dab88508ad4bcfae656e045c6068b2f47ea98d9e44ce6ee19f075d36e9"},
+    {file = "python_keycloak-4.0.0.tar.gz", hash = "sha256:b089a3f3abc7d4f27b67f84628fe930c19ebf1cdc42e75ba3bdf0da738048bef"},
 ]
 
 [package.dependencies]
@@ -1472,9 +1472,6 @@ deprecation = ">=2.1.0"
 jwcrypto = ">=1.5.4,<2.0.0"
 requests = ">=2.20.0"
 requests-toolbelt = ">=0.6.0"
-
-[package.extras]
-docs = ["Sphinx (>=6.1.0,<7.0.0)", "alabaster (>=0.7.12,<0.8.0)", "commonmark (>=0.9.1,<0.10.0)", "m2r2 (>=0.3.2,<0.4.0)", "mock (>=4.0.3,<5.0.0)", "readthedocs-sphinx-ext (>=2.1.9,<3.0.0)", "recommonmark (>=0.7.1,<0.8.0)", "sphinx-autoapi (>=3.0.0,<4.0.0)", "sphinx-rtd-theme (>=1.0.0,<2.0.0)"]
 
 [[package]]
 name = "python-multipart"
@@ -1574,14 +1571,14 @@ develop = false
 fastapi = "^0.109.1"
 pydantic-settings = "^2.1.0"
 python-jose = "^3.3.0"
-python-keycloak = "^3.7.0"
+python-keycloak = "^4.0.0"
 requests = "^2.31.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/cfpb/regtech-api-commons.git"
 reference = "HEAD"
-resolved_reference = "63d9fa5e3e23a31e08fd95759818f5a286b64fb9"
+resolved_reference = "cf098d0fe88bcc6ed963fbaf12e0b01dfe71b8e9"
 
 [[package]]
 name = "regtech-data-validator"
