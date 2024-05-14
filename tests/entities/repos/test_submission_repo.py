@@ -30,7 +30,7 @@ class TestSubmissionRepo:
     async def setup(
         self, transaction_session: AsyncSession, mocker: MockerFixture, session_generator: async_scoped_session
     ):
-        mocker.patch.object(repo, "SessionLocal", return_value=session_generator)
+        mocker.patch.object(repo, "SessionLocal", return_value=session_generator())
 
         user_action1 = UserActionDAO(
             id=1,
@@ -415,6 +415,12 @@ class TestSubmissionRepo:
         assert res.submitter.user_name == user_action_submit.user_name
         assert res.submitter.user_email == user_action_submit.user_email
         assert res.submitter.action_type == UserActionType.SUBMIT
+
+    async def test_error_out_submission(self, transaction_session: AsyncSession):
+        await repo.error_out_submission(4)
+        expired_sub = await repo.get_submission(transaction_session, 4)
+        assert expired_sub.id == 4
+        assert expired_sub.state == SubmissionState.VALIDATION_ERROR
 
     async def test_update_submission(self, session_generator: async_scoped_session):
         user_action_submit = UserActionDAO(
