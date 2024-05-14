@@ -20,7 +20,7 @@ python-multipart = "^0.0.7"
 boto3 = "^1.33.12"
 alembic = "^1.12.0"
 async-lru = "^2.0.4"
-httpx = "^0.26.0"
+httpx = "^0.27.0"
 ujson = "^5.10.0"
 
 [tool.poetry.group.dev.dependencies]
