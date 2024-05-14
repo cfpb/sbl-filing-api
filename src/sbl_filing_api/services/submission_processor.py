@@ -1,4 +1,4 @@
-import json
+import ujson
 from typing import Generator
 import pandas as pd
 import importlib.metadata as imeta
@@ -114,7 +114,7 @@ async def validate_and_update_submission(
 
 
 def build_validation_results(result):
-    val_json = json.loads(df_to_json(result[1]))
+    val_json = ujson.loads(df_to_json(result[1]))
 
     if result[2] == ValidationPhase.SYNTACTICAL.value:
         val_res = {"syntax_errors": {"count": len(val_json), "details": val_json}}

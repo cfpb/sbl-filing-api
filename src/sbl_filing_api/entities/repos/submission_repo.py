@@ -110,6 +110,13 @@ async def expire_submission(submission_id: int):
         await upsert_helper(session, submission, SubmissionDAO)
 
 
+async def error_out_submission(submission_id: int):
+    async with SessionLocal() as session:
+        submission = await get_submission(session, submission_id)
+        submission.state = SubmissionState.VALIDATION_ERROR
+        await upsert_helper(session, submission, SubmissionDAO)
+
+
 async def upsert_filing_period(session: AsyncSession, filing_period: FilingPeriodDTO) -> FilingPeriodDAO:
     return await upsert_helper(session, filing_period, FilingPeriodDAO)
 

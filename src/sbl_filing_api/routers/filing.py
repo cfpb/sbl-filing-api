@@ -220,6 +220,13 @@ async def get_submissions(request: Request, lei: str, period_code: str):
 @router.get("/institutions/{lei}/filings/{period_code}/submissions/latest", response_model=SubmissionDTO)
 @requires("authenticated")
 async def get_submission_latest(request: Request, lei: str, period_code: str):
+    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+    if not filing:
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Filing Not Found",
+            detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to get latest submission for it.",
+        )
     result = await repo.get_latest_submission(request.state.db_session, lei, period_code)
     if result:
         return result
@@ -317,6 +324,13 @@ async def put_contact_info(request: Request, lei: str, period_code: str, contact
 )
 @requires("authenticated")
 async def get_latest_submission_report(request: Request, lei: str, period_code: str):
+    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+    if not filing:
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Filing Not Found",
+            detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to get latest submission for it.",
+        )
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
     if latest_sub:
         file_data = submission_processor.get_from_storage(
