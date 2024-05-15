@@ -8,8 +8,6 @@ packages = [{ include = "sbl_filing_api", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4"
-fastapi = "^0.109.1"
-uvicorn = "^0.24.0.post1"
 sqlalchemy = "^2.0.23"
 psycopg2-binary = "^2.9.9"
 asyncpg = "^0.29.0"
@@ -20,7 +18,6 @@ python-multipart = "^0.0.9"
 boto3 = "^1.34.105"
 alembic = "^1.12.0"
 async-lru = "^2.0.4"
-httpx = "^0.27.0"
 ujson = "^5.10.0"
 
 [tool.poetry.group.dev.dependencies]
