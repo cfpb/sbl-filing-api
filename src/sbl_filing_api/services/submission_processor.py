@@ -123,8 +123,8 @@ def build_validation_results(result):
         warnings_list = [w for w in val_json if w["validation"]["severity"] == Severity.WARNING.value]
         val_res = {
             "syntax_errors": {"count": 0, "details": []},
-            "logic_errors": {"count": len(errors_list), "details": errors_list},
-            "logic_warnings": {"count": len(warnings_list), "details": warnings_list},
+            "logic_errors": {"count": sum([len(v["records"]) for v in errors_list]), "details": errors_list},
+            "logic_warnings": {"count": sum([len(v["records"]) for v in warnings_list]), "details": warnings_list},
         }
 
     return val_res
