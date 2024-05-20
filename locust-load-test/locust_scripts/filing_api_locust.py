@@ -5,33 +5,30 @@ from locust import HttpUser, task, between
 from keycloak import KeycloakOpenID, KeycloakOpenIDConnection, KeycloakAdmin
 
 COUNT = 0
-LEIS = [
-    "123456789TESTBANK123",
-    "123456789TESTBANK456",
-    "123456789TESTBANKSUB456"
-]
+LEIS = ["123456789TESTBANK123", "123456789TESTBANK456", "123456789TESTBANKSUB456"]
+
 
 class FilingApiUser(HttpUser):
     wait_time = between(1, 5)
     token: str
     user_number: int
     user_id: str
-    
+
     @task
     def put_snapshot_id(self):
         self.client.put(
             f"/v1/filing/institutions/{self.lei}/filings/2024/institution-snapshot-id",
             headers={"Authorization": "Bearer " + self.token},
-            json={"institution_snapshot_id": "test"}
+            json={"institution_snapshot_id": "test"},
         )
-    
+
     @task
     def get_contact_info(self):
         self.client.get(
             f"/v1/filing/institutions/{self.lei}/filings/2024/contact-info",
             headers={"Authorization": "Bearer " + self.token},
         )
-    
+
     @task
     def put_contact_info(self):
         response = self.client.get(
@@ -40,7 +37,7 @@ class FilingApiUser(HttpUser):
         )
         filing = response.json()
         contact_info = {
-            "filing": filing['id'],
+            "filing": filing["id"],
             "first_name": "test_first_name_1",
             "last_name": "test_last_name_1",
             "hq_address_street_1": "address street 1",
@@ -52,8 +49,12 @@ class FilingApiUser(HttpUser):
             "email": "name_1@email.test",
         }
         if "contact_info" in filing:
-            contact_info["id"] = filing['contact_info']['id']
-        self.client.put(f"/v1/filing/institutions/{self.lei}/filings/2024/contact-info", json=contact_info, headers={"Authorization": "Bearer " + self.token},)
+            contact_info["id"] = filing["contact_info"]["id"]
+        self.client.put(
+            f"/v1/filing/institutions/{self.lei}/filings/2024/contact-info",
+            json=contact_info,
+            headers={"Authorization": "Bearer " + self.token},
+        )
 
     @task
     def submit_sblar(self):
@@ -104,7 +105,7 @@ class FilingApiUser(HttpUser):
         global COUNT, LEIS
         COUNT += 1
         self.user_number = COUNT
-        self.lei = LEIS[random.randint(0,2)]
+        self.lei = LEIS[random.randint(0, 2)]
         keycloak_connection = KeycloakOpenIDConnection(
             server_url=os.getenv("KC_URL"),
             client_id=os.getenv("KC_ADMIN_CLIENT_ID"),
