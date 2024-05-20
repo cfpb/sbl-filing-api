@@ -58,11 +58,12 @@ class FilingApiUser(HttpUser):
 
     @task
     def submit_sblar(self):
-        sblar = random.choice(os.listdir("./sblars"))
+        sblar_dir = os.getenv("SBLAR_LOCATION", "./locust-load-test/sblars")
+        sblar = random.choice(os.listdir(sblar_dir))
         self.client.post(
             f"/v1/filing/institutions/{self.lei}/filings/2024/submissions",
             headers={"Authorization": "Bearer " + self.token},
-            files=[("file", (sblar, open(os.path.join("./sblars", sblar), "rb"), "text/csv"))],
+            files=[("file", (sblar, open(os.path.join(sblar_dir, sblar), "rb"), "text/csv"))],
         )
 
     @task
@@ -107,10 +108,10 @@ class FilingApiUser(HttpUser):
         self.user_number = COUNT
         self.lei = LEIS[random.randint(0, 2)]
         keycloak_connection = KeycloakOpenIDConnection(
-            server_url=os.getenv("KC_URL"),
-            client_id=os.getenv("KC_ADMIN_CLIENT_ID"),
-            client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET"),
-            realm_name=os.getenv("KC_REALM"),
+            server_url=os.getenv("KC_URL", "http://localhost:8880"),
+            client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
+            client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET", "local_test_only"),
+            realm_name=os.getenv("KC_REALM", "regtech"),
         )
         keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
         self.user_id = keycloak_admin.create_user(
@@ -131,9 +132,9 @@ class FilingApiUser(HttpUser):
         )
 
         keycloak_openid = KeycloakOpenID(
-            server_url=os.getenv("KC_URL") + "/auth",
-            client_id=os.getenv("AUTH_CLIENT"),
-            realm_name=os.getenv("KC_REALM"),
+            server_url=os.getenv("KC_URL", "http://localhost:8880") + "/auth",
+            client_id=os.getenv("AUTH_CLIENT", "regtech-client"),
+            realm_name=os.getenv("KC_REALM", "regtech"),
         )
 
         self.token = keycloak_openid.token(f"locust_test{self.user_number}", f"locust_test{self.user_number}")[

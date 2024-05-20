@@ -19,6 +19,7 @@ boto3 = "^1.34.108"
 alembic = "^1.12.0"
 async-lru = "^2.0.4"
 ujson = "^5.10.0"
+locust = "^2.27.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.0"
@@ -85,3 +86,12 @@ source = ["src"]
 
 [tool.coverage.report]
 skip_empty = true
+
+[tool.locust]
+locustfile = "locust-load-test/locust_scripts/filing_api_locust.py"
+headless = true
+users = 5
+host = "http://localhost:8888"
+spawn-rate = 10
+run-time = "30s"
+html = "locust-load-test/reports/report.html"
