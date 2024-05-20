@@ -32,7 +32,12 @@ class TestMultithreader:
         assert not exec_check["continue"]
         cancel_mock.assert_called_once()
         error_mock.assert_called_with(1)
-        log_mock.error.assert_called_with("Validation for submission 1 did not complete due to an unexpected error.", future.exception(), exc_info=True, stack_info=True)
+        log_mock.error.assert_called_with(
+            "Validation for submission 1 did not complete due to an unexpected error.",
+            future.exception(),
+            exc_info=True,
+            stack_info=True,
+        )
 
         log_mock.reset_mock()
 
