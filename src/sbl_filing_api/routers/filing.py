@@ -30,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from starlette.authentication import requires
 
-from sbl_filing_api.routers.dependencies import verify_user_lei_relation
+from regtech_api_commons.api.dependencies import verify_user_lei_relation
 
 logger = logging.getLogger(__name__)
 
