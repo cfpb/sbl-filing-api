@@ -68,6 +68,9 @@ htmlcov/
 nosetests.xml
 coverage.xml
 
+# Load reports
+locust-load-test/reports/
+
 # Front-End #
 #############
 node_modules/
