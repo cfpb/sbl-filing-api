@@ -25,7 +25,12 @@ async def check_future(future, submission_id, exec_check):
         future.cancel()
         exec_check["continue"] = False
         await repo.error_out_submission(submission_id)
-        logger.error(f"Validation for submission {submission_id} did not complete due to an unexpected error.")
+        logger.error(
+            f"Validation for submission {submission_id} did not complete due to an unexpected error.",
+            future.exception(),
+            exc_info=True,
+            stack_info=True,
+        )
     elif not future.done():
         future.cancel()
         exec_check["continue"] = False
