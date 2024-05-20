@@ -93,10 +93,10 @@ class FilingApiUser(HttpUser):
 
     def on_stop(self):
         keycloak_connection = KeycloakOpenIDConnection(
-            server_url=os.getenv("KC_URL"),
-            client_id=os.getenv("KC_ADMIN_CLIENT_ID"),
-            client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET"),
-            realm_name=os.getenv("KC_REALM"),
+            server_url=os.getenv("KC_URL", "http://localhost:8880"),
+            client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
+            client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET", "local_test_only"),
+            realm_name=os.getenv("KC_REALM", "regtech"),
         )
         keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
         keycloak_admin.delete_user(self.user_id)
