@@ -9,6 +9,7 @@ Create Date: 2024-05-07 11:04:38.575959
 from typing import Sequence, Union
 
 from alembic import op, context
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -17,15 +18,30 @@ down_revision: Union[str, None] = "5492f53d1fa5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-old_options = ("SUBMIT", "ACCEPT", "SIGNED", "CREATE")
 
-new_options = ("SUBMIT", "ACCEPT", "SIGN", "CREATE")
+old_user_action = postgresql.ENUM(
+    "SUBMIT",
+    "ACCEPT",
+    "SIGNED",
+    "CREATE",
+    name="useractiontype",
+    create_type=False,
+)
+
+new_user_action = postgresql.ENUM(
+    "SUBMIT",
+    "ACCEPT",
+    "SIGN",
+    "CREATE",
+    name="useractiontype",
+    create_type=False,
+)
 
 
 def upgrade() -> None:
     if "sqlite" not in context.get_context().dialect.name:
         op.execute("ALTER TYPE useractiontype RENAME TO useractiontype_old")
-        op.execute(f"CREATE TYPE useractiontype AS ENUM{new_options}")
+        new_user_action.create(op.get_bind(), checkfirst=True)
         op.execute(
             "ALTER TABLE user_action ALTER COLUMN action_type TYPE useractiontype USING action_type::text::useractiontype"
         )
@@ -35,7 +51,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     if "sqlite" not in context.get_context().dialect.name:
         op.execute("ALTER TYPE useractiontype RENAME TO useractiontype_old")
-        op.execute(f"CREATE TYPE useractiontype AS ENUM{old_options}")
+        old_user_action.create(op.get_bind(), checkfirst=True)
         op.execute(
             "ALTER TABLE user_action ALTER COLUMN action_type TYPE useractiontype USING action_type::text::useractiontype"
         )

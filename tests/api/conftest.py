@@ -32,7 +32,7 @@ def authed_user_mock(auth_mock: Mock) -> Mock:
         "name": "Test User",
         "preferred_username": "test_user",
         "email": "test@local.host",
-        "institutions": ["1234567890ABCDEFGH00", "1234567890ABCDEFGH01"],
+        "institutions": ["1234567890ABCDEFGH00", "1234567890ABCDEFGH01", "1234567890ZXWVUTSR00"],
         "sub": "123456-7890-ABCDEF-GHIJ",
     }
     auth_mock.return_value = (
