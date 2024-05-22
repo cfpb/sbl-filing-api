@@ -1,6 +1,6 @@
 FROM locustio/locust
 
-COPY ./locust_scripts/filing_api_locust.py ./locust_scripts/filing_api_locust.py
+COPY ./locust_scripts ./locust_scripts
 COPY ./configs/filing-api.conf ./filing-api.conf
 COPY ./sblars ./sblars
 COPY ./run_locust.sh /usr/local/bin/
