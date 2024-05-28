@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     db_pwd: str
     db_host: str
     db_scheme: str = "postgresql+asyncpg"
+    db_logging: bool = False
     conn: PostgresDsn | None = None
 
     fs_upload_config: FsUploadConfig

@@ -97,18 +97,13 @@ async def validate_and_update_submission(
 
             await update_submission(session, submission)
 
-        except RuntimeError as re:
-            log.error("The file is malformed", re, exc_info=True, stack_info=True)
+        except RuntimeError:
+            log.exception("The file is malformed.")
             submission.state = SubmissionState.SUBMISSION_UPLOAD_MALFORMED
             await update_submission(session, submission)
 
-        except Exception as e:
-            log.error(
-                f"Validation for submission {submission.id} did not complete due to an unexpected error.",
-                e,
-                exc_info=True,
-                stack_info=True,
-            )
+        except Exception:
+            log.exception("Validation for submission %d did not complete due to an unexpected error.", submission.id)
             submission.state = SubmissionState.VALIDATION_ERROR
             await update_submission(session, submission)
 

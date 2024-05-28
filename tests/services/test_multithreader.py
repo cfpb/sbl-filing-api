@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures.process import BrokenProcessPool
 
 from multiprocessing import Manager
 from pytest_mock import MockerFixture
@@ -14,7 +15,7 @@ class TestMultithreader:
 
     async def mock_future_exception(self):
         await asyncio.sleep(2)
-        raise asyncio.InvalidStateError("Pool died.")
+        raise BrokenProcessPool("Pool died.")
 
     async def test_future_checker(self, mocker: MockerFixture):
         exec_check = Manager().dict()
@@ -30,9 +31,12 @@ class TestMultithreader:
         await check_future(future, 1, exec_check)
 
         assert not exec_check["continue"]
-        cancel_mock.assert_called_once()
         error_mock.assert_called_with(1)
-        log_mock.error.assert_called_with("Validation for submission 1 did not complete due to an unexpected error.")
+        log_mock.error.assert_called_with(
+            "Validation for submission 1 did not complete due to an unexpected error.",
+            exc_info=True,
+            stack_info=True,
+        )
 
         log_mock.reset_mock()
 

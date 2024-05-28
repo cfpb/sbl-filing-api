@@ -7,9 +7,9 @@ from sqlalchemy.pool import NullPool
 from asyncio import current_task
 from sbl_filing_api.config import settings
 
-engine = create_async_engine(settings.conn.unicode_string(), echo=True, poolclass=NullPool).execution_options(
-    schema_translate_map={None: settings.db_schema}
-)
+engine = create_async_engine(
+    settings.conn.unicode_string(), echo=settings.db_logging, poolclass=NullPool
+).execution_options(schema_translate_map={None: settings.db_schema})
 SessionLocal = async_scoped_session(async_sessionmaker(engine, expire_on_commit=False), current_task)
 
 
