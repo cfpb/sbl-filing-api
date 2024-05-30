@@ -68,8 +68,9 @@ htmlcov/
 nosetests.xml
 coverage.xml
 
-# Load reports
+# Load testing files and reports
 locust-load-test/reports/
+locust-load-test/sblars/
 
 # Front-End #
 #############

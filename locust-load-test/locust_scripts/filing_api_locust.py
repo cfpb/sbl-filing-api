@@ -3,6 +3,7 @@ import random
 
 from locust import HttpUser, task, between
 from keycloak import KeycloakOpenID, KeycloakOpenIDConnection, KeycloakAdmin
+from pull_sblars import download_files, delete_files
 
 COUNT = 0
 LEIS = ["123456789TESTBANK123", "123456789TESTBANK456", "123456789TESTBANKSUB456"]
@@ -100,6 +101,7 @@ class FilingApiUser(HttpUser):
         )
         keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
         keycloak_admin.delete_user(self.user_id)
+        delete_files()
 
     def on_start(self):
         # Used to generate different users in keycloak based on the number of Users started
@@ -140,3 +142,5 @@ class FilingApiUser(HttpUser):
         self.token = keycloak_openid.token(f"locust_test{self.user_number}", f"locust_test{self.user_number}")[
             "access_token"
         ]
+
+        download_files()
