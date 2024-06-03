@@ -8,8 +8,7 @@ from unittest.mock import Mock
 from pytest_mock import MockerFixture
 from sbl_filing_api.config import settings
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
-from regtech_data_validator.create_schemas import ValidationPhase
-from regtech_data_validator.checks import Severity
+from regtech_data_validator.validation_results import ValidationResults, ValidationPhase
 from regtech_api_commons.api.exceptions import RegTechHttpException
 
 
@@ -110,7 +109,6 @@ class TestSubmissionProcessor:
         self,
         mocker: MockerFixture,
         warning_submission_mock: Mock,
-        build_validation_results_mock: Mock,
         df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
@@ -120,6 +118,9 @@ class TestSubmissionProcessor:
             filename="submission.csv",
         )
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+
+        mock_build_json = mocker.patch("sbl_filing_api.services.submission_processor.build_validation_results")
+        mock_build_json.return_value = {"logic_errors": {"count": 0}, "logic_warnings": {"count": 1}}
 
         await submission_processor.validate_and_update_submission(
             "2024", "123456790", mock_sub, None, {"continue": True}
@@ -133,14 +134,13 @@ class TestSubmissionProcessor:
         )
         assert warning_submission_mock.mock_calls[0].args[1].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert warning_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
-        assert warning_submission_mock.mock_calls[1].args[1].state == "VALIDATION_WITH_WARNINGS"
+        assert warning_submission_mock.mock_calls[1].args[1].state == SubmissionState.VALIDATION_WITH_WARNINGS
         assert warning_submission_mock.mock_calls[1].args[1].total_records == 1
 
     async def test_validate_and_update_errors(
         self,
         mocker: MockerFixture,
         error_submission_mock: Mock,
-        build_validation_results_mock: Mock,
         df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
@@ -151,6 +151,8 @@ class TestSubmissionProcessor:
         )
 
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+
+        mocker.patch("sbl_filing_api.services.submission_processor.build_validation_results")
 
         await submission_processor.validate_and_update_submission(
             "2024", "123456790", mock_sub, None, {"continue": True}
@@ -164,7 +166,7 @@ class TestSubmissionProcessor:
         )
         assert error_submission_mock.mock_calls[0].args[1].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert error_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
-        assert error_submission_mock.mock_calls[1].args[1].state == "VALIDATION_WITH_ERRORS"
+        assert error_submission_mock.mock_calls[1].args[1].state == SubmissionState.VALIDATION_WITH_ERRORS
         assert error_submission_mock.mock_calls[1].args[1].total_records == 1
 
     async def test_validate_and_update_submission_malformed(
@@ -254,180 +256,206 @@ class TestSubmissionProcessor:
         assert len(mock_update_submission.mock_calls) == 1
         log_mock.warning.assert_called_with("Submission 1 is expired, will not be updating final state with results.")
 
-    async def test_build_validation_results_success(self):
-        result = (True, pd.DataFrame, ValidationPhase.LOGICAL.value)
+    async def test_build_validation_results_success(self, mocker: MockerFixture):
+        result = ValidationResults(
+            phase=ValidationPhase.LOGICAL,
+            is_valid=False,
+            single_field_count=0,
+            multi_field_count=0,
+            register_count=0,
+            findings=pd.DataFrame(),
+        )
+
+        df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
+        df_to_dicts_mock.return_value = []
+
         validation_results = submission_processor.build_validation_results(result)
         assert validation_results["syntax_errors"]["count"] == 0
         assert validation_results["logic_errors"]["count"] == 0
         assert validation_results["logic_warnings"]["count"] == 0
 
-    async def test_build_validation_results_syntax_errors(self):
-        result = (
-            False,
-            pd.DataFrame(
-                [
-                    [
-                        1,
-                        ValidationPhase.SYNTACTICAL.value,
-                        "TESTLEI1234567890123",
-                        "field_in_error",
-                        1,
-                        Severity.ERROR.value,
-                        "test_link",
-                        "VALID123",
-                        "validation_name_goes_here",
-                        "this is a val desc",
-                        "multi-field",
-                    ],
-                ],
-                columns=[
-                    "record_no",
-                    "validation_phase",
-                    "uid",
-                    "field_name",
-                    "field_value",
-                    "validation_severity",
-                    "fig_link",
-                    "validation_id",
-                    "validation_name",
-                    "validation_desc",
-                    "scope",
-                ],
-            ),
-            ValidationPhase.SYNTACTICAL.value,
+    async def test_build_validation_results_syntax_errors(self, mocker: MockerFixture):
+        result = ValidationResults(
+            phase=ValidationPhase.SYNTACTICAL,
+            is_valid=False,
+            single_field_count=2,
+            multi_field_count=0,
+            register_count=0,
+            findings=pd.DataFrame(),
         )
-        validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] > 0
 
-    async def test_build_validation_results_logic_warnings(self):
-        result = (
-            False,
-            pd.DataFrame(
-                [
-                    [
-                        1,
-                        ValidationPhase.LOGICAL.value,
-                        "TESTLEI1234567890123",
-                        "field_in_error",
-                        1,
-                        Severity.WARNING.value,
-                        "test_link",
-                        "VALID123",
-                        "validation_name_goes_here",
-                        "this is a val desc",
-                        "multi-field",
-                    ],
+        df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
+        df_to_dicts_mock.return_value = [
+            {
+                "validation": {
+                    "id": "E0001",
+                    "name": "uid.invalid_text_length",
+                    "description": "* 'Unique identifier' must be at least 21 characters in\nlength and at most 45 characters in length.",
+                    "severity": "Error",
+                    "scope": "single-field",
+                    "fig_link": "https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.1.1",
+                },
+                "records": [
+                    {
+                        "record_no": 1,
+                        "uid": "12345",
+                        "fields": [{"name": "uid", "value": "12345"}],
+                    }
                 ],
-                columns=[
-                    "record_no",
-                    "validation_phase",
-                    "uid",
-                    "field_name",
-                    "field_value",
-                    "validation_severity",
-                    "fig_link",
-                    "validation_id",
-                    "validation_name",
-                    "validation_desc",
-                    "scope",
+            },
+            {
+                "validation": {
+                    "id": "E0002",
+                    "name": "uid.invalid_text_pattern",
+                    "description": "* 'Unique identifier' may contain any combination of numbers and/or uppercase letters (i.e., 0-9 and A-Z), and must **not** contain any other characters.",
+                    "severity": "Error",
+                    "scope": "single-field",
+                    "fig_link": "https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.1.2",
+                },
+                "records": [
+                    {
+                        "record_no": 1,
+                        "uid": "123-45",
+                        "fields": [{"name": "uid", "value": "123-45"}],
+                    }
                 ],
-            ),
-            ValidationPhase.LOGICAL.value,
+            },
+        ]
+
+        validation_results = submission_processor.build_validation_results(result)
+        assert validation_results["syntax_errors"]["count"] == 2
+
+    def test_build_validation_results_logic_errors(self, mocker: MockerFixture):
+        result = ValidationResults(
+            phase=ValidationPhase.LOGICAL,
+            is_valid=False,
+            single_field_count=0,
+            multi_field_count=0,
+            register_count=0,
+            findings=pd.DataFrame(),
         )
+
+        df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
+        df_to_dicts_mock.return_value = [
+            {
+                "validation": {
+                    "id": "E3000",
+                    "name": "uid.duplicates_in_dataset",
+                    "description": "* Any 'unique identifier' may **not** be used in more than one \nrecord within a small business lending application register.\n",
+                    "severity": "Error",
+                    "scope": "register",
+                    "fig_link": "https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.3.1",
+                },
+                "records": [
+                    {
+                        "record_no": 1,
+                        "uid": "12345678901234567890",
+                        "fields": [{"name": "uid", "value": "12345678901234567890"}],
+                    },
+                    {
+                        "record_no": 2,
+                        "uid": "12345678901234567890",
+                        "fields": [{"name": "uid", "value": "12345678901234567890"}],
+                    },
+                ],
+            },
+        ]
+
+        validation_results = submission_processor.build_validation_results(result)
+        assert validation_results["syntax_errors"]["count"] == 0
+        assert validation_results["logic_errors"]["count"] == 2
+        assert validation_results["logic_warnings"]["count"] == 0
+
+    def test_build_validation_results_logic_warnings(self, mocker: MockerFixture):
+        result = ValidationResults(
+            phase=ValidationPhase.LOGICAL,
+            is_valid=False,
+            single_field_count=0,
+            multi_field_count=0,
+            register_count=0,
+            findings=pd.DataFrame(),
+        )
+
+        df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
+        df_to_dicts_mock.return_value = [
+            {
+                "validation": {
+                    "id": "W0003",
+                    "name": "uid.invalid_uid_lei",
+                    "description": "* The first 20 characters of the 'unique identifier' should\nmatch the Legal Entity Identifier (LEI) for the financial institution.",
+                    "severity": "Warning",
+                    "scope": "single-field",
+                    "fig_link": "https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1",
+                },
+                "records": [
+                    {
+                        "record_no": 3,
+                        "uid": "12345678901234567891",
+                        "fields": [{"name": "uid", "value": "12345678901234567891"}],
+                    }
+                ],
+            },
+        ]
+
         validation_results = submission_processor.build_validation_results(result)
         assert validation_results["syntax_errors"]["count"] == 0
         assert validation_results["logic_errors"]["count"] == 0
-        assert validation_results["logic_warnings"]["count"] > 0
+        assert validation_results["logic_warnings"]["count"] == 1
 
-    async def test_build_validation_results_logic_errors(self):
-        result = (
-            False,
-            pd.DataFrame(
-                [
-                    [
-                        1,
-                        ValidationPhase.LOGICAL.value,
-                        "TESTLEI1234567890123",
-                        "field_in_error",
-                        1,
-                        Severity.ERROR.value,
-                        "test_link",
-                        "VALID123",
-                        "validation_name_goes_here",
-                        "this is a val desc",
-                        "multi-field",
-                    ],
-                ],
-                columns=[
-                    "record_no",
-                    "validation_phase",
-                    "uid",
-                    "field_name",
-                    "field_value",
-                    "validation_severity",
-                    "fig_link",
-                    "validation_id",
-                    "validation_name",
-                    "validation_desc",
-                    "scope",
-                ],
-            ),
-            ValidationPhase.LOGICAL.value,
+    def test_build_validation_results_logic_warnings_and_errors(self, mocker: MockerFixture):
+        result = ValidationResults(
+            phase=ValidationPhase.LOGICAL,
+            is_valid=False,
+            single_field_count=0,
+            multi_field_count=0,
+            register_count=0,
+            findings=pd.DataFrame(),
         )
+
+        df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
+        df_to_dicts_mock.return_value = [
+            {
+                "validation": {
+                    "id": "W0003",
+                    "name": "uid.invalid_uid_lei",
+                    "description": "* The first 20 characters of the 'unique identifier' should\nmatch the Legal Entity Identifier (LEI) for the financial institution.",
+                    "severity": "Warning",
+                    "scope": "single-field",
+                    "fig_link": "https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.4.1",
+                },
+                "records": [
+                    {
+                        "record_no": 3,
+                        "uid": "12345678901234567891",
+                        "fields": [{"name": "uid", "value": "12345678901234567891"}],
+                    }
+                ],
+            },
+            {
+                "validation": {
+                    "id": "E3000",
+                    "name": "uid.duplicates_in_dataset",
+                    "description": "* Any 'unique identifier' may **not** be used in more than one \nrecord within a small business lending application register.\n",
+                    "severity": "Error",
+                    "scope": "register",
+                    "fig_link": "https://www.consumerfinance.gov/data-research/small-business-lending/filing-instructions-guide/2024-guide/#4.3.1",
+                },
+                "records": [
+                    {
+                        "record_no": 1,
+                        "uid": "12345678901234567890",
+                        "fields": [{"name": "uid", "value": "12345678901234567890"}],
+                    },
+                    {
+                        "record_no": 2,
+                        "uid": "12345678901234567890",
+                        "fields": [{"name": "uid", "value": "12345678901234567890"}],
+                    },
+                ],
+            },
+        ]
+
         validation_results = submission_processor.build_validation_results(result)
         assert validation_results["syntax_errors"]["count"] == 0
-        assert validation_results["logic_errors"]["count"] > 0
-        assert validation_results["logic_warnings"]["count"] == 0
-
-    async def test_build_validation_results_logic_warnings_and_errors(self):
-        result = (
-            False,
-            pd.DataFrame(
-                [
-                    [
-                        1,
-                        ValidationPhase.LOGICAL.value,
-                        "TESTLEI1234567890123",
-                        "field_in_error",
-                        1,
-                        Severity.WARNING.value,
-                        "test_link",
-                        "VALID123",
-                        "validation_name_goes_here",
-                        "this is a val desc",
-                        "multi-field",
-                    ],
-                    [
-                        2,
-                        ValidationPhase.LOGICAL.value,
-                        "TESTLEI1234567890123",
-                        "field_in_error",
-                        1,
-                        Severity.ERROR.value,
-                        "test_link",
-                        "VALID234",
-                        "validation_name_goes_here",
-                        "this is a val desc",
-                        "multi-field",
-                    ],
-                ],
-                columns=[
-                    "record_no",
-                    "validation_phase",
-                    "uid",
-                    "field_name",
-                    "field_value",
-                    "validation_severity",
-                    "fig_link",
-                    "validation_id",
-                    "validation_name",
-                    "validation_desc",
-                    "scope",
-                ],
-            ),
-            ValidationPhase.LOGICAL.value,
-        )
-        validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] == 0
-        assert validation_results["logic_errors"]["count"] > 0
-        assert validation_results["logic_warnings"]["count"] > 0
+        assert validation_results["logic_errors"]["count"] == 2
+        assert validation_results["logic_warnings"]["count"] == 1
