@@ -120,7 +120,6 @@ def build_validation_results(results: ValidationResults):
     }
 
     val_json = df_to_dicts(results.findings, **kwargs)
-    print(f"Phase: {results.phase}")
     if results.phase == ValidationPhase.SYNTACTICAL:
         val_res = {"syntax_errors": {"count": results.single_field_count, "details": val_json}}
     else:
