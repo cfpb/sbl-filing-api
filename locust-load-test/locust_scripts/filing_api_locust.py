@@ -2,7 +2,6 @@ import os
 import random
 import logging
 
-from pydantic.types import SecretStr
 from locust import HttpUser, task, between
 from keycloak import KeycloakOpenID, KeycloakOpenIDConnection, KeycloakAdmin
 from pull_sblars import download_files, delete_files
@@ -11,12 +10,13 @@ COUNT = 0
 LEIS = ["123456789TESTBANK123", "123456789TESTBANK456", "123456789TESTBANKSUB456"]
 logger = logging.getLogger(__name__)
 
+
 class FilingApiUser(HttpUser):
     wait_time = between(1, 5)
     token: str
     user_number: int
     user_id: str
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client.verify = False
@@ -26,21 +26,21 @@ class FilingApiUser(HttpUser):
         self.client.put(
             f"/v1/filing/institutions/{self.lei}/filings/2024/institution-snapshot-id",
             headers={"Authorization": "Bearer " + self.token},
-            json={"institution_snapshot_id": "test"}
+            json={"institution_snapshot_id": "test"},
         )
 
     @task
     def get_contact_info(self):
         self.client.get(
             f"/v1/filing/institutions/{self.lei}/filings/2024/contact-info",
-            headers={"Authorization": "Bearer " + self.token}
+            headers={"Authorization": "Bearer " + self.token},
         )
 
     @task
     def put_contact_info(self):
         response = self.client.get(
             f"/v1/filing/institutions/{self.lei}/filings/2024/contact-info",
-            headers={"Authorization": "Bearer " + self.token}
+            headers={"Authorization": "Bearer " + self.token},
         )
         filing = response.json()
         contact_info = {
@@ -60,7 +60,7 @@ class FilingApiUser(HttpUser):
         self.client.put(
             f"/v1/filing/institutions/{self.lei}/filings/2024/contact-info",
             json=contact_info,
-            headers={"Authorization": "Bearer " + self.token}
+            headers={"Authorization": "Bearer " + self.token},
         )
 
     @task
@@ -70,21 +70,21 @@ class FilingApiUser(HttpUser):
         self.client.post(
             f"/v1/filing/institutions/{self.lei}/filings/2024/submissions",
             headers={"Authorization": "Bearer " + self.token},
-            files=[("file", (sblar, open(os.path.join(sblar_dir, sblar), "rb"), "text/csv"))]
+            files=[("file", (sblar, open(os.path.join(sblar_dir, sblar), "rb"), "text/csv"))],
         )
 
     @task
     def get_latest_submission(self):
         self.client.get(
             f"/v1/filing/institutions/{self.lei}/filings/2024/submissions/latest",
-            headers={"Authorization": "Bearer " + self.token}
+            headers={"Authorization": "Bearer " + self.token},
         )
 
     @task
     def get_latest_submission_report(self):
         self.client.get(
             f"/v1/filing/institutions/{self.lei}/filings/2024/submissions/latest/report",
-            headers={"Authorization": "Bearer " + self.token}
+            headers={"Authorization": "Bearer " + self.token},
         )
 
     @task
@@ -94,8 +94,7 @@ class FilingApiUser(HttpUser):
     @task
     def get_filing(self):
         self.client.get(
-            f"/v1/filing/institutions/{self.lei}/filings/2024",
-            headers={"Authorization": "Bearer " + self.token}
+            f"/v1/filing/institutions/{self.lei}/filings/2024", headers={"Authorization": "Bearer " + self.token}
         )
 
     def on_stop(self):
@@ -104,7 +103,7 @@ class FilingApiUser(HttpUser):
             client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
             client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET", "local_test_only"),
             realm_name=os.getenv("KC_REALM", "regtech"),
-            verify=False
+            verify=False,
         )
         keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
         keycloak_admin.delete_user(self.user_id)
@@ -121,7 +120,7 @@ class FilingApiUser(HttpUser):
             client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
             client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET", "local_test_only"),
             realm_name=os.getenv("KC_REALM", "regtech"),
-            verify=False
+            verify=False,
         )
         keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
         try:
@@ -143,13 +142,12 @@ class FilingApiUser(HttpUser):
             )
         except Exception:
             logger.exception("Error creating user in keycloak.")
-            
 
         keycloak_openid = KeycloakOpenID(
             server_url=os.getenv("KC_URL", "http://localhost:8880") + "/auth",
             client_id=os.getenv("AUTH_CLIENT", "regtech-client"),
             realm_name=os.getenv("KC_REALM", "regtech"),
-            verify=False
+            verify=False,
         )
 
         self.token = keycloak_openid.token(f"locust_test{self.user_number}", f"locust_test{self.user_number}")[
