@@ -46,6 +46,10 @@ class Settings(BaseSettings):
 
     user_fi_api_url: str = "http://sbl-project-user_fi-1:8888/v1/institutions/"
 
+    max_validation_errors: int = 1000000
+    max_json_records: int = 10000
+    max_json_group_size: int = 0
+
     def __init__(self, **data):
         super().__init__(**data)
 

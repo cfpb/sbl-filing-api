@@ -1,4 +1,3 @@
-import ujson
 from typing import Generator
 import pandas as pd
 import importlib.metadata as imeta
@@ -6,9 +5,10 @@ import logging
 
 from io import BytesIO
 from fastapi import UploadFile
-from regtech_data_validator.create_schemas import validate_phases, ValidationPhase
-from regtech_data_validator.data_formatters import df_to_json, df_to_download
+from regtech_data_validator.create_schemas import validate_phases
+from regtech_data_validator.data_formatters import df_to_dicts, df_to_download
 from regtech_data_validator.checks import Severity
+from regtech_data_validator.validation_results import ValidationResults, ValidationPhase
 from sbl_filing_api.entities.engine.engine import SessionLocal
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
 from sbl_filing_api.entities.repos.submission_repo import update_submission
@@ -73,20 +73,25 @@ async def validate_and_update_submission(
             submission.total_records = len(df)
 
             # Validate Phases
-            result = validate_phases(df, {"lei": lei})
+            results = validate_phases(df, {"lei": lei}, max_errors=settings.max_validation_errors)
 
-            # Update tables with response
-            if not result[0]:
-                submission.state = (
-                    SubmissionState.VALIDATION_WITH_ERRORS
-                    if Severity.ERROR.value in result[1]["validation_severity"].values
-                    else SubmissionState.VALIDATION_WITH_WARNINGS
-                )
-            else:
+            submission.validation_results = build_validation_results(results)
+
+            if results.findings.empty:
                 submission.state = SubmissionState.VALIDATION_SUCCESSFUL
+            elif (
+                results.phase == ValidationPhase.SYNTACTICAL
+                or submission.validation_results["logic_errors"]["count"] > 0
+            ):
+                submission.state = SubmissionState.VALIDATION_WITH_ERRORS
+            else:
+                submission.state = SubmissionState.VALIDATION_WITH_WARNINGS
 
-            submission.validation_results = build_validation_results(result)
-            submission_report = df_to_download(result[1])
+            submission_report = df_to_download(
+                results.findings,
+                total_errors=sum([results.single_field_count, results.multi_field_count, results.register_count]),
+                max_errors=settings.max_validation_errors,
+            )
             upload_to_storage(
                 period_code, lei, str(submission.id) + REPORT_QUALIFIER, submission_report.encode("utf-8")
             )
@@ -108,14 +113,13 @@ async def validate_and_update_submission(
             await update_submission(session, submission)
 
 
-def build_validation_results(result):
-    val_json = ujson.loads(df_to_json(result[1]))
-
-    if result[2] == ValidationPhase.SYNTACTICAL.value:
-        val_res = {"syntax_errors": {"count": len(val_json), "details": val_json}}
+def build_validation_results(results: ValidationResults):
+    val_json = df_to_dicts(results.findings, settings.max_json_records, settings.max_json_group_size)
+    if results.phase == ValidationPhase.SYNTACTICAL:
+        val_res = {"syntax_errors": {"count": results.single_field_count, "details": val_json}}
     else:
-        errors_list = [e for e in val_json if e["validation"]["severity"] == Severity.ERROR.value]
-        warnings_list = [w for w in val_json if w["validation"]["severity"] == Severity.WARNING.value]
+        errors_list = [e for e in val_json if e["validation"]["severity"] == Severity.ERROR]
+        warnings_list = [w for w in val_json if w["validation"]["severity"] == Severity.WARNING]
         val_res = {
             "syntax_errors": {"count": 0, "details": []},
             "logic_errors": {"count": sum([len(v["records"]) for v in errors_list]), "details": errors_list},
