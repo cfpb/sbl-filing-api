@@ -2,14 +2,14 @@ import asyncio
 import logging
 
 from concurrent.futures import ProcessPoolExecutor
-from fastapi import Depends, Request, UploadFile, BackgroundTasks, status
+from fastapi import Depends, Request, UploadFile, status
 from fastapi.responses import Response, JSONResponse, StreamingResponse
 from multiprocessing import Manager
 from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
-from sbl_filing_api.services.multithread_handler import handle_submission, check_future
+from sbl_filing_api.services.multithread_handler import handle_submission
 from typing import Annotated, List
 
 from sbl_filing_api.entities.engine.engine import get_session
@@ -142,9 +142,7 @@ async def sign_filing(request: Request, lei: str, period_code: str):
 
 @router.post("/institutions/{lei}/filings/{period_code}/submissions", response_model=SubmissionDTO)
 @requires("authenticated")
-async def upload_file(
-    request: Request, lei: str, period_code: str, file: UploadFile, background_tasks: BackgroundTasks
-):
+async def upload_file(request: Request, lei: str, period_code: str, file: UploadFile):
     submission_processor.validate_file_processable(file)
     content = await file.read()
 
@@ -184,8 +182,7 @@ async def upload_file(
         exec_check = Manager().dict()
         exec_check["continue"] = True
         loop = asyncio.get_event_loop()
-        future = loop.run_in_executor(executor, handle_submission, period_code, lei, submission, content, exec_check)
-        background_tasks.add_task(check_future, future, submission.id, exec_check)
+        loop.run_in_executor(executor, handle_submission, period_code, lei, submission, content, exec_check)
 
         return submission
 
@@ -339,7 +336,10 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
         return StreamingResponse(
             content=file_data,
             media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="{latest_sub.id}_validation_report.csv"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{latest_sub.id}_validation_report.csv"',
+                "Cache-Control": "no-store",
+            },
         )
     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
@@ -358,6 +358,9 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
         return StreamingResponse(
             content=file_data,
             media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="{sub.id}_validation_report.csv"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{sub.id}_validation_report.csv"',
+                "Cache-Control": "no-store",
+            },
         )
     response.status_code = status.HTTP_404_NOT_FOUND

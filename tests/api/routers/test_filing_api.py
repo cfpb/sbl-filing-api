@@ -23,7 +23,7 @@ from sbl_filing_api.entities.models.dao import (
 from sbl_filing_api.entities.models.dto import ContactInfoDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
-from sbl_filing_api.services.multithread_handler import handle_submission, check_future
+from sbl_filing_api.services.multithread_handler import handle_submission
 
 from sqlalchemy.exc import IntegrityError
 from sbl_filing_api.config import regex_configs
@@ -288,8 +288,6 @@ class TestFilingApi:
         mock_get_loop.return_value = mock_event_loop
         mock_event_loop.run_in_executor.return_value = asyncio.Future()
 
-        mock_background_task = mocker.patch("fastapi.BackgroundTasks.add_task")
-
         async_mock = AsyncMock(return_value=return_sub)
         mock_add_submission = mocker.patch(
             "sbl_filing_api.entities.repos.submission_repo.add_submission", side_effect=async_mock
@@ -309,10 +307,6 @@ class TestFilingApi:
             ANY, handle_submission, "2024", "1234567890ZXWVUTSR00", return_sub, open(submission_csv, "rb").read(), ANY
         )
         assert mock_event_loop.run_in_executor.call_args.args[6]["continue"]
-        mock_background_task.assert_called_with(
-            check_future, mock_event_loop.run_in_executor.return_value, return_sub.id, ANY
-        )
-        assert mock_background_task.call_args.args[3]["continue"]
         assert mock_update_submission.call_args.args[1].state == SubmissionState.SUBMISSION_UPLOADED
         assert res.status_code == 200
         assert res.json()["id"] == 1
@@ -987,6 +981,7 @@ class TestFilingApi:
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
         assert res.headers["content-disposition"] == 'attachment; filename="1_validation_report.csv"'
+        assert res.headers["Cache-Control"] == "no-store"
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
@@ -1031,6 +1026,7 @@ class TestFilingApi:
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
         assert res.headers["content-disposition"] == 'attachment; filename="2_validation_report.csv"'
+        assert res.headers["Cache-Control"] == "no-store"
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
