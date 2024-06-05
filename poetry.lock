@@ -2367,7 +2367,7 @@ develop = false
 fastapi = "^0.111.0"
 pydantic-settings = "^2.3.0"
 python-jose = "^3.3.0"
-python-keycloak = "^4.0.0"
+python-keycloak = "^4.0.1"
 regtech-regex = {git = "https://github.com/cfpb/regtech-regex.git"}
 requests = "^2.32.3"
 uvicorn = "^0.29.0"
@@ -2376,7 +2376,7 @@ uvicorn = "^0.29.0"
 type = "git"
 url = "https://github.com/cfpb/regtech-api-commons.git"
 reference = "HEAD"
-resolved_reference = "46df320f4af5ddde77fd145fdcd9a978d5de9d73"
+resolved_reference = "6725b5037a6243cfec0d0958e0fc45c12dcb16f8"
 
 [[package]]
 name = "regtech-data-validator"
@@ -2398,7 +2398,7 @@ ujson = "^5.9.0"
 type = "git"
 url = "https://github.com/cfpb/regtech-data-validator.git"
 reference = "HEAD"
-resolved_reference = "24a4334d5cd0f6322279025c18e0cbe47c21688c"
+resolved_reference = "62400c0da9ce3274dec6639baeabd65f4d8ecbaa"
 
 [[package]]
 name = "regtech-regex"
@@ -3277,4 +3277,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4"
-content-hash = "47895fb72bf20e56a77874b817e53ded33b48abb3a08d6890bdeac930804a4f4"
+content-hash = "19bb9701d4642eef753304588b7056077b29498e2c22e194a2a417576843a31b"
