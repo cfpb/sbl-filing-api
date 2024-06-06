@@ -98,6 +98,7 @@ locustfile = "locust-load-test/locust_scripts/filing_api_locust.py"
 headless = true
 users = 5
 host = "http://localhost:8888"
+# host = "https://filing-api-eks.dev-public.aws.cfpb.gov"
 spawn-rate = 10
 run-time = "30s"
 html = "locust-load-test/reports/report.html"

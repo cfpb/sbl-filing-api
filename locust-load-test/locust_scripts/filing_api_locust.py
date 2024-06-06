@@ -3,19 +3,17 @@ import random
 import logging
 
 from locust import HttpUser, task, between
-from keycloak import KeycloakOpenID, KeycloakOpenIDConnection, KeycloakAdmin
-from pull_sblars import download_files, delete_files
+from startup import startup
+from shutdown import shutdown
 
-COUNT = 0
-LEIS = ["123456789TESTBANK123", "123456789TESTBANK456", "123456789TESTBANKSUB456"]
 logger = logging.getLogger(__name__)
 
 
 class FilingApiUser(HttpUser):
     wait_time = between(1, 5)
     token: str
-    user_number: int
     user_id: str
+    lei: str
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -98,60 +96,10 @@ class FilingApiUser(HttpUser):
         )
 
     def on_stop(self):
-        keycloak_connection = KeycloakOpenIDConnection(
-            server_url=os.getenv("KC_URL", "http://localhost:8880"),
-            client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
-            client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET", "local_test_only"),
-            realm_name=os.getenv("KC_REALM", "regtech"),
-            verify=False,
-        )
-        keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
-        keycloak_admin.delete_user(self.user_id)
-        delete_files()
+        shutdown(self.user_id)
 
     def on_start(self):
-        # Used to generate different users in keycloak based on the number of Users started
-        global COUNT, LEIS
-        COUNT += 1
-        self.user_number = COUNT
-        self.lei = LEIS[random.randint(0, 2)]
-        keycloak_connection = KeycloakOpenIDConnection(
-            server_url=os.getenv("KC_URL", "http://localhost:8880"),
-            client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
-            client_secret_key=os.getenv("KC_ADMIN_CLIENT_SECRET", "local_test_only"),
-            realm_name=os.getenv("KC_REALM", "regtech"),
-            verify=False,
-        )
-        keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
-        try:
-            self.user_id = keycloak_admin.create_user(
-                {
-                    "email": f"locust_test{self.user_number}@cfpb.gov",
-                    "username": f"locust_test{self.user_number}",
-                    "enabled": True,
-                    "firstName": f"locust_test{self.user_number}",
-                    "lastName": f"locust_test{self.user_number}",
-                    "credentials": [
-                        {
-                            "value": f"locust_test{self.user_number}",
-                            "type": "password",
-                        }
-                    ],
-                    "groups": [self.lei],
-                }
-            )
-        except Exception:
-            logger.exception("Error creating user in keycloak.")
-
-        keycloak_openid = KeycloakOpenID(
-            server_url=os.getenv("KC_URL", "http://localhost:8880") + "/auth",
-            client_id=os.getenv("AUTH_CLIENT", "regtech-client"),
-            realm_name=os.getenv("KC_REALM", "regtech"),
-            verify=False,
-        )
-
-        self.token = keycloak_openid.token(f"locust_test{self.user_number}", f"locust_test{self.user_number}")[
-            "access_token"
-        ]
-
-        download_files()
+        user_id, token, lei = startup()
+        self.user_id = user_id
+        self.token = token
+        self.lei = lei
