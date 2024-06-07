@@ -28,12 +28,7 @@ def startup():
     user_id = ""
     try:
         for group in leis:
-            keycloak_admin.create_group(
-                {
-                    "name": group
-                },
-                skip_exists=True
-            )
+            keycloak_admin.create_group({"name": group}, skip_exists=True)
         user_id = keycloak_admin.create_user(
             {
                 "email": f"locust_test{user_number}@cfpb.gov",
