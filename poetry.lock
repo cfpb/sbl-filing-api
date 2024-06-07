@@ -1222,13 +1222,13 @@ typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "locust"
-version = "2.28.0"
+version = "2.29.0"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "locust-2.28.0-py3-none-any.whl", hash = "sha256:766be879db030c0118e7d9fca712f3538c4e628bdebf59468fa1c6c2fab217d3"},
-    {file = "locust-2.28.0.tar.gz", hash = "sha256:260557eec866f7e34a767b6c916b5b278167562a280480aadb88f43d962fbdeb"},
+    {file = "locust-2.29.0-py3-none-any.whl", hash = "sha256:aa9d94d3604ed9f2aab3248460d91e55d3de980a821dffdf8658b439b049d03f"},
+    {file = "locust-2.29.0.tar.gz", hash = "sha256:649c99ce49d00720a3084c0109547035ad9021222835386599a8b545d31ebe51"},
 ]
 
 [package.dependencies]
@@ -1242,7 +1242,7 @@ msgpack = ">=1.0.0"
 psutil = ">=5.9.1"
 pywin32 = {version = "*", markers = "platform_system == \"Windows\""}
 pyzmq = ">=25.0.0"
-requests = ">=2.26.0"
+requests = {version = ">=2.32.2", markers = "python_version > \"3.11\""}
 Werkzeug = ">=2.0.0"
 
 [[package]]
@@ -3292,4 +3292,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4"
-content-hash = "14fd7f08d59806acceefd1f15d7073d19fd1e57b82c65be1351edbce85d17c58"
+content-hash = "bf909d3cd80964eb027a5bb47fd824f0ad8bffa021ef8be4b5abd783aa421188"
