@@ -12,7 +12,7 @@ def get_leis():
         with httpx.Client() as client:
             url = os.getenv(
                 "LEI_REPO",
-                "https://raw.githubusercontent.com/cfpb/sbl-test-data/3-add-test-leis-list-to-repo/test_leis/",
+                "https://raw.githubusercontent.com/cfpb/sbl-test-data/test_leis/",
             )
             full_path = url + os.getenv("LEI_FILE", "test_leis.json")
             response = client.get(full_path)
