@@ -1,35 +1,21 @@
-leis = [
-    "123456789TESTBANK123",
-    "123456789TESTBANK456",
-    "123456TESTBANKSUB456",
-    "111111111TESTBANK111",
-    "222222222TESTBANK111",
-    "333333333TESTBANK111",
-    "111111111TESTBANK222",
-    "222222222TESTBANK222",
-    "333333333TESTBANK222",
-    "111111111TESTBANK333",
-    "222222222TESTBANK333",
-    "333333333TESTBANK333",
-    "111111111TESTBANK444",
-    "222222222TESTBANK444",
-    "333333333TESTBANK444",
-    "111111111TESTBANK555",
-    "222222222TESTBANK555",
-    "333333333TESTBANK555",
-    "111111111TESTBANK666",
-    "222222222TESTBANK666",
-    "333333333TESTBANK666",
-    "111111111TESTBANK777",
-    "222222222TESTBANK777",
-    "333333333TESTBANK777",
-    "111111111TESTBANK888",
-    "222222222TESTBANK888",
-    "333333333TESTBANK888",
-    "111111111TESTBANK999",
-    "222222222TESTBANK999",
-    "333333333TESTBANK999",
-    "111111111TESTBANK000",
-    "222222222TESTBANK000",
-    "333333333TESTBANK000",
-]
+import httpx
+import os
+import ujson
+
+
+def get_leis():
+    local_path = os.path.join("../sbl-test-data/test_leis/", os.getenv("LEI_FILE", "test_leis.json"))
+    if os.path.exists(local_path):
+        with open(local_path, "r") as file:
+            return ujson.load(file)
+    else:
+        with httpx.Client() as client:
+            url = os.getenv(
+                "LEI_REPO",
+                "https://raw.githubusercontent.com/cfpb/sbl-test-data/3-add-test-leis-list-to-repo/test_leis/",
+            )
+            full_path = url + os.getenv("LEI_FILE", "test_leis.json")
+            response = client.get(full_path)
+            response.raise_for_status()
+            contents = response.json()
+            return contents

@@ -4,7 +4,7 @@ import logging
 
 from keycloak import KeycloakOpenID, KeycloakOpenIDConnection, KeycloakAdmin
 from pull_sblars import download_files
-from leis import leis
+from leis import get_leis
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,7 @@ def startup():
     global COUNT
     COUNT += 1
     user_number = int(os.getenv("USER_INDEX", 0)) + COUNT
+    leis = get_leis()
     lei = leis[random.randint(0, len(leis) - 1)]
     keycloak_connection = KeycloakOpenIDConnection(
         server_url=os.getenv("KC_URL", "http://localhost:8880"),

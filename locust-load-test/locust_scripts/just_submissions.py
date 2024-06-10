@@ -29,7 +29,7 @@ class FilingApiUser(HttpUser):
             files=[("file", (sblar, open(os.path.join(sblar_dir, sblar), "rb"), "text/csv"))],
         )
 
-    @task(os.getenv("GET_SUB_WEIGHT", "10"))
+    @task(int(os.getenv("GET_SUB_WEIGHT", "10")))
     def get_latest_submission(self):
         self.client.get(
             f"/v1/filing/institutions/{self.lei}/filings/2024/submissions/latest",
