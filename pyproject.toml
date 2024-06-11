@@ -15,7 +15,7 @@ regtech-api-commons = {git = "https://github.com/cfpb/regtech-api-commons.git"}
 regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.git"}
 regtech-regex = {git = "https://github.com/cfpb/regtech-regex.git"}
 python-multipart = "^0.0.9"
-boto3 = "^1.34.123"
+boto3 = "^1.34.124"
 alembic = "^1.12.0"
 async-lru = "^2.0.4"
 ujson = "^5.10.0"
