@@ -81,7 +81,7 @@ async def validate_and_update_submission(
                 submission.state = SubmissionState.VALIDATION_SUCCESSFUL
             elif (
                 results.phase == ValidationPhase.SYNTACTICAL
-                or submission.validation_results["logic_errors"]["count"] > 0
+                or submission.validation_results["logic_errors"]["total_count"] > 0
             ):
                 submission.state = SubmissionState.VALIDATION_WITH_ERRORS
             else:
@@ -89,7 +89,7 @@ async def validate_and_update_submission(
 
             submission_report = df_to_download(
                 results.findings,
-                total_errors=sum([results.single_field_count, results.multi_field_count, results.register_count]),
+                total_errors=sum([results.error_counts.total_count, results.warning_counts.total_count]),
                 max_errors=settings.max_validation_errors,
             )
             upload_to_storage(
@@ -116,14 +116,44 @@ async def validate_and_update_submission(
 def build_validation_results(results: ValidationResults):
     val_json = df_to_dicts(results.findings, settings.max_json_records, settings.max_json_group_size)
     if results.phase == ValidationPhase.SYNTACTICAL:
-        val_res = {"syntax_errors": {"count": results.single_field_count, "details": val_json}}
+        val_res = {
+            "syntax_errors": {
+                "single_field_count": int(results.error_counts.single_field_count),
+                "multi_field_count": int(
+                    results.error_counts.multi_field_count
+                ),  # this will always be zero for syntax errors
+                "register_count": int(
+                    results.error_counts.register_count
+                ),  # this will always be zero for syntax errors
+                "total_count": int(results.error_counts.total_count),
+                "details": val_json,
+            }
+        }
     else:
         errors_list = [e for e in val_json if e["validation"]["severity"] == Severity.ERROR]
         warnings_list = [w for w in val_json if w["validation"]["severity"] == Severity.WARNING]
         val_res = {
-            "syntax_errors": {"count": 0, "details": []},
-            "logic_errors": {"count": sum([len(v["records"]) for v in errors_list]), "details": errors_list},
-            "logic_warnings": {"count": sum([len(v["records"]) for v in warnings_list]), "details": warnings_list},
+            "syntax_errors": {
+                "single_field_count": 0,
+                "multi_field_count": 0,
+                "register_count": 0,
+                "total_count": 0,
+                "details": [],
+            },
+            "logic_errors": {
+                "single_field_count": int(results.error_counts.single_field_count),
+                "multi_field_count": int(results.error_counts.multi_field_count),
+                "register_count": int(results.error_counts.register_count),
+                "total_count": int(results.error_counts.total_count),
+                "details": errors_list,
+            },
+            "logic_warnings": {
+                "single_field_count": int(results.warning_counts.single_field_count),
+                "multi_field_count": int(results.warning_counts.multi_field_count),
+                "register_count": int(results.warning_counts.register_count),
+                "total_count": int(results.warning_counts.total_count),
+                "details": warnings_list,
+            },
         }
 
     return val_res

@@ -8,7 +8,7 @@ from unittest.mock import Mock
 from pytest_mock import MockerFixture
 from sbl_filing_api.config import settings
 from sbl_filing_api.entities.models.dao import SubmissionDAO, SubmissionState
-from regtech_data_validator.validation_results import ValidationResults, ValidationPhase
+from regtech_data_validator.validation_results import ValidationResults, ValidationPhase, Counts
 from regtech_api_commons.api.exceptions import RegTechHttpException
 
 
@@ -120,7 +120,7 @@ class TestSubmissionProcessor:
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
 
         mock_build_json = mocker.patch("sbl_filing_api.services.submission_processor.build_validation_results")
-        mock_build_json.return_value = {"logic_errors": {"count": 0}, "logic_warnings": {"count": 1}}
+        mock_build_json.return_value = {"logic_errors": {"total_count": 0}, "logic_warnings": {"total_count": 1}}
 
         await submission_processor.validate_and_update_submission(
             "2024", "123456790", mock_sub, None, {"continue": True}
@@ -260,9 +260,13 @@ class TestSubmissionProcessor:
         result = ValidationResults(
             phase=ValidationPhase.LOGICAL,
             is_valid=False,
-            single_field_count=0,
-            multi_field_count=0,
-            register_count=0,
+            error_counts=Counts(
+                single_field_count=0,
+                multi_field_count=0,
+                register_count=0,
+                total_count=0,
+            ),
+            warning_counts=Counts(single_field_count=0, multi_field_count=0, register_count=0, total_count=0),
             findings=pd.DataFrame(),
         )
 
@@ -270,17 +274,27 @@ class TestSubmissionProcessor:
         df_to_dicts_mock.return_value = []
 
         validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] == 0
-        assert validation_results["logic_errors"]["count"] == 0
-        assert validation_results["logic_warnings"]["count"] == 0
+        assert validation_results["syntax_errors"]["single_field_count"] == 0
+        assert validation_results["syntax_errors"]["multi_field_count"] == 0
+        assert validation_results["syntax_errors"]["register_count"] == 0
+        assert validation_results["logic_errors"]["single_field_count"] == 0
+        assert validation_results["logic_errors"]["multi_field_count"] == 0
+        assert validation_results["logic_errors"]["register_count"] == 0
+        assert validation_results["logic_warnings"]["single_field_count"] == 0
+        assert validation_results["logic_warnings"]["multi_field_count"] == 0
+        assert validation_results["logic_warnings"]["register_count"] == 0
 
     async def test_build_validation_results_syntax_errors(self, mocker: MockerFixture):
         result = ValidationResults(
             phase=ValidationPhase.SYNTACTICAL,
             is_valid=False,
-            single_field_count=2,
-            multi_field_count=0,
-            register_count=0,
+            error_counts=Counts(
+                single_field_count=2,
+                multi_field_count=0,
+                register_count=0,
+                total_count=2,
+            ),
+            warning_counts=Counts(single_field_count=0, multi_field_count=0, register_count=0, total_count=0),
             findings=pd.DataFrame(),
         )
 
@@ -323,15 +337,21 @@ class TestSubmissionProcessor:
         ]
 
         validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] == 2
+        assert validation_results["syntax_errors"]["single_field_count"] == 2
+        assert validation_results["syntax_errors"]["multi_field_count"] == 0
+        assert validation_results["syntax_errors"]["register_count"] == 0
 
     def test_build_validation_results_logic_errors(self, mocker: MockerFixture):
         result = ValidationResults(
             phase=ValidationPhase.LOGICAL,
             is_valid=False,
-            single_field_count=0,
-            multi_field_count=0,
-            register_count=0,
+            error_counts=Counts(
+                single_field_count=0,
+                multi_field_count=0,
+                register_count=2,
+                total_count=2,
+            ),
+            warning_counts=Counts(single_field_count=0, multi_field_count=0, register_count=0, total_count=0),
             findings=pd.DataFrame(),
         )
 
@@ -362,17 +382,21 @@ class TestSubmissionProcessor:
         ]
 
         validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] == 0
-        assert validation_results["logic_errors"]["count"] == 2
-        assert validation_results["logic_warnings"]["count"] == 0
+        assert validation_results["logic_errors"]["single_field_count"] == 0
+        assert validation_results["logic_errors"]["multi_field_count"] == 0
+        assert validation_results["logic_errors"]["register_count"] == 2
 
     def test_build_validation_results_logic_warnings(self, mocker: MockerFixture):
         result = ValidationResults(
             phase=ValidationPhase.LOGICAL,
             is_valid=False,
-            single_field_count=0,
-            multi_field_count=0,
-            register_count=0,
+            error_counts=Counts(
+                single_field_count=0,
+                multi_field_count=0,
+                register_count=0,
+                total_count=0,
+            ),
+            warning_counts=Counts(single_field_count=1, multi_field_count=0, register_count=0, total_count=1),
             findings=pd.DataFrame(),
         )
 
@@ -398,17 +422,21 @@ class TestSubmissionProcessor:
         ]
 
         validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] == 0
-        assert validation_results["logic_errors"]["count"] == 0
-        assert validation_results["logic_warnings"]["count"] == 1
+        assert validation_results["logic_warnings"]["single_field_count"] == 1
+        assert validation_results["logic_warnings"]["multi_field_count"] == 0
+        assert validation_results["logic_warnings"]["register_count"] == 0
 
     def test_build_validation_results_logic_warnings_and_errors(self, mocker: MockerFixture):
         result = ValidationResults(
             phase=ValidationPhase.LOGICAL,
             is_valid=False,
-            single_field_count=0,
-            multi_field_count=0,
-            register_count=0,
+            error_counts=Counts(
+                single_field_count=0,
+                multi_field_count=0,
+                register_count=2,
+                total_count=2,
+            ),
+            warning_counts=Counts(single_field_count=1, multi_field_count=0, register_count=0, total_count=1),
             findings=pd.DataFrame(),
         )
 
@@ -456,6 +484,9 @@ class TestSubmissionProcessor:
         ]
 
         validation_results = submission_processor.build_validation_results(result)
-        assert validation_results["syntax_errors"]["count"] == 0
-        assert validation_results["logic_errors"]["count"] == 2
-        assert validation_results["logic_warnings"]["count"] == 1
+        assert validation_results["logic_warnings"]["single_field_count"] == 1
+        assert validation_results["logic_warnings"]["multi_field_count"] == 0
+        assert validation_results["logic_warnings"]["register_count"] == 0
+        assert validation_results["logic_errors"]["single_field_count"] == 0
+        assert validation_results["logic_errors"]["multi_field_count"] == 0
+        assert validation_results["logic_errors"]["register_count"] == 2
