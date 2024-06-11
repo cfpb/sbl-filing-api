@@ -4,19 +4,20 @@ import logging
 
 from keycloak import KeycloakOpenID, KeycloakOpenIDConnection, KeycloakAdmin
 from pull_sblars import download_files
+from leis import get_leis
 
 logger = logging.getLogger(__name__)
 
 COUNT = 0
-LEIS = ["123456789TESTBANK123", "123456789TESTBANK456", "123456789TESTBANKSUB456"]
 
 
 def startup():
     # Used to generate different users in keycloak based on the number of Users started
-    global COUNT, LEIS
+    global COUNT
     COUNT += 1
     user_number = int(os.getenv("USER_INDEX", 0)) + COUNT
-    lei = LEIS[random.randint(0, 2)]
+    leis = get_leis()
+    lei = leis[random.randint(0, len(leis) - 1)]
     keycloak_connection = KeycloakOpenIDConnection(
         server_url=os.getenv("KC_URL", "http://localhost:8880"),
         client_id=os.getenv("KC_ADMIN_CLIENT_ID", "admin-cli"),
@@ -27,6 +28,8 @@ def startup():
     keycloak_admin = KeycloakAdmin(connection=keycloak_connection)
     user_id = ""
     try:
+        for group in leis:
+            keycloak_admin.create_group({"name": group}, skip_exists=True)
         user_id = keycloak_admin.create_user(
             {
                 "email": f"locust_test{user_number}@cfpb.gov",
