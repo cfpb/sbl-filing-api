@@ -100,9 +100,13 @@ class TestFilingApi:
         )
         mock_add_creator = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
         mock_add_creator.side_effect = Exception("Error while trying to process CREATE User Action")
+
+        log_mock = mocker.patch("sbl_filing_api.routers.filing.logger.exception")
+
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/")
         assert res.status_code == 500
-        assert res.content == b'"Error while trying to process CREATE User Action"'
+        assert res.content == b'"Error while trying to create Filing creator user."'
+        log_mock.assert_called_with("Error while trying to create Filing creator user.")
 
         mock_add_creator.return_value = user_action_create
         mock_add_creator.side_effect = None
