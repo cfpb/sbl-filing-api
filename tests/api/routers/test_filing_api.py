@@ -105,8 +105,8 @@ class TestFilingApi:
 
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/")
         assert res.status_code == 500
-        assert res.content == b'"Error while trying to create Filing creator user."'
-        log_mock.assert_called_with("Error while trying to create Filing creator user.")
+        assert res.json()["error_detail"] == "Error while trying to create the filing.creator UserAction."
+        log_mock.assert_called_with("Error while trying to create the filing.creator UserAction.")
 
         mock_add_creator.return_value = user_action_create
         mock_add_creator.side_effect = None
