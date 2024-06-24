@@ -89,7 +89,8 @@ async def validate_and_update_submission(
 
             submission_report = df_to_download(
                 results.findings,
-                total_errors=sum([results.error_counts.total_count, results.warning_counts.total_count]),
+                warning_count=results.warning_counts.total_count,
+                error_count=results.error_counts.total_count,
                 max_errors=settings.max_validation_errors,
             )
             upload_to_storage(
