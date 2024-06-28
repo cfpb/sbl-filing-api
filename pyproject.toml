@@ -37,7 +37,7 @@ black = "24.4.2"
 
 
 [tool.poetry.group.load-testing.dependencies]
-locust = "^2.29.0"
+locust = "^2.29.1"
 httpx = "^0.27.0"
 
 
