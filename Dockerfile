@@ -4,16 +4,16 @@ WORKDIR /usr/app
 RUN mkdir reports
 RUN pip install poetry
 
-COPY poetry.lock pyproject.toml alembic.ini ./
-
-RUN poetry config virtualenvs.create false
-RUN poetry install --only main --no-root
+COPY poetry.lock pyproject.toml alembic.ini README.md ./
 
 COPY ./src ./src
 COPY ./db_revisions ./db_revisions
+
+RUN poetry config virtualenvs.create false
+RUN poetry install --only main
 
 WORKDIR /usr/app/src
 
 EXPOSE 8888
 
-CMD ["uvicorn", "sbl_filing_api.main:app", "--workers", "4", "--timeout-keep-alive", "65", "--host", "0.0.0.0", "--port", "8888", "--log-config", "log-config.yml"]
+CMD ["python", "sbl_filing_api/main.py"]

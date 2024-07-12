@@ -76,7 +76,8 @@ env = [
   "FS_UPLOAD_CONFIG__PROTOCOL=file",
   "FS_UPLOAD_CONFIG__ROOT=../upload",
   "FS_UPLOAD_CONFIG__MKDIR=true",
-  "FS_DOWNLOAD_CONFIG__PROTOCOL=file"
+  "FS_DOWNLOAD_CONFIG__PROTOCOL=file",
+  "ENV=TEST"
 ]
 testpaths = ["tests"]
 
