@@ -967,7 +967,7 @@ class TestFilingApi:
                 timestamp=datetime.datetime.now(),
             ),
             filing=1,
-            state=SubmissionState.VALIDATION_IN_PROGRESS,
+            state=SubmissionState.VALIDATION_SUCCESSFUL,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
@@ -987,11 +987,32 @@ class TestFilingApi:
         assert res.headers["content-disposition"] == 'attachment; filename="1_validation_report.csv"'
         assert res.headers["Cache-Control"] == "no-store"
 
+        sub_mock.return_value = SubmissionDAO(
+            id=1,
+            submitter=UserActionDAO(
+                id=1,
+                user_id="1234-5678-ABCD-EFGH",
+                user_name="Test Submitter User",
+                user_email="test1@cfpb.gov",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.datetime.now(),
+            ),
+            filing=1,
+            state=SubmissionState.VALIDATION_IN_PROGRESS,
+            validation_ruleset_version="v1",
+            submission_time=datetime.datetime.now(),
+            filename="file1.csv",
+        )
+
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest/report")
+        assert res.status_code == 404
+
         sub_mock.return_value = []
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest/report")
         sub_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024")
-        assert res.status_code == 204
+        assert res.status_code == 404
 
         # verify Filing Not Found RegTechHttpException returned when filing does not exist
         get_filing_mock.return_value = None
@@ -1012,7 +1033,7 @@ class TestFilingApi:
                 timestamp=datetime.datetime.now(),
             ),
             filing=1,
-            state=SubmissionState.VALIDATION_IN_PROGRESS,
+            state=SubmissionState.VALIDATION_SUCCESSFUL,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
@@ -1031,6 +1052,27 @@ class TestFilingApi:
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
         assert res.headers["content-disposition"] == 'attachment; filename="2_validation_report.csv"'
         assert res.headers["Cache-Control"] == "no-store"
+
+        sub_mock.return_value = SubmissionDAO(
+            id=2,
+            submitter=UserActionDAO(
+                id=1,
+                user_id="1234-5678-ABCD-EFGH",
+                user_name="Test Submitter User",
+                user_email="test1@cfpb.gov",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.datetime.now(),
+            ),
+            filing=1,
+            state=SubmissionState.VALIDATION_IN_PROGRESS,
+            validation_ruleset_version="v1",
+            submission_time=datetime.datetime.now(),
+            filename="file1.csv",
+        )
+
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/report")
+        assert res.status_code == 404
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)

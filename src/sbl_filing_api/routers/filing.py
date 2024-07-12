@@ -3,7 +3,7 @@ import logging
 
 from concurrent.futures import ProcessPoolExecutor
 from fastapi import Depends, Request, UploadFile, status
-from fastapi.responses import Response, JSONResponse, StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from multiprocessing import Manager
 from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
@@ -330,7 +330,12 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
             detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to get latest submission for it.",
         )
     latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
-    if latest_sub:
+    if latest_sub and latest_sub.state in [
+        SubmissionState.VALIDATION_SUCCESSFUL,
+        SubmissionState.VALIDATION_WITH_ERRORS,
+        SubmissionState.VALIDATION_WITH_WARNINGS,
+        SubmissionState.SUBMISSION_ACCEPTED,
+    ]:
         file_data = submission_processor.get_from_storage(
             period_code, lei, str(latest_sub.id) + submission_processor.REPORT_QUALIFIER
         )
@@ -342,7 +347,12 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
                 "Cache-Control": "no-store",
             },
         )
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    else:
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Report Not Found",
+            detail=f"Report for ({filing.id}) does not exist.",
+        )
 
 
 @router.get(
@@ -352,7 +362,12 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
 @requires("authenticated")
 async def get_submission_report(request: Request, response: Response, lei: str, period_code: str, id: int):
     sub = await repo.get_submission(request.state.db_session, id)
-    if sub:
+    if sub and sub.state in [
+        SubmissionState.VALIDATION_SUCCESSFUL,
+        SubmissionState.VALIDATION_WITH_ERRORS,
+        SubmissionState.VALIDATION_WITH_WARNINGS,
+        SubmissionState.SUBMISSION_ACCEPTED,
+    ]:
         file_data = submission_processor.get_from_storage(
             period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
         )
@@ -364,4 +379,9 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
                 "Cache-Control": "no-store",
             },
         )
-    response.status_code = status.HTTP_404_NOT_FOUND
+    else:
+        raise RegTechHttpException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            name="Report Not Found",
+            detail=f"Report for ({id}) does not exist.",
+        )
