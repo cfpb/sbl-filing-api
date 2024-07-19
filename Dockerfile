@@ -16,4 +16,6 @@ WORKDIR /usr/app/src
 
 EXPOSE 8888
 
+USER sbl
+
 CMD ["python", "sbl_filing_api/main.py"]
