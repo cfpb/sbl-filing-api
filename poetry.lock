@@ -20,13 +20,13 @@ docs = ["sphinx (==7.2.6)", "sphinx-mdinclude (==0.5.3)"]
 
 [[package]]
 name = "alembic"
-version = "1.13.1"
+version = "1.13.2"
 description = "A database migration tool for SQLAlchemy."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "alembic-1.13.1-py3-none-any.whl", hash = "sha256:2edcc97bed0bd3272611ce3a98d98279e9c209e7186e43e75bbb1b2bdfdbcc43"},
-    {file = "alembic-1.13.1.tar.gz", hash = "sha256:4932c8558bf68f2ee92b9bbcb8218671c627064d5b08939437af6d77dc05e595"},
+    {file = "alembic-1.13.2-py3-none-any.whl", hash = "sha256:6b8733129a6224a9a711e17c99b08462dbf7cc9670ba8f2e2ae9af860ceb1953"},
+    {file = "alembic-1.13.2.tar.gz", hash = "sha256:1ff0ae32975f4fd96028c39ed9bb3c867fe3af956bd7bb37343b54c9fe7445ef"},
 ]
 
 [package.dependencies]
@@ -1222,13 +1222,13 @@ typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "locust"
-version = "2.29.0"
+version = "2.29.1"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "locust-2.29.0-py3-none-any.whl", hash = "sha256:aa9d94d3604ed9f2aab3248460d91e55d3de980a821dffdf8658b439b049d03f"},
-    {file = "locust-2.29.0.tar.gz", hash = "sha256:649c99ce49d00720a3084c0109547035ad9021222835386599a8b545d31ebe51"},
+    {file = "locust-2.29.1-py3-none-any.whl", hash = "sha256:8b15daab44cdf50eef1860a32bb30969423e3795247115e5a37446da3240c6d6"},
+    {file = "locust-2.29.1.tar.gz", hash = "sha256:2e0628a59e2689a50cb4735a9a43709e30f2da7ed276c15d877c5325507f44b1"},
 ]
 
 [package.dependencies]
@@ -2025,13 +2025,13 @@ sqlalchemy = "*"
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.23.7"
+version = "0.23.8"
 description = "Pytest support for asyncio"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytest_asyncio-0.23.7-py3-none-any.whl", hash = "sha256:009b48127fbe44518a547bddd25611551b0e43ccdbf1e67d12479f569832c20b"},
-    {file = "pytest_asyncio-0.23.7.tar.gz", hash = "sha256:5f5c72948f4c49e7db4f29f2521d4031f1c27f86e57b046126654083d4770268"},
+    {file = "pytest_asyncio-0.23.8-py3-none-any.whl", hash = "sha256:50265d892689a5faefb84df80819d1ecef566eb3549cf915dfb33569359d1ce2"},
+    {file = "pytest_asyncio-0.23.8.tar.gz", hash = "sha256:759b10b33a6dc61cce40a8bd5205e302978bbbcc00e279a8b61d9a6a3c82e4d3"},
 ]
 
 [package.dependencies]
@@ -3292,4 +3292,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4"
-content-hash = "7534444f933224fa90ca47c6564a04be47342c6cc4fbe6fef63eeb03a95a2bd5"
+content-hash = "a2cf396f18abf859457dbba0630c14cc10b4e94d2f70fd11f37bc35e35005497"
