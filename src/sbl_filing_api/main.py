@@ -1,5 +1,6 @@
 import logging
 import os
+import uvicorn
 
 from contextlib import asynccontextmanager
 
@@ -25,7 +26,7 @@ from sbl_filing_api.routers.filing import router as filing_router
 from alembic.config import Config
 from alembic import command
 
-from sbl_filing_api.config import kc_settings
+from sbl_filing_api.config import settings, kc_settings
 
 log = logging.getLogger()
 
@@ -71,3 +72,15 @@ app.add_middleware(
 
 
 app.include_router(filing_router, prefix="/v1/filing")
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "sbl_filing_api.main:app",
+        host=settings.server_config.host,
+        port=settings.server_config.port,
+        timeout_keep_alive=settings.server_config.time_out,
+        workers=settings.server_config.workers,
+        reload=settings.server_config.reload,
+        log_config=settings.server_config.log_config,
+    )

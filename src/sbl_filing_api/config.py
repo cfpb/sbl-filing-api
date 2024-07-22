@@ -26,6 +26,18 @@ class FsUploadConfig(BaseModel):
     root: str
 
 
+class ServerConfig(BaseModel):
+    host: str = "0.0.0.0"
+    """
+    "workers" and "reload" are mutually exclusive, "workers" flag is ignored when reloading is enabled.
+    """
+    workers: int = 4
+    reload: bool = False
+    time_out: int = 65
+    port: int = 8888
+    log_config: str = "log-config.yml"
+
+
 class Settings(BaseSettings):
     db_schema: str = "public"
     db_name: str
@@ -37,6 +49,7 @@ class Settings(BaseSettings):
     conn: PostgresDsn | None = None
 
     fs_upload_config: FsUploadConfig
+    server_config: ServerConfig = ServerConfig()
 
     submission_file_type: str = "text/csv"
     submission_file_extension: str = "csv"
