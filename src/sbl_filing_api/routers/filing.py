@@ -62,12 +62,9 @@ async def get_filing(request: Request, response: Response, lei: str, period_code
 
 @router.get("/filings/{period_code}", response_model=List[FilingDTO])
 @requires("authenticated")
-async def get_filings(request: Request, response: Response, period_code: str):
+async def get_filings(request: Request, period_code: str):
     user: AuthenticatedUser = request.user
-    res = await repo.get_filings(request.state.db_session, user.institutions, period_code)
-    if res:
-        return res
-    response.status_code = status.HTTP_204_NO_CONTENT
+    return await repo.get_filings(request.state.db_session, user.institutions, period_code)
 
 
 @router.post("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
