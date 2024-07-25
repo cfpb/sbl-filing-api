@@ -7,6 +7,8 @@ from fastapi.responses import Response, StreamingResponse
 from multiprocessing import Manager
 from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
+from regtech_api_commons.models.auth import AuthenticatedUser
+
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
@@ -53,6 +55,16 @@ async def get_filing_periods(request: Request):
 @requires("authenticated")
 async def get_filing(request: Request, response: Response, lei: str, period_code: str):
     res = await repo.get_filing(request.state.db_session, lei, period_code)
+    if res:
+        return res
+    response.status_code = status.HTTP_204_NO_CONTENT
+
+
+@router.get("/filings/{period_code}", response_model=List[FilingDTO])
+@requires("authenticated")
+async def get_filings(request: Request, response: Response, period_code: str):
+    user: AuthenticatedUser = request.user
+    res = await repo.get_filings(request.state.db_session, user.institutions, period_code)
     if res:
         return res
     response.status_code = status.HTTP_204_NO_CONTENT
