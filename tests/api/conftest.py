@@ -185,7 +185,7 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 action_type=UserActionType.SUBMIT,
                 timestamp=datetime.now(),
             ),
-        )
+        ),
     ]
     return mock
 

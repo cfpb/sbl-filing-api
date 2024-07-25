@@ -351,6 +351,39 @@ class TestSubmissionRepo:
             tasks_populated_filings.append(filings[0].id)
         assert set(tasks_populated_filings) == set([1, 2])
 
+    async def test_get_filings(self, query_session: AsyncSession, mocker: MockerFixture):
+        spy_populate_missing_tasks = mocker.patch(
+            "sbl_filing_api.entities.repos.submission_repo.populate_missing_tasks", wraps=repo.populate_missing_tasks
+        )
+        res = await repo.get_filings(query_session, leis=["1234567890", "ABCDEFGHIJ"], filing_period="2024")
+        assert res[0].id == 1
+        assert res[0].filing_period == "2024"
+        assert res[0].lei == "1234567890"
+        assert len(res[0].tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res[0].tasks])
+        tasks1 = set([task_progress.task for task_progress in res[0].tasks])
+        assert len(tasks1) == 2
+        assert "Task-1" in set([task.name for task in tasks1])
+        assert "Task-2" in set([task.name for task in tasks1])
+
+        assert res[1].id == 2
+        assert res[1].filing_period == "2024"
+        assert res[1].lei == "ABCDEFGHIJ"
+        assert len(res[1].tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res[1].tasks])
+        tasks2 = set([task_progress.task for task_progress in res[1].tasks])
+        assert len(tasks2) == 2
+        assert "Task-1" in set([task.name for task in tasks2])
+        assert "Task-2" in set([task.name for task in tasks2])
+
+        tasks_populated_filings = []
+        for call in spy_populate_missing_tasks.call_args_list:
+            args, _ = call
+            filings = args[1]
+            assert all([isinstance(f, FilingDAO) for f in filings])
+            tasks_populated_filings.extend([f.id for f in filings])
+        assert set(tasks_populated_filings) == set([1, 2])
+
     async def test_get_period_filings(self, query_session: AsyncSession, mocker: MockerFixture):
         results = await repo.get_period_filings(query_session, filing_period="2024")
         assert len(results) == 3
