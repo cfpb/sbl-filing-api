@@ -64,7 +64,7 @@ async def get_filing(session: AsyncSession, lei: str, filing_period: str) -> Fil
 
 
 async def get_filings(session: AsyncSession, leis: list[str], filing_period: str) -> list[FilingDAO]:
-    stmt = select(FilingDAO).where(FilingDAO.lei.in_(leis)).filter_by(filing_period=filing_period)
+    stmt = select(FilingDAO).filter(FilingDAO.lei.in_(leis), FilingDAO.filing_period == filing_period)
     result = (await session.scalars(stmt)).all()
     if result:
         result = await populate_missing_tasks(session, result)

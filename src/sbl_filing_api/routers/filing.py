@@ -60,7 +60,7 @@ async def get_filing(request: Request, response: Response, lei: str, period_code
     response.status_code = status.HTTP_204_NO_CONTENT
 
 
-@router.get("/filings/{period_code}", response_model=List[FilingDTO])
+@router.get("/periods/{period_code}/filings", response_model=List[FilingDTO])
 @requires("authenticated")
 async def get_filings(request: Request, period_code: str):
     user: AuthenticatedUser = request.user
