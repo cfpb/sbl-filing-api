@@ -99,6 +99,98 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
 
 
 @pytest.fixture
+def get_filings_mock(mocker: MockerFixture) -> Mock:
+    mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filings")
+    mock.return_value = [
+        FilingDAO(
+            id=1,
+            lei="1234567890ABCDEFGH00",
+            filing_period="2024",
+            institution_snapshot_id="v1",
+            contact_info=ContactInfoDAO(
+                id=1,
+                filing=1,
+                first_name="test_first_name_1",
+                last_name="test_last_name_1",
+                hq_address_street_1="address street 1",
+                hq_address_street_2="address street 2",
+                hq_address_city="Test City",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                phone_number="112-345-6789",
+                email="test1@cfpb.gov",
+            ),
+            creator_id=1,
+            creator=UserActionDAO(
+                id=1,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test submitter",
+                user_email="test@local.host",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.now(),
+            ),
+        ),
+        FilingDAO(
+            id=1,
+            lei="1234567890ABCDEFGH01",
+            filing_period="2024",
+            institution_snapshot_id="v1",
+            contact_info=ContactInfoDAO(
+                id=1,
+                filing=1,
+                first_name="test_first_name_1",
+                last_name="test_last_name_1",
+                hq_address_street_1="address street 1",
+                hq_address_street_2="address street 2",
+                hq_address_city="Test City",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                phone_number="112-345-6789",
+                email="test1@cfpb.gov",
+            ),
+            creator_id=1,
+            creator=UserActionDAO(
+                id=1,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test submitter",
+                user_email="test@local.host",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.now(),
+            ),
+        ),
+        FilingDAO(
+            id=1,
+            lei="1234567890ZXWVUTSR00",
+            filing_period="2024",
+            institution_snapshot_id="v1",
+            contact_info=ContactInfoDAO(
+                id=1,
+                filing=1,
+                first_name="test_first_name_1",
+                last_name="test_last_name_1",
+                hq_address_street_1="address street 1",
+                hq_address_street_2="address street 2",
+                hq_address_city="Test City",
+                hq_address_state="TS",
+                hq_address_zip="12345",
+                phone_number="112-345-6789",
+                email="test1@cfpb.gov",
+            ),
+            creator_id=1,
+            creator=UserActionDAO(
+                id=1,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test submitter",
+                user_email="test@local.host",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.now(),
+            ),
+        ),
+    ]
+    return mock
+
+
+@pytest.fixture
 def post_filing_mock(mocker: MockerFixture) -> Mock:
     mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.create_new_filing")
     mock.return_value = FilingDAO(
