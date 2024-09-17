@@ -1,5 +1,4 @@
-FROM ghcr.io/cfpb/regtech/sbl/python-alpine:3.12
-
+FROM ghcr.io/cfpb/regtech/sbl/python-ubi8:3.12
 ENV UVICORN_LOG_LEVEL=info
 
 WORKDIR /usr/app

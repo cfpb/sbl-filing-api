@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     conn: PostgresDsn | None = None
 
     fs_upload_config: FsUploadConfig
+
     server_config: ServerConfig = ServerConfig()
 
     submission_file_type: str = "text/csv"
