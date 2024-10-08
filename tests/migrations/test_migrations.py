@@ -397,3 +397,21 @@ def test_migrations_to_ba8234fe9eb5(alembic_runner: MigrationContext, alembic_en
     inspector = sqlalchemy.inspect(alembic_engine)
 
     assert "phone_ext" in set([c["name"] for c in inspector.get_columns("contact_info")])
+
+
+def test_migrations_to_6babc6109a5a(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("6babc6109a5a")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "first_name" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "last_name" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "hq_address_street_1" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "hq_address_street_2" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "hq_address_street_3" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "hq_address_street_4" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "hq_address_city" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "hq_address_state" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "email" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "phone_number" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    assert "phone_ext" in set([c["name"] for c in inspector.get_columns("contact_info")])

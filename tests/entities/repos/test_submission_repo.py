@@ -3,6 +3,8 @@ import pytest
 
 import datetime
 from datetime import datetime as dt
+
+from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
@@ -522,6 +524,34 @@ class TestSubmissionRepo:
         assert filing.contact_info.phone_number == "312-345-6789"
         assert filing.contact_info.email == "test3@cfpb.gov"
 
+    async def test_create_contact_info_invalid_field_length(self, transaction_session: AsyncSession):
+        out_of_rang_text = (
+            "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
+            "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
+            "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
+        )
+        with pytest.raises(Exception) as e:
+            await repo.update_contact_info(
+                transaction_session,
+                lei="ZYXWVUTSRQP",
+                filing_period="2024",
+                new_contact_info=ContactInfoDTO(
+                    first_name=out_of_rang_text,
+                    last_name="test_last_name_3",
+                    hq_address_street_1="address street 1",
+                    hq_address_street_2="",
+                    hq_address_street_3="",
+                    hq_address_street_4="",
+                    hq_address_city="Test City",
+                    hq_address_state="TS",
+                    hq_address_zip="12345",
+                    phone_number="312-345-6789",
+                    phone_ext="x12345",
+                    email="test3@cfpb.gov",
+                ),
+            )
+        assert isinstance(e.value, ValidationError)
+
     async def test_update_contact_info(self, transaction_session: AsyncSession):
         filing = await repo.update_contact_info(
             transaction_session,
@@ -560,6 +590,36 @@ class TestSubmissionRepo:
         assert filing.contact_info.phone_number == "212-345-6789"
         assert filing.contact_info.phone_ext == "x12345"
         assert filing.contact_info.email == "test2_upd@cfpb.gov"
+
+    async def test_update_contact_info_invalid_field_length(self, transaction_session: AsyncSession):
+        out_of_rang_text = (
+            "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
+            "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
+            "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
+        )
+        with pytest.raises(Exception) as e:
+            await repo.update_contact_info(
+                transaction_session,
+                lei="ABCDEFGHIJ",
+                filing_period="2024",
+                new_contact_info=ContactInfoDTO(
+                    id=2,
+                    filing=2,
+                    first_name="test_first_name_upd",
+                    last_name="test_last_name_upd",
+                    hq_address_street_1="address street upd",
+                    hq_address_street_2="",
+                    hq_address_street_3="",
+                    hq_address_street_4="",
+                    hq_address_city="Test City upd",
+                    hq_address_state="TS",
+                    hq_address_zip="12345",
+                    phone_number="212-345-6789",
+                    phone_ext="x12345",
+                    email=out_of_rang_text,
+                ),
+            )
+        assert isinstance(e.value, ValidationError)
 
     async def test_get_user_action(self, query_session: AsyncSession):
         res = await repo.get_user_action(session=query_session, id=3)
