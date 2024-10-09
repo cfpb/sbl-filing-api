@@ -21,7 +21,7 @@ from sbl_filing_api.entities.models.dao import (
     ContactInfoDAO,
     UserActionDAO,
 )
-from sbl_filing_api.entities.models.dto import FilingPeriodDTO, FilingDTO, ContactInfoDTO
+from sbl_filing_api.entities.models.dto import FilingPeriodDTO, FilingDTO, ContactInfoDTO, UserActionDTO
 from sbl_filing_api.entities.models.model_enums import SubmissionState
 
 logger = logging.getLogger(__name__)
@@ -156,18 +156,10 @@ async def update_contact_info(
 
 async def add_user_action(
     session: AsyncSession,
-    user_id: int,
-    user_name: str,
-    user_email: str,
-    action_type: str,
+    new_user_action: UserActionDTO,
 ) -> UserActionDAO:
-    new_user_Action = UserActionDAO(
-        user_id=user_id,
-        user_name=user_name,
-        user_email=user_email,
-        action_type=action_type,
-    )
-    return await upsert_helper(session, new_user_Action, UserActionDAO)
+    new_user_action = UserActionDAO(**new_user_action.__dict__.copy())
+    return await upsert_helper(session, new_user_action, UserActionDAO)
 
 
 async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T) -> T:

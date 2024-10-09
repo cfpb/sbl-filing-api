@@ -15,9 +15,9 @@ class Base(AsyncAttrs, DeclarativeBase):
 class UserActionDAO(Base):
     __tablename__ = "user_action"
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
-    user_id: Mapped[str]
-    user_name: Mapped[str]
-    user_email: Mapped[str]
+    user_id: Mapped[str] = mapped_column(String(36))
+    user_name: Mapped[str] = mapped_column(String(255))
+    user_email: Mapped[str] = mapped_column(String(255))
     action_type: Mapped[UserActionType] = mapped_column(SAEnum(UserActionType))
     timestamp: Mapped[datetime] = mapped_column(server_default=func.now())
 

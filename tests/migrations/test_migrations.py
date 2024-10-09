@@ -397,3 +397,13 @@ def test_migrations_to_ba8234fe9eb5(alembic_runner: MigrationContext, alembic_en
     inspector = sqlalchemy.inspect(alembic_engine)
 
     assert "phone_ext" in set([c["name"] for c in inspector.get_columns("contact_info")])
+
+
+def test_migrations_to_f4091e4ce218(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("f4091e4ce218")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "user_name" in set([c["name"] for c in inspector.get_columns("user_action")])
+    assert "user_email" in set([c["name"] for c in inspector.get_columns("user_action")])
+    assert "user_id" in set([c["name"] for c in inspector.get_columns("user_action")])
