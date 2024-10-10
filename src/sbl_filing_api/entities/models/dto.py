@@ -7,9 +7,9 @@ from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskSta
 
 class UserActionDTO(BaseModel):
     id: int | None = None
-    user_id: str | None = Field(None, max_length=36)
-    user_name: str | None = Field(None, max_length=255)
-    user_email: str | None = Field(None, max_length=255)
+    user_id: str = Field(None, max_length=36)
+    user_name: str = Field(None, max_length=255)
+    user_email: str = Field(None, max_length=255)
     timestamp: datetime | None = None
     action_type: UserActionType
 

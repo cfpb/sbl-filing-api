@@ -158,7 +158,6 @@ async def add_user_action(
     session: AsyncSession,
     new_user_action: UserActionDTO,
 ) -> UserActionDAO:
-    new_user_action = UserActionDAO(**new_user_action.__dict__.copy())
     return await upsert_helper(session, new_user_action, UserActionDAO)
 
 

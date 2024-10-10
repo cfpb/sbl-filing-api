@@ -404,6 +404,8 @@ def test_migrations_to_f4091e4ce218(alembic_runner: MigrationContext, alembic_en
 
     inspector = sqlalchemy.inspect(alembic_engine)
 
-    assert "user_name" in set([c["name"] for c in inspector.get_columns("user_action")])
-    assert "user_email" in set([c["name"] for c in inspector.get_columns("user_action")])
-    assert "user_id" in set([c["name"] for c in inspector.get_columns("user_action")])
+    columns = inspector.get_columns("user_action")
+
+    assert [c for c in columns if c["name"] == "user_id"][0]["type"].length == 36
+    assert [c for c in columns if c["name"] == "user_name"][0]["type"].length == 255
+    assert [c for c in columns if c["name"] == "user_email"][0]["type"].length == 255
