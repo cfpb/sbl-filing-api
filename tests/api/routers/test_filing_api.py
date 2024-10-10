@@ -862,7 +862,7 @@ class TestFilingApi:
 
         assert res.status_code == 422
         json_error = res.json()
-        assert "'String should have at most 254 characters'" in json_error["error_detail"]
+        assert "'String should have at most 255 characters'" in json_error["error_detail"]
 
     async def test_accept_submission(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         user_action_submit = UserActionDAO(
