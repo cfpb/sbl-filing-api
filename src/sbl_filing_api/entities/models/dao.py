@@ -90,6 +90,7 @@ class ContactInfoDAO(Base):
     hq_address_zip: Mapped[str] = mapped_column(String(5))
     email: Mapped[str]
     phone_number: Mapped[str]
+    phone_ext: Mapped[str] = mapped_column(String(254), nullable=True)
 
     def __str__(self):
         return f"ContactInfo ID: {self.id}, First Name: {self.first_name}, Last Name: {self.last_name}, Address Street 1: {self.hq_address_street_1}, Address Street 2: {self.hq_address_street_2}, Address City: {self.hq_address_city}, Address State: {self.hq_address_state}, Address Zip: {self.hq_address_zip}"

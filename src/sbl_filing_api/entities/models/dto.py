@@ -60,6 +60,7 @@ class ContactInfoDTO(BaseModel):
     hq_address_zip: str
     email: str
     phone_number: str
+    phone_ext: str | None = Field(None, max_length=254)
 
     @model_validator(mode="after")
     def validate_fi(self) -> "ContactInfoDTO":
