@@ -20,7 +20,7 @@ from sbl_filing_api.entities.models.dao import (
     FilingDAO,
     UserActionDAO,
 )
-from sbl_filing_api.entities.models.dto import ContactInfoDTO
+from sbl_filing_api.entities.models.dto import ContactInfoDTO, UserActionDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
@@ -924,10 +924,12 @@ class TestFilingApi:
         update_mock.assert_called_once()
         update_accepter_mock.assert_called_once_with(
             ANY,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="Test User",
-            user_email="test@local.host",
-            action_type=UserActionType.ACCEPT,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="Test User",
+                user_email="test@local.host",
+                action_type=UserActionType.ACCEPT,
+            ),
         )
 
         assert res.json()["state"] == "SUBMISSION_ACCEPTED"
@@ -983,10 +985,12 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         add_sig_mock.assert_called_with(
             ANY,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="Test User",
-            user_email="test@local.host",
-            action_type=UserActionType.SIGN,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="Test User",
+                user_email="test@local.host",
+                action_type=UserActionType.SIGN,
+            ),
         )
         assert upsert_mock.call_args.args[1].confirmation_id.startswith("1234567890ABCDEFGH00-2024-1-")
         assert res.status_code == 200

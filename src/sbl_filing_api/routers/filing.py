@@ -21,6 +21,7 @@ from sbl_filing_api.entities.models.dto import (
     StateUpdateDTO,
     ContactInfoDTO,
     SubmissionState,
+    UserActionDTO,
 )
 
 from sbl_filing_api.entities.repos import submission_repo as repo
@@ -68,10 +69,12 @@ async def post_filing(request: Request, lei: str, period_code: str):
         try:
             creator = await repo.add_user_action(
                 request.state.db_session,
-                user_id=request.user.id,
-                user_name=request.user.name,
-                user_email=request.user.email,
-                action_type=UserActionType.CREATE,
+                UserActionDTO(
+                    user_id=request.user.id,
+                    user_name=request.user.name,
+                    user_email=request.user.email,
+                    action_type=UserActionType.CREATE,
+                ),
             )
         except Exception:
             logger.exception("Error while trying to create the filing.creator UserAction.")
@@ -131,10 +134,12 @@ async def sign_filing(request: Request, lei: str, period_code: str):
 
     sig = await repo.add_user_action(
         request.state.db_session,
-        user_id=request.user.id,
-        user_name=request.user.name,
-        user_email=request.user.email,
-        action_type=UserActionType.SIGN,
+        UserActionDTO(
+            user_id=request.user.id,
+            user_name=request.user.name,
+            user_email=request.user.email,
+            action_type=UserActionType.SIGN,
+        ),
     )
     filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.id) + "-" + str(sig.timestamp.timestamp())
     filing.signatures.append(sig)
@@ -158,10 +163,12 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
     try:
         submitter = await repo.add_user_action(
             request.state.db_session,
-            user_id=request.user.id,
-            user_name=request.user.name,
-            user_email=request.user.email,
-            action_type=UserActionType.SUBMIT,
+            UserActionDTO(
+                user_id=request.user.id,
+                user_name=request.user.name,
+                user_email=request.user.email,
+                action_type=UserActionType.SUBMIT,
+            ),
         )
         submission = await repo.add_submission(request.state.db_session, filing.id, file.filename, submitter.id)
         try:
@@ -262,10 +269,12 @@ async def accept_submission(request: Request, id: int, lei: str, period_code: st
 
     accepter = await repo.add_user_action(
         request.state.db_session,
-        user_id=request.user.id,
-        user_name=request.user.name,
-        user_email=request.user.email,
-        action_type=UserActionType.ACCEPT,
+        UserActionDTO(
+            user_id=request.user.id,
+            user_name=request.user.name,
+            user_email=request.user.email,
+            action_type=UserActionType.ACCEPT,
+        ),
     )
 
     submission.accepter_id = accepter.id

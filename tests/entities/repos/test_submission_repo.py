@@ -1,4 +1,5 @@
 import pandas as pd
+from pydantic import ValidationError
 import pytest
 
 import datetime
@@ -18,7 +19,7 @@ from sbl_filing_api.entities.models.dao import (
     ContactInfoDAO,
     UserActionDAO,
 )
-from sbl_filing_api.entities.models.dto import FilingPeriodDTO, ContactInfoDTO
+from sbl_filing_api.entities.models.dto import FilingPeriodDTO, ContactInfoDTO, UserActionDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.entities.repos import submission_repo as repo
 from regtech_api_commons.models.auth import AuthenticatedUser
@@ -229,10 +230,12 @@ class TestSubmissionRepo:
     async def test_add_filing(self, transaction_session: AsyncSession):
         user_action_create = await repo.add_user_action(
             transaction_session,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="test creator",
-            user_email="test@local.host",
-            action_type=UserActionType.CREATE,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test creator",
+                user_email="test@local.host",
+                action_type=UserActionType.CREATE,
+            ),
         )
         res = await repo.create_new_filing(
             transaction_session, lei="12345ABCDE", filing_period="2024", creator_id=user_action_create.id
@@ -250,10 +253,12 @@ class TestSubmissionRepo:
     async def test_modify_filing(self, transaction_session: AsyncSession):
         user_action_create = await repo.add_user_action(
             transaction_session,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="test creator",
-            user_email="test@local.host",
-            action_type=UserActionType.CREATE,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test creator",
+                user_email="test@local.host",
+                action_type=UserActionType.CREATE,
+            ),
         )
 
         mod_filing = FilingDAO(
@@ -399,10 +404,12 @@ class TestSubmissionRepo:
     async def test_add_submission(self, transaction_session: AsyncSession):
         user_action_submit = await repo.add_user_action(
             transaction_session,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="test submitter",
-            user_email="test@local.host",
-            action_type=UserActionType.SUBMIT,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test submitter",
+                user_email="test@local.host",
+                action_type=UserActionType.SUBMIT,
+            ),
         )
 
         res = await repo.add_submission(
@@ -580,11 +587,13 @@ class TestSubmissionRepo:
         user_actions_in_repo = await repo.get_user_actions(query_session)
 
         accepter = await repo.add_user_action(
-            session=transaction_session,
-            user_id="test2@cfpb.gov",
-            user_name="test2 accepter name",
-            user_email="test2@cfpb.gov",
-            action_type=UserActionType.ACCEPT,
+            transaction_session,
+            UserActionDTO(
+                user_id="test2@cfpb.gov",
+                user_name="test2 accepter name",
+                user_email="test2@cfpb.gov",
+                action_type=UserActionType.ACCEPT,
+            ),
         )
 
         assert accepter.id == len(user_actions_in_repo) + 1
@@ -592,6 +601,31 @@ class TestSubmissionRepo:
         assert accepter.user_name == "test2 accepter name"
         assert accepter.user_email == "test2@cfpb.gov"
         assert accepter.action_type == UserActionType.ACCEPT
+
+    async def test_add_user_action_invalid_field_length(self, transaction_session: AsyncSession):
+        out_of_range_text = (
+            "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
+            "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
+            "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
+        )
+
+        out_of_range_user_id = "123456789123456789123456789123456789123456789"
+
+        with pytest.raises(ValidationError) as ve:
+            await repo.add_user_action(
+                transaction_session,
+                UserActionDTO(
+                    id=1,
+                    user_id=out_of_range_user_id,
+                    user_name=out_of_range_text,
+                    user_email=out_of_range_text,
+                    timestamp=dt.now(),
+                    action_type=UserActionType.ACCEPT,
+                ),
+            ),
+
+        assert "String should have at most 36 characters" in str(ve.value)
+        assert "String should have at most 255 characters" in str(ve.value)
 
     def get_error_json(self):
         df_columns = [
