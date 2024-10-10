@@ -525,7 +525,7 @@ class TestSubmissionRepo:
         assert filing.contact_info.email == "test3@cfpb.gov"
 
     async def test_create_contact_info_invalid_field_length(self, transaction_session: AsyncSession):
-        out_of_rang_text = (
+        out_of_range_text = (
             "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
             "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
             "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
@@ -536,7 +536,7 @@ class TestSubmissionRepo:
                 lei="ZYXWVUTSRQP",
                 filing_period="2024",
                 new_contact_info=ContactInfoDTO(
-                    first_name=out_of_rang_text,
+                    first_name=out_of_range_text,
                     last_name="test_last_name_3",
                     hq_address_street_1="address street 1",
                     hq_address_street_2="",
@@ -592,7 +592,7 @@ class TestSubmissionRepo:
         assert filing.contact_info.email == "test2_upd@cfpb.gov"
 
     async def test_update_contact_info_invalid_field_length(self, transaction_session: AsyncSession):
-        out_of_rang_text = (
+        out_of_range_text = (
             "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
             "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
             "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
@@ -616,7 +616,7 @@ class TestSubmissionRepo:
                     hq_address_zip="12345",
                     phone_number="212-345-6789",
                     phone_ext="x12345",
-                    email=out_of_rang_text,
+                    email=out_of_range_text,
                 ),
             )
         assert isinstance(e.value, ValidationError)
