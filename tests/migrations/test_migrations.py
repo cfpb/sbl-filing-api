@@ -404,14 +404,21 @@ def test_migrations_to_6babc6109a5a(alembic_runner: MigrationContext, alembic_en
 
     inspector = sqlalchemy.inspect(alembic_engine)
 
-    assert "first_name" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "last_name" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "hq_address_street_1" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "hq_address_street_2" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "hq_address_street_3" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "hq_address_street_4" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "hq_address_city" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "hq_address_state" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "email" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "phone_number" in set([c["name"] for c in inspector.get_columns("contact_info")])
-    assert "phone_ext" in set([c["name"] for c in inspector.get_columns("contact_info")])
+    col_set = set(
+        [
+            (c["name"], c["type"].length if isinstance(c["type"].python_type(), str) else None)
+            for c in inspector.get_columns("contact_info")
+        ]
+    )
+
+    assert ("first_name", 255) in col_set
+    assert ("last_name", 255) in col_set
+    assert ("hq_address_street_1", 255) in col_set
+    assert ("hq_address_street_2", 255) in col_set
+    assert ("hq_address_street_3", 255) in col_set
+    assert ("hq_address_street_4", 255) in col_set
+    assert ("hq_address_city", 255) in col_set
+    assert ("hq_address_state", 255) in col_set
+    assert ("email", 255) in col_set
+    assert ("phone_number", 255) in col_set
+    assert ("phone_ext", 255) in col_set
