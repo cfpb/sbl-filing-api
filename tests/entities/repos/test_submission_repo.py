@@ -5,7 +5,6 @@ import pytest
 import datetime
 from datetime import datetime as dt
 
-from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
