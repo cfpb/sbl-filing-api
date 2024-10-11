@@ -4,6 +4,8 @@ import pytest
 
 import datetime
 from datetime import datetime as dt
+
+from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 
@@ -357,6 +359,39 @@ class TestSubmissionRepo:
             tasks_populated_filings.append(filings[0].id)
         assert set(tasks_populated_filings) == set([1, 2])
 
+    async def test_get_filings(self, query_session: AsyncSession, mocker: MockerFixture):
+        spy_populate_missing_tasks = mocker.patch(
+            "sbl_filing_api.entities.repos.submission_repo.populate_missing_tasks", wraps=repo.populate_missing_tasks
+        )
+        res = await repo.get_filings(query_session, leis=["1234567890", "ABCDEFGHIJ"], filing_period="2024")
+        assert res[0].id == 1
+        assert res[0].filing_period == "2024"
+        assert res[0].lei == "1234567890"
+        assert len(res[0].tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res[0].tasks])
+        tasks1 = set([task_progress.task for task_progress in res[0].tasks])
+        assert len(tasks1) == 2
+        assert "Task-1" in set([task.name for task in tasks1])
+        assert "Task-2" in set([task.name for task in tasks1])
+
+        assert res[1].id == 2
+        assert res[1].filing_period == "2024"
+        assert res[1].lei == "ABCDEFGHIJ"
+        assert len(res[1].tasks) == 2
+        assert FilingTaskState.NOT_STARTED in set([t.state for t in res[1].tasks])
+        tasks2 = set([task_progress.task for task_progress in res[1].tasks])
+        assert len(tasks2) == 2
+        assert "Task-1" in set([task.name for task in tasks2])
+        assert "Task-2" in set([task.name for task in tasks2])
+
+        tasks_populated_filings = []
+        for call in spy_populate_missing_tasks.call_args_list:
+            args, _ = call
+            filings = args[1]
+            assert all([isinstance(f, FilingDAO) for f in filings])
+            tasks_populated_filings.extend([f.id for f in filings])
+        assert set(tasks_populated_filings) == set([1, 2])
+
     async def test_get_period_filings(self, query_session: AsyncSession, mocker: MockerFixture):
         results = await repo.get_period_filings(query_session, filing_period="2024")
         assert len(results) == 3
@@ -529,6 +564,34 @@ class TestSubmissionRepo:
         assert filing.contact_info.phone_number == "312-345-6789"
         assert filing.contact_info.email == "test3@cfpb.gov"
 
+    async def test_create_contact_info_invalid_field_length(self, transaction_session: AsyncSession):
+        out_of_range_text = (
+            "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
+            "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
+            "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
+        )
+        with pytest.raises(Exception) as e:
+            await repo.update_contact_info(
+                transaction_session,
+                lei="ZYXWVUTSRQP",
+                filing_period="2024",
+                new_contact_info=ContactInfoDTO(
+                    first_name=out_of_range_text,
+                    last_name="test_last_name_3",
+                    hq_address_street_1="address street 1",
+                    hq_address_street_2="",
+                    hq_address_street_3="",
+                    hq_address_street_4="",
+                    hq_address_city="Test City",
+                    hq_address_state="TS",
+                    hq_address_zip="12345",
+                    phone_number="312-345-6789",
+                    phone_ext="x12345",
+                    email="test3@cfpb.gov",
+                ),
+            )
+        assert isinstance(e.value, ValidationError)
+
     async def test_update_contact_info(self, transaction_session: AsyncSession):
         filing = await repo.update_contact_info(
             transaction_session,
@@ -567,6 +630,36 @@ class TestSubmissionRepo:
         assert filing.contact_info.phone_number == "212-345-6789"
         assert filing.contact_info.phone_ext == "x12345"
         assert filing.contact_info.email == "test2_upd@cfpb.gov"
+
+    async def test_update_contact_info_invalid_field_length(self, transaction_session: AsyncSession):
+        out_of_range_text = (
+            "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget "
+            "dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, "
+            "nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis..."
+        )
+        with pytest.raises(Exception) as e:
+            await repo.update_contact_info(
+                transaction_session,
+                lei="ABCDEFGHIJ",
+                filing_period="2024",
+                new_contact_info=ContactInfoDTO(
+                    id=2,
+                    filing=2,
+                    first_name="test_first_name_upd",
+                    last_name="test_last_name_upd",
+                    hq_address_street_1="address street upd",
+                    hq_address_street_2="",
+                    hq_address_street_3="",
+                    hq_address_street_4="",
+                    hq_address_city="Test City upd",
+                    hq_address_state="TS",
+                    hq_address_zip="12345",
+                    phone_number="212-345-6789",
+                    phone_ext="x12345",
+                    email=out_of_range_text,
+                ),
+            )
+        assert isinstance(e.value, ValidationError)
 
     async def test_get_user_action(self, query_session: AsyncSession):
         res = await repo.get_user_action(session=query_session, id=3)

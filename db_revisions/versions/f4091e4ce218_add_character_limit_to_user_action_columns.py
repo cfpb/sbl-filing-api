@@ -1,7 +1,7 @@
 """Add character limit to user_action columns
 
 Revision ID: f4091e4ce218
-Revises: ba8234fe9eb5
+Revises: 6babc6109a5a
 Create Date: 2024-10-08 01:33:25.832473
 
 """
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "f4091e4ce218"
-down_revision: Union[str, None] = "ba8234fe9eb5"
+down_revision: Union[str, None] = "6babc6109a5a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

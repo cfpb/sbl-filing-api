@@ -49,18 +49,18 @@ class ContactInfoDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int | None = None
-    first_name: str
-    last_name: str
-    hq_address_street_1: str
-    hq_address_street_2: str | None = None
-    hq_address_street_3: str | None = None
-    hq_address_street_4: str | None = None
-    hq_address_city: str
-    hq_address_state: str
-    hq_address_zip: str
-    email: str
-    phone_number: str
-    phone_ext: str | None = Field(None, max_length=254)
+    first_name: str = Field(max_length=255)
+    last_name: str = Field(max_length=255)
+    hq_address_street_1: str = Field(max_length=255)
+    hq_address_street_2: str | None = Field(None, max_length=255)
+    hq_address_street_3: str | None = Field(None, max_length=255)
+    hq_address_street_4: str | None = Field(None, max_length=255)
+    hq_address_city: str = Field(max_length=255)
+    hq_address_state: str = Field(max_length=255)
+    hq_address_zip: str = Field(max_length=5)
+    email: str = Field(max_length=255)
+    phone_number: str = Field(max_length=255)
+    phone_ext: str | None = Field(None, max_length=255)
 
     @model_validator(mode="after")
     def validate_fi(self) -> "ContactInfoDTO":

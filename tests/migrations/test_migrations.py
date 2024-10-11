@@ -399,6 +399,31 @@ def test_migrations_to_ba8234fe9eb5(alembic_runner: MigrationContext, alembic_en
     assert "phone_ext" in set([c["name"] for c in inspector.get_columns("contact_info")])
 
 
+def test_migrations_to_6babc6109a5a(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("6babc6109a5a")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    col_set = set(
+        [
+            (c["name"], c["type"].length if isinstance(c["type"].python_type(), str) else None)
+            for c in inspector.get_columns("contact_info")
+        ]
+    )
+
+    assert ("first_name", 255) in col_set
+    assert ("last_name", 255) in col_set
+    assert ("hq_address_street_1", 255) in col_set
+    assert ("hq_address_street_2", 255) in col_set
+    assert ("hq_address_street_3", 255) in col_set
+    assert ("hq_address_street_4", 255) in col_set
+    assert ("hq_address_city", 255) in col_set
+    assert ("hq_address_state", 255) in col_set
+    assert ("email", 255) in col_set
+    assert ("phone_number", 255) in col_set
+    assert ("phone_ext", 255) in col_set
+
+
 def test_migrations_to_f4091e4ce218(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("f4091e4ce218")
 

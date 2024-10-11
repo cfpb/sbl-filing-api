@@ -63,6 +63,24 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/")
         assert res.status_code == 204
 
+    def test_unauthed_get_filings(self, app_fixture: FastAPI, get_filing_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/periods/2024/filings")
+        assert res.status_code == 403
+
+    def test_get_filings(self, app_fixture: FastAPI, get_filings_mock: Mock, authed_user_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/periods/2024/filings")
+        leis = ["1234567890ABCDEFGH00", "1234567890ABCDEFGH01", "1234567890ZXWVUTSR00"]
+        get_filings_mock.assert_called_with(ANY, leis, "2024")
+        assert res.status_code == 200
+        for i in range(len(res.json())):
+            assert res.json()[i]["lei"] == leis[i]
+
+        get_filings_mock.return_value = []
+        res = client.get("/v1/filing/periods/2024/filings")
+        assert res.json() == []
+
     def test_unauthed_post_filing(self, app_fixture: FastAPI):
         client = TestClient(app_fixture)
         res = client.post("/v1/filing/institutions/ZXWVUTSRQP/filings/2024/")
@@ -862,7 +880,7 @@ class TestFilingApi:
 
         assert res.status_code == 422
         json_error = res.json()
-        assert "'String should have at most 254 characters'" in json_error["error_detail"]
+        assert "'String should have at most 255 characters'" in json_error["error_detail"]
 
     async def test_accept_submission(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         user_action_submit = UserActionDAO(
