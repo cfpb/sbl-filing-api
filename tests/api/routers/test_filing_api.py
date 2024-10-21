@@ -20,7 +20,7 @@ from sbl_filing_api.entities.models.dao import (
     FilingDAO,
     UserActionDAO,
 )
-from sbl_filing_api.entities.models.dto import ContactInfoDTO
+from sbl_filing_api.entities.models.dto import ContactInfoDTO, UserActionDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
@@ -62,6 +62,24 @@ class TestFilingApi:
         get_filing_mock.return_value = None
         res = client.get("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/")
         assert res.status_code == 204
+
+    def test_unauthed_get_filings(self, app_fixture: FastAPI, get_filing_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/periods/2024/filings")
+        assert res.status_code == 403
+
+    def test_get_filings(self, app_fixture: FastAPI, get_filings_mock: Mock, authed_user_mock: Mock):
+        client = TestClient(app_fixture)
+        res = client.get("/v1/filing/periods/2024/filings")
+        leis = ["1234567890ABCDEFGH00", "1234567890ABCDEFGH01", "1234567890ZXWVUTSR00"]
+        get_filings_mock.assert_called_with(ANY, leis, "2024")
+        assert res.status_code == 200
+        for i in range(len(res.json())):
+            assert res.json()[i]["lei"] == leis[i]
+
+        get_filings_mock.return_value = []
+        res = client.get("/v1/filing/periods/2024/filings")
+        assert res.json() == []
 
     def test_unauthed_post_filing(self, app_fixture: FastAPI):
         client = TestClient(app_fixture)
@@ -862,7 +880,7 @@ class TestFilingApi:
 
         assert res.status_code == 422
         json_error = res.json()
-        assert "'String should have at most 254 characters'" in json_error["error_detail"]
+        assert "'String should have at most 255 characters'" in json_error["error_detail"]
 
     async def test_accept_submission(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         user_action_submit = UserActionDAO(
@@ -924,10 +942,12 @@ class TestFilingApi:
         update_mock.assert_called_once()
         update_accepter_mock.assert_called_once_with(
             ANY,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="Test User",
-            user_email="test@local.host",
-            action_type=UserActionType.ACCEPT,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="Test User",
+                user_email="test@local.host",
+                action_type=UserActionType.ACCEPT,
+            ),
         )
 
         assert res.json()["state"] == "SUBMISSION_ACCEPTED"
@@ -983,10 +1003,12 @@ class TestFilingApi:
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         add_sig_mock.assert_called_with(
             ANY,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="Test User",
-            user_email="test@local.host",
-            action_type=UserActionType.SIGN,
+            UserActionDTO(
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="Test User",
+                user_email="test@local.host",
+                action_type=UserActionType.SIGN,
+            ),
         )
         assert upsert_mock.call_args.args[1].confirmation_id.startswith("1234567890ABCDEFGH00-2024-1-")
         assert res.status_code == 200
