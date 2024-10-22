@@ -66,11 +66,20 @@ class TestSubmissionRepo:
             action_type=UserActionType.CREATE,
             timestamp=dt.now(),
         )
+        user_action5 = UserActionDAO(
+            id=5,
+            user_id="test_sig@local.host",
+            user_name="signer name",
+            user_email="test_sig@local.host",
+            action_type=UserActionType.SIGN,
+            timestamp=dt.now(),
+        )
 
         transaction_session.add(user_action1)
         transaction_session.add(user_action2)
         transaction_session.add(user_action3)
         transaction_session.add(user_action4)
+        transaction_session.add(user_action5)
 
         filing_task_1 = FilingTaskDAO(name="Task-1", task_order=1)
         filing_task_2 = FilingTaskDAO(name="Task-2", task_order=2)
@@ -108,6 +117,7 @@ class TestSubmissionRepo:
         filing1.creator = user_action4
         filing2.creator = user_action4
         filing3.creator = user_action4
+        filing1.signatures = [user_action1, user_action5]
 
         transaction_session.add(filing1)
         transaction_session.add(filing2)
@@ -338,6 +348,9 @@ class TestSubmissionRepo:
         assert len(tasks1) == 2
         assert "Task-1" in set([task.name for task in tasks1])
         assert "Task-2" in set([task.name for task in tasks1])
+        assert len(res1.signatures) == 2
+        assert res1.signatures[0].id == 5
+        assert res1.signatures[0].user_id == "test_sig@local.host"
 
         res2 = await repo.get_filing(query_session, lei="ABCDEFGHIJ", filing_period="2024")
         assert res2.id == 2
@@ -671,7 +684,7 @@ class TestSubmissionRepo:
     async def test_get_user_actions(self, query_session: AsyncSession):
         res = await repo.get_user_actions(session=query_session)
 
-        assert len(res) == 4
+        assert len(res) == 5
         assert res[0].id == 1
         assert res[0].user_name == "signer name"
 

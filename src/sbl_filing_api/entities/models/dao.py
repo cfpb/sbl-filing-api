@@ -113,7 +113,7 @@ class FilingDAO(Base):
     institution_snapshot_id: Mapped[str] = mapped_column(nullable=True)
     contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
     signatures: Mapped[List[UserActionDAO] | None] = relationship(
-        "UserActionDAO", secondary="filing_signature", lazy="selectin"
+        "UserActionDAO", secondary="filing_signature", lazy="selectin", order_by="desc(UserActionDAO.timestamp)"
     )
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
     creator_id: Mapped[int] = mapped_column(ForeignKey("user_action.id"))
