@@ -24,6 +24,7 @@ from sbl_filing_api.entities.models.dto import (
     ContactInfoDTO,
     SubmissionState,
     UserActionDTO,
+    VoluntaryUpdateDTO,
 )
 
 from sbl_filing_api.entities.repos import submission_repo as repo
@@ -403,3 +404,18 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
             name="Report Not Found",
             detail=f"Report for ({id}) does not exist.",
         )
+
+
+@router.put("/institutions/{lei}/filings/{period_code}/is-voluntary", response_model=FilingDTO)
+@requires("authenticated")
+async def update_is_voluntary(request: Request, lei: str, period_code: str, update_value: VoluntaryUpdateDTO):
+    result = await repo.get_filing(request.state.db_session, lei, period_code)
+    if result:
+        result.is_voluntary = update_value.is_voluntary
+        res = await repo.upsert_filing(request.state.db_session, result)
+        return res
+    raise RegTechHttpException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        name="Filing Not Found",
+        detail=f"A Filing for the LEI ({lei}) and period ({period_code}) that was attempted to be updated does not exist.",
+    )

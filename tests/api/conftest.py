@@ -94,6 +94,7 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
             action_type=UserActionType.SUBMIT,
             timestamp=datetime.now(),
         ),
+        is_voluntary=False,
     )
     return mock
 
@@ -129,6 +130,7 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 action_type=UserActionType.SUBMIT,
                 timestamp=datetime.now(),
             ),
+            is_voluntary=False,
         ),
         FilingDAO(
             id=1,
@@ -157,6 +159,7 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 action_type=UserActionType.SUBMIT,
                 timestamp=datetime.now(),
             ),
+            is_voluntary=False,
         ),
         FilingDAO(
             id=1,
@@ -185,6 +188,7 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 action_type=UserActionType.SUBMIT,
                 timestamp=datetime.now(),
             ),
+            is_voluntary=False,
         ),
     ]
     return mock
@@ -220,6 +224,7 @@ def post_filing_mock(mocker: MockerFixture) -> Mock:
             action_type=UserActionType.CREATE,
             timestamp=datetime.now(),
         ),
+        is_voluntary=False,
     )
     return mock
 
