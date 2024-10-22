@@ -32,3 +32,18 @@ loggers:
     handlers:
       - access
     propagate: no
+  regtech_data_validator:
+    level: INFO
+    handlers:
+      - default
+    propagate: false
+  regtech_api_commons:
+    level: INFO
+    handlers:
+      - default
+    propagate: false
+  sbl_filing_api:
+    level: INFO
+    handlers:
+      - default
+    propagate: false

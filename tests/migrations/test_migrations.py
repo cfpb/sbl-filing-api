@@ -434,3 +434,11 @@ def test_migrations_to_f4091e4ce218(alembic_runner: MigrationContext, alembic_en
     assert [c for c in columns if c["name"] == "user_id"][0]["type"].length == 36
     assert [c for c in columns if c["name"] == "user_name"][0]["type"].length == 255
     assert [c for c in columns if c["name"] == "user_email"][0]["type"].length == 255
+
+
+def test_migrations_to_26f11ac15b3c(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("26f11ac15b3c")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    assert "is_voluntary" in set([c["name"] for c in inspector.get_columns("filing")])

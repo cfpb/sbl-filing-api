@@ -545,6 +545,15 @@ class TestFilingApi:
         assert res.status_code == 200
         assert res.json()["institution_snapshot_id"] == "v3"
 
+        # update is_voluntary
+        mock.return_value.is_voluntary = True
+        res = client.put(
+            "/v1/filing/institutions/1234567890ABCDEFGH00/filings/2025/is-voluntary",
+            json={"is_voluntary": True},
+        )
+        assert res.status_code == 200
+        assert res.json()["is_voluntary"] is True
+
         # no existing filing for contact_info
         get_filing_mock.return_value = None
         res = client.put(
@@ -704,6 +713,7 @@ class TestFilingApi:
                 action_type=UserActionType.CREATE,
                 timestamp=datetime.datetime.now(),
             ),
+            is_voluntary=False,
         )
 
         client = TestClient(app_fixture)
@@ -797,6 +807,7 @@ class TestFilingApi:
                 action_type=UserActionType.CREATE,
                 timestamp=datetime.datetime.now(),
             ),
+            is_voluntary=True,
         )
 
         client = TestClient(app_fixture)

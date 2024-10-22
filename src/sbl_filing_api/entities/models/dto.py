@@ -87,6 +87,7 @@ class FilingDTO(BaseModel):
     confirmation_id: str | None = None
     signatures: List[UserActionDTO] = []
     creator: UserActionDTO
+    is_voluntary: bool
 
 
 class FilingPeriodDTO(BaseModel):
@@ -110,3 +111,9 @@ class StateUpdateDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     state: FilingTaskState
+
+
+class VoluntaryUpdateDTO(BaseModel):
+    model_config = ConfigDict(from_attribute=True)
+
+    is_voluntary: bool
