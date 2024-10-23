@@ -21,7 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     with op.batch_alter_table("filing") as batch_op:
-        batch_op.add_column(sa.Column("is_voluntary", sa.Boolean, nullable=False))
+        batch_op.add_column(sa.Column("is_voluntary", sa.Boolean, server_default=sa.text('false'), nullable=False))
 
 
 def downgrade() -> None:
