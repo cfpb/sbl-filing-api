@@ -713,7 +713,6 @@ class TestFilingApi:
                 action_type=UserActionType.CREATE,
                 timestamp=datetime.datetime.now(),
             ),
-            is_voluntary=False,
         )
 
         client = TestClient(app_fixture)
@@ -807,7 +806,6 @@ class TestFilingApi:
                 action_type=UserActionType.CREATE,
                 timestamp=datetime.datetime.now(),
             ),
-            is_voluntary=True,
         )
 
         client = TestClient(app_fixture)
