@@ -993,6 +993,7 @@ class TestFilingApi:
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
         )
+        get_filing_mock.return_value.is_voluntary = False
 
         add_sig_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
         add_sig_mock.return_value = UserActionDAO(
@@ -1079,16 +1080,14 @@ class TestFilingApi:
             filename="file1.csv",
         )
 
-        """
-        get_filing_mock.return_value.institution_snapshot_id = None
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         assert res.status_code == 403
         assert (
-            res.json()
-            == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have institution snapshot id defined."
+            res.json()["error_detail"]
+            == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a selection of is_voluntary defined."
         )
-        """
 
+        get_filing_mock.return_value.is_voluntary = True
         get_filing_mock.return_value.contact_info = None
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         assert res.status_code == 403
