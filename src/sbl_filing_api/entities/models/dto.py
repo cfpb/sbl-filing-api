@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
-from sbl_filing_api.entities.models.dao import SubmissionDAO
 
 
 class UserActionDTO(BaseModel):
@@ -18,7 +17,7 @@ class UserActionDTO(BaseModel):
 class SubmissionDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int | None = None
+    id: int | None = None  # noqa: F811
     counter: int
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
@@ -29,10 +28,9 @@ class SubmissionDTO(BaseModel):
     submitter: UserActionDTO
     accepter: UserActionDTO | None = None
 
-    def from_orm(cls, obj: SubmissionDAO):
-        obj_dict = obj.__dict__.copy()
-        obj_dict["id"] = obj_dict["counter"]
-        return cls.parse_obj(obj_dict)
+    @property
+    def id(self) -> int:  # noqa: F811
+        return self.counter
 
 
 class FilingTaskDTO(BaseModel):
