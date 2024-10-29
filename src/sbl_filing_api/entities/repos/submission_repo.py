@@ -55,6 +55,10 @@ async def get_submission(session: AsyncSession, submission_id: int) -> Submissio
     result = await query_helper(session, SubmissionDAO, id=submission_id)
     return result[0] if result else None
 
+async def get_submission_by_counter(session: AsyncSession, lei: str, filing_period: str, counter: int) -> SubmissionDAO:
+    filing = await get_filing(session, lei=lei, filing_period=filing_period)
+    result = await query_helper(session, SubmissionDAO, filing=filing.id, counter=counter)
+    return result[0] if result else None
 
 async def get_filing(session: AsyncSession, lei: str, filing_period: str) -> FilingDAO:
     result = await query_helper(session, FilingDAO, lei=lei, filing_period=filing_period)
