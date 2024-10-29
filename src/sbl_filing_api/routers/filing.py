@@ -128,6 +128,12 @@ async def sign_filing(request: Request, lei: str, period_code: str):
             name="Filing Action Forbidden",
             detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a latest submission the SUBMISSION_ACCEPTED state.",
         )
+    if filing.is_voluntary is None:
+        raise RegTechHttpException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="Filing Action Forbidden",
+            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a selection of is_voluntary defined.",
+        )
     if not filing.contact_info:
         raise RegTechHttpException(
             status_code=status.HTTP_403_FORBIDDEN,
