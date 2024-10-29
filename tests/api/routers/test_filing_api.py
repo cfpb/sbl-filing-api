@@ -1119,6 +1119,7 @@ class TestFilingApi:
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_latest_submission")
         sub_mock.return_value = SubmissionDAO(
             id=1,
+            counter=3,
             submitter=UserActionDAO(
                 id=1,
                 user_id="1234-5678-ABCD-EFGH",
@@ -1141,11 +1142,11 @@ class TestFilingApi:
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/latest/report")
         sub_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024")
-        file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "1" + submission_processor.REPORT_QUALIFIER)
+        file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "3" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
-        assert res.headers["content-disposition"] == 'attachment; filename="1_validation_report.csv"'
+        assert res.headers["content-disposition"] == 'attachment; filename="3_validation_report.csv"'
         assert res.headers["Cache-Control"] == "no-store"
 
         sub_mock.return_value = SubmissionDAO(
@@ -1185,6 +1186,7 @@ class TestFilingApi:
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
         sub_mock.return_value = SubmissionDAO(
             id=2,
+            counter=4,
             submitter=UserActionDAO(
                 id=1,
                 user_id="1234-5678-ABCD-EFGH",
@@ -1207,11 +1209,11 @@ class TestFilingApi:
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/2/report")
         sub_mock.assert_called_with(ANY, 2)
-        file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "2" + submission_processor.REPORT_QUALIFIER)
+        file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "4" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
         assert res.text == "Test"
         assert res.headers["content-type"] == "text/csv; charset=utf-8"
-        assert res.headers["content-disposition"] == 'attachment; filename="2_validation_report.csv"'
+        assert res.headers["content-disposition"] == 'attachment; filename="4_validation_report.csv"'
         assert res.headers["Cache-Control"] == "no-store"
 
         sub_mock.return_value = SubmissionDAO(

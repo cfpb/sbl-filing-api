@@ -364,13 +364,13 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
         SubmissionState.SUBMISSION_ACCEPTED,
     ]:
         file_data = submission_processor.get_from_storage(
-            period_code, lei, str(latest_sub.id) + submission_processor.REPORT_QUALIFIER
+            period_code, lei, str(latest_sub.counter) + submission_processor.REPORT_QUALIFIER
         )
         return StreamingResponse(
             content=file_data,
             media_type="text/csv",
             headers={
-                "Content-Disposition": f'attachment; filename="{latest_sub.id}_validation_report.csv"',
+                "Content-Disposition": f'attachment; filename="{latest_sub.counter}_validation_report.csv"',
                 "Cache-Control": "no-store",
             },
         )
@@ -396,13 +396,13 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
         SubmissionState.SUBMISSION_ACCEPTED,
     ]:
         file_data = submission_processor.get_from_storage(
-            period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
+            period_code, lei, str(sub.counter) + submission_processor.REPORT_QUALIFIER
         )
         return StreamingResponse(
             content=file_data,
             media_type="text/csv",
             headers={
-                "Content-Disposition": f'attachment; filename="{sub.id}_validation_report.csv"',
+                "Content-Disposition": f'attachment; filename="{sub.counter}_validation_report.csv"',
                 "Cache-Control": "no-store",
             },
         )
