@@ -435,6 +435,14 @@ class TestSubmissionRepo:
         assert res.state == SubmissionState.SUBMISSION_UPLOADED
         assert res.validation_ruleset_version == "v1"
 
+    async def test_get_submission_by_counter(self, query_session: AsyncSession):
+        res = await repo.get_submission_by_counter(query_session, "ABCDEFGHIJ", "2024", 2)
+        assert res.id == 3
+        assert res.filing == 2
+        assert res.state == SubmissionState.SUBMISSION_UPLOADED
+        assert res.validation_ruleset_version == "v1"
+        assert res.filename == "file3.csv"
+
     async def test_get_submissions(self, query_session: AsyncSession):
         res = await repo.get_submissions(query_session)
         assert len(res) == 4

@@ -243,7 +243,7 @@ class TestFilingApi:
         res = client.get("/v1/filing/institutions/123456790/filings/2024/submissions/1")
         assert res.status_code == 403
 
-    async def test_get_submission_by_id(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
+    async def test_get_submission_by_counter(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
         user_action_submit = UserActionDAO(
             id=2,
             user_id="123456-7890-ABCDEF-GHIJ",
@@ -252,11 +252,11 @@ class TestFilingApi:
             action_type=UserActionType.SUBMIT,
             timestamp=datetime.datetime.now(),
         )
-        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
+        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission_by_counter")
         mock.return_value = SubmissionDAO(
             id=1,
             filing=1,
-            counter=1,
+            counter=2,
             state=SubmissionState.VALIDATION_WITH_ERRORS,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
@@ -267,13 +267,13 @@ class TestFilingApi:
 
         client = TestClient(app_fixture)
 
-        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
-        mock.assert_called_with(ANY, 1)
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/2")
+        mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", 2)
         assert res.status_code == 200
 
         mock.return_value = None
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1")
-        mock.assert_called_with(ANY, 1)
+        mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", 1)
         assert res.status_code == 404
 
     def test_authed_upload_file(
@@ -915,11 +915,11 @@ class TestFilingApi:
             action_type=UserActionType.ACCEPT,
             timestamp=datetime.datetime.now(),
         )
-        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
+        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission_by_counter")
         mock.return_value = SubmissionDAO(
             id=1,
             filing=1,
-            counter=1,
+            counter=3,
             state=SubmissionState.VALIDATION_WITH_ERRORS,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
@@ -935,7 +935,7 @@ class TestFilingApi:
         update_mock.return_value = SubmissionDAO(
             id=1,
             filing=1,
-            counter=2,
+            counter=4,
             state=SubmissionState.SUBMISSION_ACCEPTED,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
@@ -947,15 +947,15 @@ class TestFilingApi:
         )
 
         client = TestClient(app_fixture)
-        res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/accept")
+        res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/3/accept")
         assert res.status_code == 403
         assert (
             res.json()["error_detail"]
-            == "Submission 1 for LEI 1234567890ZXWVUTSR00 in filing period 2024 is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted."
+            == "Submission 3 for LEI 1234567890ZXWVUTSR00 in filing period 2024 is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted."
         )
 
         mock.return_value.state = SubmissionState.VALIDATION_SUCCESSFUL
-        res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/accept")
+        res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/4/accept")
         update_mock.assert_called_once()
         update_accepter_mock.assert_called_once_with(
             ANY,
@@ -979,7 +979,10 @@ class TestFilingApi:
         mock.return_value = None
         res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/accept")
         assert res.status_code == 404
-        assert res.json()["error_detail"] == "Submission ID 1 does not exist, cannot accept a non-existing submission."
+        assert (
+            res.json()["error_detail"]
+            == "Submission 1 for LEI 1234567890ZXWVUTSR00 in filing period 2024 does not exist, cannot accept a non-existing submission."
+        )
 
     async def test_good_sign_filing(
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
@@ -1183,7 +1186,7 @@ class TestFilingApi:
         assert res.status_code == 404
 
     async def test_get_sub_report(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
-        sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission")
+        sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_submission_by_counter")
         sub_mock.return_value = SubmissionDAO(
             id=2,
             counter=4,
@@ -1207,8 +1210,8 @@ class TestFilingApi:
         file_mock.return_value = [c for c in file_content]
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/2/report")
-        sub_mock.assert_called_with(ANY, 2)
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/4/report")
+        sub_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", 4)
         file_mock.assert_called_with("2024", "1234567890ZXWVUTSR00", "4" + submission_processor.REPORT_QUALIFIER)
         assert res.status_code == 200
         assert res.text == "Test"
@@ -1216,31 +1219,17 @@ class TestFilingApi:
         assert res.headers["content-disposition"] == 'attachment; filename="4_validation_report.csv"'
         assert res.headers["Cache-Control"] == "no-store"
 
-        sub_mock.return_value = SubmissionDAO(
-            id=2,
-            submitter=UserActionDAO(
-                id=1,
-                user_id="1234-5678-ABCD-EFGH",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
-            filing=1,
-            state=SubmissionState.VALIDATION_IN_PROGRESS,
-            validation_ruleset_version="v1",
-            submission_time=datetime.datetime.now(),
-            filename="file1.csv",
-        )
+        sub_mock.return_value.state = SubmissionState.VALIDATION_IN_PROGRESS
 
         client = TestClient(app_fixture)
-        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/report")
+        res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/4/report")
+        sub_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", 4)
         assert res.status_code == 404
 
         sub_mock.return_value = []
         client = TestClient(app_fixture)
         res = client.get("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/1/report")
-        sub_mock.assert_called_with(ANY, 1)
+        sub_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", 1)
         assert res.status_code == 404
 
     def test_contact_info_invalid_email(self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock):
