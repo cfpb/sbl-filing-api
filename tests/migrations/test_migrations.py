@@ -454,3 +454,10 @@ def test_migrations_to_6ec12afa5b37(alembic_runner: MigrationContext, alembic_en
     assert "counter" in set([c["name"] for c in inspector.get_columns("submission")])
     assert counter_constraint["name"] == "unique_filing_counter"
     assert set(counter_constraint["column_names"]) == set(["filing", "counter"])
+    
+def test_migrations_to_63138f5cf036(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("63138f5cf036")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+    columns = inspector.get_columns("filing")
+    assert next(c for c in columns if c["name"] == "is_voluntary")["nullable"]

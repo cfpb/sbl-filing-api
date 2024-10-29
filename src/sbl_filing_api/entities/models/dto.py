@@ -88,7 +88,7 @@ class FilingDTO(BaseModel):
     confirmation_id: str | None = None
     signatures: List[UserActionDTO] = []
     creator: UserActionDTO
-    is_voluntary: bool
+    is_voluntary: bool | None = None
 
 
 class FilingPeriodDTO(BaseModel):
