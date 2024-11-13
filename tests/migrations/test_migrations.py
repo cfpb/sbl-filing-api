@@ -442,3 +442,11 @@ def test_migrations_to_26f11ac15b3c(alembic_runner: MigrationContext, alembic_en
     inspector = sqlalchemy.inspect(alembic_engine)
 
     assert "is_voluntary" in set([c["name"] for c in inspector.get_columns("filing")])
+
+
+def test_migrations_to_63138f5cf036(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("63138f5cf036")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+    columns = inspector.get_columns("filing")
+    assert next(c for c in columns if c["name"] == "is_voluntary")["nullable"]

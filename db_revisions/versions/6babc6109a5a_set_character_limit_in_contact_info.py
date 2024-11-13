@@ -30,7 +30,7 @@ def upgrade() -> None:
         batch_op.alter_column("hq_address_state", type_=sa.String(255), nullable=False)
         batch_op.alter_column("email", type_=sa.String(255), nullable=False)
         batch_op.alter_column("phone_number", type_=sa.String(255), nullable=False)
-        batch_op.alter_column("phone_ext", type_=sa.String(255), nullable=False)
+        batch_op.alter_column("phone_ext", type_=sa.String(255), nullable=True)
 
 
 def downgrade() -> None:
@@ -45,4 +45,4 @@ def downgrade() -> None:
         batch_op.alter_column("hq_address_state", type_=sa.String, nullable=False)
         batch_op.alter_column("email", type_=sa.String, nullable=False)
         batch_op.alter_column("phone_number", type_=sa.String, nullable=False)
-        batch_op.alter_column("phone_ext", type_=sa.String, nullable=False)
+        batch_op.alter_column("phone_ext", type_=sa.String, nullable=True)
