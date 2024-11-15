@@ -112,9 +112,7 @@ async def validate_and_update_submission(
                 error_count=sum([r.error_counts.total_count for r in all_findings]),
                 max_errors=settings.max_validation_errors,
             )
-            upload_to_storage(
-                period_code, lei, str(submission.counter) + REPORT_QUALIFIER, submission_report
-            )
+            upload_to_storage(period_code, lei, str(submission.counter) + REPORT_QUALIFIER, submission_report)
 
             upload_to_storage(period_code, lei, str(submission.counter) + REPORT_QUALIFIER, submission_report)
 

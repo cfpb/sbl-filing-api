@@ -80,7 +80,6 @@ class TestSubmissionProcessor:
         mocker: MockerFixture,
         successful_submission_mock: Mock,
         build_validation_results_mock: Mock,
-        df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -89,16 +88,22 @@ class TestSubmissionProcessor:
             state=SubmissionState.SUBMISSION_UPLOADED,
             filename="submission.csv",
         )
+        successful_submission_mock.return_value.counter = 2
+
+        mock_download_formatting = mocker.patch("sbl_filing_api.services.submission_processor.df_to_download")
+        mock_download_formatting.return_value = b"\x01"
+
+        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
 
         await submission_processor.validate_and_update_submission(
             "2024", "123456790", mock_sub, None, {"continue": True}
         )
-        encoded_results = df_to_download_mock.return_value.encode("utf-8")
+
         assert file_mock.mock_calls[0].args == (
             "2024",
             "123456790",
             "2" + submission_processor.REPORT_QUALIFIER,
-            encoded_results,
+            mock_download_formatting.return_value,
         )
         assert successful_submission_mock.mock_calls[0].args[1].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert successful_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
@@ -108,7 +113,6 @@ class TestSubmissionProcessor:
         self,
         mocker: MockerFixture,
         warning_submission_mock: Mock,
-        df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -117,21 +121,25 @@ class TestSubmissionProcessor:
             state=SubmissionState.SUBMISSION_UPLOADED,
             filename="submission.csv",
         )
-        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
         warning_submission_mock.return_value.counter = 3
 
         mock_build_json = mocker.patch("sbl_filing_api.services.submission_processor.build_validation_results")
         mock_build_json.return_value = {"logic_errors": {"total_count": 0}, "logic_warnings": {"total_count": 1}}
 
+        mock_download_formatting = mocker.patch("sbl_filing_api.services.submission_processor.df_to_download")
+        mock_download_formatting.return_value = b"\x01"
+
+        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+
         await submission_processor.validate_and_update_submission(
             "2024", "123456790", mock_sub, None, {"continue": True}
         )
-        encoded_results = df_to_download_mock.return_value.encode("utf-8")
+
         assert file_mock.mock_calls[0].args == (
             "2024",
             "123456790",
             "3" + submission_processor.REPORT_QUALIFIER,
-            encoded_results,
+            mock_download_formatting.return_value,
         )
         assert warning_submission_mock.mock_calls[0].args[1].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert warning_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
@@ -141,7 +149,6 @@ class TestSubmissionProcessor:
         self,
         mocker: MockerFixture,
         error_submission_mock: Mock,
-        df_to_download_mock: Mock,
     ):
         mock_sub = SubmissionDAO(
             id=1,
@@ -155,15 +162,20 @@ class TestSubmissionProcessor:
         mock_build_json = mocker.patch("sbl_filing_api.services.submission_processor.build_validation_results")
         mock_build_json.return_value = {"logic_errors": {"total_count": 1}}
 
+        mock_download_formatting = mocker.patch("sbl_filing_api.services.submission_processor.df_to_download")
+        mock_download_formatting.return_value = b"\x01"
+
+        file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
+
         await submission_processor.validate_and_update_submission(
             "2024", "123456790", mock_sub, None, {"continue": True}
         )
-        encoded_results = df_to_download_mock.return_value.encode("utf-8")
+
         assert file_mock.mock_calls[0].args == (
             "2024",
             "123456790",
             "4" + submission_processor.REPORT_QUALIFIER,
-            encoded_results,
+            mock_download_formatting.return_value,
         )
         assert error_submission_mock.mock_calls[0].args[1].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert error_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
