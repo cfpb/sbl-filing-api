@@ -17,7 +17,7 @@ def test_default_maxes():
     settings = Settings()
     assert settings.max_validation_errors == 1000000
     assert settings.max_json_records == 10000
-    assert settings.max_json_group_size == 0
+    assert settings.max_json_group_size == 200
 
 
 def test_default_server_configs():

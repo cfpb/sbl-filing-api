@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     conn: PostgresDsn | None = None
 
     fs_upload_config: FsUploadConfig
+
     server_config: ServerConfig = ServerConfig()
 
     submission_file_type: str = "text/csv"
@@ -61,7 +62,7 @@ class Settings(BaseSettings):
 
     max_validation_errors: int = 1000000
     max_json_records: int = 10000
-    max_json_group_size: int = 0
+    max_json_group_size: int = 200
 
     def __init__(self, **data):
         super().__init__(**data)

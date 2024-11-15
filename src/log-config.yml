@@ -20,18 +20,6 @@ handlers:
     class: logging.StreamHandler
     stream: ext://sys.stdout
 loggers:
-  uvicorn:
-    level: INFO
-    handlers:
-      - default
-    propagate: no
-  uvicorn.error:
-    level: INFO
-  uvicorn.access:
-    level: INFO
-    handlers:
-      - access
-    propagate: no
   regtech_data_validator:
     level: INFO
     handlers:
@@ -46,4 +34,16 @@ loggers:
     level: INFO
     handlers:
       - default
+    propagate: false
+  uvicorn:
+    level: INFO
+    handlers:
+      - default
+    propagate: false
+  uvicorn.error:
+    level: INFO
+  uvicorn.access:
+    level: INFO
+    handlers:
+      - access
     propagate: false

@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import csv
+import io
 
 from concurrent.futures import ProcessPoolExecutor
 from fastapi import Depends, Request, UploadFile, status
@@ -195,6 +197,9 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
             )
 
             submission.state = SubmissionState.SUBMISSION_UPLOADED
+            with io.BytesIO(content) as byte_stream:
+                reader = csv.reader(io.TextIOWrapper(byte_stream))
+                submission.total_records = sum(1 for row in reader) - 1
             submission = await repo.update_submission(request.state.db_session, submission)
         except Exception as e:
             submission.state = SubmissionState.UPLOAD_FAILED

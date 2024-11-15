@@ -1,9 +1,9 @@
-FROM ghcr.io/cfpb/regtech/sbl/python-alpine:3.12
-
+FROM --platform=amd64 ghcr.io/cfpb/regtech/sbl/python-ubi8:3.12
 ENV UVICORN_LOG_LEVEL=info
 
 WORKDIR /usr/app
 RUN mkdir upload
+
 RUN pip install poetry
 
 COPY --chown=sbl:sbl poetry.lock pyproject.toml alembic.ini README.md ./
