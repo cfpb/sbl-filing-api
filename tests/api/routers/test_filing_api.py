@@ -91,17 +91,23 @@ class TestFilingApi:
         mocker: MockerFixture,
         app_fixture: FastAPI,
         get_filing_period_mock,
+        get_filing_mock,
         post_filing_mock: Mock,
         authed_user_mock: Mock,
     ):
         client = TestClient(app_fixture)
         get_filing_period_by_code_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_filing_period")
 
+        # Filing already exists
+        res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
+        assert res.status_code == 409
+        assert res.json()["error_detail"] == "Filing already exists for Filing Period 2024 and LEI 1234567890ZXWVUTSR00"
+
         # testing with a period that does not exist
+        get_filing_mock.return_value = None
         get_filing_period_by_code_mock.return_value = None
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/")
         assert res.status_code == 404
-
         assert (
             res.json()["error_detail"]
             == "The period (2025) does not exist, therefore a Filing can not be created for this period."
@@ -130,8 +136,12 @@ class TestFilingApi:
         mock_add_creator.side_effect = None
         post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
-        assert res.status_code == 409
-        assert res.json()["error_detail"] == "Filing already exists for Filing Period 2024 and LEI 1234567890ZXWVUTSR00"
+        assert res.status_code == 500
+        assert (
+            res.json()["error_detail"]
+            == "An error occurred while creating a filing for LEI 1234567890ZXWVUTSR00 and Filing "
+            "Period 2024."
+        )
 
         post_filing_mock.side_effect = None
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
@@ -872,7 +882,6 @@ class TestFilingApi:
     def test_bad_extension(
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
     ):
-
         client = TestClient(app_fixture)
         contact_info_json = {
             "id": 1,

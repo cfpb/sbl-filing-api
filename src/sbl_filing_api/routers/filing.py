@@ -31,7 +31,6 @@ from sbl_filing_api.entities.models.dto import (
 
 from sbl_filing_api.entities.repos import submission_repo as repo
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from starlette.authentication import requires
@@ -77,6 +76,13 @@ async def post_filing(request: Request, lei: str, period_code: str):
     period = await repo.get_filing_period(request.state.db_session, filing_period=period_code)
 
     if period:
+        filing = await repo.get_filing(request.state.db_session, lei, period_code)
+        if filing:
+            raise RegTechHttpException(
+                status_code=status.HTTP_409_CONFLICT,
+                name="Filing Creation Conflict",
+                detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
+            )
         creator = None
         try:
             creator = await repo.add_user_action(
@@ -98,11 +104,11 @@ async def post_filing(request: Request, lei: str, period_code: str):
 
         try:
             return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
-        except IntegrityError:
+        except Exception:
             raise RegTechHttpException(
-                status_code=status.HTTP_409_CONFLICT,
-                name="Filing Creation Conflict",
-                detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                name="Filing Creation Error",
+                detail=f"An error occurred while creating a filing for LEI {lei} and Filing Period {period_code}.",
             )
 
     else:
