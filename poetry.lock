@@ -1816,13 +1816,13 @@ files = [
 
 [[package]]
 name = "locust"
-version = "2.32.2"
+version = "2.32.3"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "locust-2.32.2-py3-none-any.whl", hash = "sha256:54a4ec106ec0ee79305deda4659b3f325c1e87b134face75d5da6525adde6316"},
-    {file = "locust-2.32.2.tar.gz", hash = "sha256:d2920bc7f19d7f3bedee6cc2cafddc547ba128cba51e5e339c308e14fb88f1a7"},
+    {file = "locust-2.32.3-py3-none-any.whl", hash = "sha256:ebfce96f82b0b31418a498ae97724fdba9a41754e88471de56920339f3974347"},
+    {file = "locust-2.32.3.tar.gz", hash = "sha256:2b92df32c414a272dde321da4afd9e148b5fec32213fe2a260885a469374132b"},
 ]
 
 [package.dependencies]
@@ -1840,6 +1840,7 @@ psutil = ">=5.9.1"
 pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
 pyzmq = ">=25.0.0"
 requests = {version = ">=2.32.2", markers = "python_full_version > \"3.11.0\""}
+setuptools = ">=65.5.1"
 Werkzeug = ">=2.0.0"
 
 [[package]]
@@ -4206,4 +4207,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<4"
-content-hash = "f9f6596fcf4ca5ddc75038816ec3fb50baf3f5297971196c28be0dbd3f2f858b"
+content-hash = "99df17afcfcb572b3d0a8f910a69b0abf0a54d02ac6e4624da4af41e5bdc76af"
