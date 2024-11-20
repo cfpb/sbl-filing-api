@@ -4,7 +4,10 @@ COPY ./locust_scripts ./locust_scripts
 COPY ./configs/filing-api.conf ./filing-api.conf
 COPY ./run_locust.sh /usr/local/bin/
 
-RUN pip install python-keycloak httpx
+COPY requirements.txt requirements.txt
+
+RUN pip install -r requirements.txt
+
 RUN mkdir /home/locust/reports
 RUN mkdir /home/locust/sblars
 
