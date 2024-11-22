@@ -28,13 +28,6 @@ class SubmissionDTO(BaseModel):
     submitter: UserActionDTO
     accepter: UserActionDTO | None = None
 
-    @model_validator(mode="after")
-    def validate_fi(self) -> "SubmissionDTO":
-        print(f"Self: {self}")
-        self.id = self.counter
-        print(f"Self: {self}")
-        return self
-
 
 class FilingTaskDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)

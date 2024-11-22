@@ -977,7 +977,8 @@ class TestFilingApi:
         )
 
         assert res.json()["state"] == "SUBMISSION_ACCEPTED"
-        assert res.json()["id"] == 4
+        assert res.json()["id"] == 1
+        assert res.json()["counter"] == 4
         assert res.json()["accepter"]["id"] == 3
         assert res.json()["accepter"]["user_id"] == "1234-5678-ABCD-EFGH"
         assert res.json()["accepter"]["user_name"] == "test accepter"
