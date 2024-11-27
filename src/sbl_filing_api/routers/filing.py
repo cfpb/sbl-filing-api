@@ -15,6 +15,7 @@ from sbl_filing_api.entities.models.dao import FilingDAO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
+from sbl_filing_api.config import request_action_validations
 from typing import Annotated, List
 
 from sbl_filing_api.entities.engine.engine import get_session
@@ -127,7 +128,7 @@ async def post_filing(request: Request, lei: str, period_code: str):
     response_model=FilingDTO,
     dependencies=[
         Depends(set_context({UserActionContext.INSTITUTION, UserActionContext.FILING})),
-        Depends(validate_user_action({UserActionType.SIGN})),
+        Depends(validate_user_action(request_action_validations.sign_and_submit, "Filing Action Forbidden")),
     ],
 )
 @requires("authenticated")
