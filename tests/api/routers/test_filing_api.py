@@ -1027,6 +1027,9 @@ class TestFilingApi:
             action_type=UserActionType.SIGN,
         )
 
+        send_email_mock = mocker.patch("sbl_filing_api.routers.filing.send_confirmation_email")
+        send_email_mock.return_value = None
+
         upsert_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.upsert_filing")
         updated_filing_obj = deepcopy(get_filing_mock.return_value)
         upsert_mock.return_value = updated_filing_obj
@@ -1042,6 +1045,9 @@ class TestFilingApi:
                 action_type=UserActionType.SIGN,
             ),
         )
+        send_email_mock.assert_called_with("Test User", "test@local.host", "test1@cfpb.gov", ANY, ANY)
+        assert send_email_mock.call_args.args[3].startswith("1234567890ABCDEFGH00-2024-5-")
+        assert float(send_email_mock.call_args.args[4]) == pytest.approx(int(dt.now().timestamp()), abs=1.5)
         assert upsert_mock.call_args.args[1].confirmation_id.startswith("1234567890ABCDEFGH00-2024-5-")
         assert res.status_code == 200
         assert float(upsert_mock.call_args.args[1].confirmation_id.split("-")[3]) == pytest.approx(
@@ -1052,6 +1058,8 @@ class TestFilingApi:
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
     ):
         sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_latest_submission")
+        send_email_mock = mocker.patch("sbl_filing_api.services.request_handler.send_confirmation_email")
+        send_email_mock.return_value = None
         sub_mock.return_value = SubmissionDAO(
             id=1,
             submitter=UserActionDAO(

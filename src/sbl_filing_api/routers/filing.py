@@ -39,6 +39,8 @@ from starlette.authentication import requires
 
 from regtech_api_commons.api.dependencies import verify_user_lei_relation
 
+from src.sbl_filing_api.services.request_handler import send_confirmation_email
+
 from sbl_filing_api.services.request_action_validator import UserActionContext, validate_user_action, set_context
 
 logger = logging.getLogger(__name__)
@@ -144,10 +146,12 @@ async def sign_filing(request: Request, lei: str, period_code: str):
             action_type=UserActionType.SIGN,
         ),
     )
-    filing.confirmation_id = (
-        lei + "-" + period_code + "-" + str(latest_sub.counter) + "-" + str(int(sig.timestamp.timestamp()))
-    )
+    sig_timestamp = int(sig.timestamp.timestamp())
+    filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.counter) + "-" + str(sig_timestamp)
     filing.signatures.append(sig)
+    send_confirmation_email(
+        request.user.name, request.user.email, filing.contact_info.email, filing.confirmation_id, sig_timestamp
+    )
     return await repo.upsert_filing(request.state.db_session, filing)
 
 

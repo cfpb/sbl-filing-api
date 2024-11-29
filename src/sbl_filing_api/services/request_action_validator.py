@@ -22,10 +22,12 @@ class UserActionContext(StrEnum):
     FILING = "filing"
     INSTITUTION = "institution"
 
+
 class FiRequest:
     """
     FI retrieval request to allow cache to work
     """
+
     request: Request
     lei: str
 
@@ -39,13 +41,16 @@ class FiRequest:
     def __eq__(self, other: "FiRequest"):
         return self.lei == other.lei
 
+
 @alru_cache(ttl=60 * 60)
 async def get_institution_data(fi_request: FiRequest):
     async with httpx.AsyncClient() as client:
         res = await client.get(
-            settings.user_fi_api_url + fi_request.lei, headers={"authorization": fi_request.request.headers["authorization"]}
+            settings.user_fi_api_url + fi_request.lei,
+            headers={"authorization": fi_request.request.headers["authorization"]},
         )
         return res.json()
+
 
 class ActionValidator(ABC):
     """
@@ -136,6 +141,7 @@ def set_context(requirements: Set[UserActionContext]):
         lei: comes from request path param
         period: filing period comes from request path param
     """
+
     async def _set_context(request: Request):
         lei = request.path_params.get("lei")
         period = request.path_params.get("period_code")
