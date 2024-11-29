@@ -22,7 +22,6 @@ from sbl_filing_api.entities.models.dao import (
 from sbl_filing_api.entities.models.dto import FilingPeriodDTO, ContactInfoDTO, UserActionDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.entities.repos import submission_repo as repo
-from regtech_api_commons.models.auth import AuthenticatedUser
 from pytest_mock import MockerFixture
 
 
