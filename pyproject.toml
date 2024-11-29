@@ -78,7 +78,8 @@ env = [
   "FS_UPLOAD_CONFIG__MKDIR=true",
   "FS_DOWNLOAD_CONFIG__PROTOCOL=file",
   "ENV=TEST",
-  "MAIL_API_URL=http://mail-api:8765/internal/confirmation/send"
+  "MAIL_API_URL=http://mail-api:8765/internal/confirmation/send",
+  'REQUEST_VALIDATORS__SIGN_AND_SUBMIT=["check_lei_status","check_lei_tin","check_filing_exists","check_sub_accepted","check_voluntary_filer","check_contact_info"]'
 ]
 testpaths = ["tests"]
 

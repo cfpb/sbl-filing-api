@@ -161,7 +161,12 @@ async def update_contact_info(
     session: AsyncSession, lei: str, filing_period: str, new_contact_info: ContactInfoDTO
 ) -> FilingDAO:
     filing = await get_filing(session, lei=lei, filing_period=filing_period)
-    filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
+    if filing.contact_info:
+        for key, value in new_contact_info.__dict__.items():
+            if key != "id":
+                setattr(filing.contact_info, key, value)
+    else:
+        filing.contact_info = ContactInfoDAO(**new_contact_info.__dict__.copy(), filing=filing.id)
     return await upsert_helper(session, filing, FilingDAO)
 
 

@@ -997,25 +997,26 @@ class TestFilingApi:
     async def test_good_sign_filing(
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
     ):
-        mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_latest_submission")
-        mock.return_value = SubmissionDAO(
-            id=1,
-            counter=5,
-            submitter=UserActionDAO(
+        get_filing_mock.return_value.is_voluntary = True
+        get_filing_mock.return_value.submissions = [
+            SubmissionDAO(
                 id=1,
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
-            filing=1,
-            state=SubmissionState.SUBMISSION_ACCEPTED,
-            validation_ruleset_version="v1",
-            submission_time=datetime.datetime.now(),
-            filename="file1.csv",
-        )
-        get_filing_mock.return_value.is_voluntary = False
+                counter=5,
+                submitter=UserActionDAO(
+                    id=1,
+                    user_id="123456-7890-ABCDEF-GHIJ",
+                    user_name="Test Submitter User",
+                    user_email="test1@cfpb.gov",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.datetime.now(),
+                ),
+                filing=1,
+                state=SubmissionState.SUBMISSION_ACCEPTED,
+                validation_ruleset_version="v1",
+                submission_time=datetime.datetime.now(),
+                filename="file1.csv",
+            )
+        ]
 
         add_sig_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
         add_sig_mock.return_value = UserActionDAO(
@@ -1034,7 +1035,14 @@ class TestFilingApi:
         updated_filing_obj = deepcopy(get_filing_mock.return_value)
         upsert_mock.return_value = updated_filing_obj
 
-        client = TestClient(app_fixture)
+        fi_data_mock = mocker.patch("sbl_filing_api.services.request_action_validator.get_institution_data")
+        fi_data_mock.return_value = {
+            "tax_id": "12-3456789",
+            "lei_status_code": "ISSUED",
+            "lei_status": {"code": "ISSUED", "name": "Issued", "can_file": True},
+        }
+
+        client = TestClient(app_fixture, headers={"authorization": "Bearer test123"})
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         add_sig_mock.assert_called_with(
             ANY,
@@ -1057,81 +1065,74 @@ class TestFilingApi:
     async def test_errors_sign_filing(
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
     ):
-        sub_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.get_latest_submission")
         send_email_mock = mocker.patch("sbl_filing_api.services.request_handler.send_confirmation_email")
         send_email_mock.return_value = None
-        sub_mock.return_value = SubmissionDAO(
-            id=1,
-            submitter=UserActionDAO(
+
+        get_filing_mock.return_value.submissions = [
+            SubmissionDAO(
                 id=1,
-                user_id="1234-5678-ABCD-EFGH",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
-            filing=1,
-            state=SubmissionState.VALIDATION_SUCCESSFUL,
-            validation_ruleset_version="v1",
-            submission_time=datetime.datetime.now(),
-            filename="file1.csv",
-        )
-
-        client = TestClient(app_fixture)
-        res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
-        assert res.status_code == 403
-        assert (
-            res.json()["error_detail"]
-            == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a latest submission the SUBMISSION_ACCEPTED state."
-        )
-
-        sub_mock.return_value = None
-        res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
-        assert res.status_code == 403
-        assert (
-            res.json()["error_detail"]
-            == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a latest submission the SUBMISSION_ACCEPTED state."
-        )
-
-        sub_mock.return_value = SubmissionDAO(
-            id=1,
-            submitter=UserActionDAO(
-                id=1,
-                user_id="1234-5678-ABCD-EFGH",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
-            filing=1,
-            state=SubmissionState.SUBMISSION_ACCEPTED,
-            validation_ruleset_version="v1",
-            submission_time=datetime.datetime.now(),
-            filename="file1.csv",
-        )
-
-        res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
-        assert res.status_code == 403
-        assert (
-            res.json()["error_detail"]
-            == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a selection of is_voluntary defined."
-        )
-
-        get_filing_mock.return_value.is_voluntary = True
+                submitter=UserActionDAO(
+                    id=1,
+                    user_id="1234-5678-ABCD-EFGH",
+                    user_name="Test Submitter User",
+                    user_email="test1@cfpb.gov",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.datetime.now(),
+                ),
+                filing=1,
+                state=SubmissionState.VALIDATION_SUCCESSFUL,
+                validation_ruleset_version="v1",
+                submission_time=datetime.datetime.now(),
+                filename="file1.csv",
+            )
+        ]
         get_filing_mock.return_value.contact_info = None
+
+        add_sig_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
+        add_sig_mock.return_value = UserActionDAO(
+            id=2,
+            user_id="123456-7890-ABCDEF-GHIJ",
+            user_name="Test User",
+            user_email="test@local.host",
+            timestamp=datetime.datetime.now(),
+            action_type=UserActionType.SIGN,
+        )
+
+        upsert_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.upsert_filing")
+        updated_filing_obj = deepcopy(get_filing_mock.return_value)
+        upsert_mock.return_value = updated_filing_obj
+
+        fi_data_mock = mocker.patch("sbl_filing_api.services.request_action_validator.get_institution_data")
+        fi_data_mock.return_value = {
+            "tax_id": None,
+            "lei_status_code": "LAPSED",
+            "lei_status": {"code": "LAPSED", "name": "Lapsed", "can_file": False},
+        }
+
+        client = TestClient(app_fixture, headers={"authorization": "Bearer test123"})
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
         assert res.status_code == 403
+        errors = res.json()["error_detail"]
         assert (
-            res.json()["error_detail"]
-            == "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have contact info defined."
+            "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a latest submission in the SUBMISSION_ACCEPTED state."
+            in errors
         )
+        assert (
+            "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have a selection of is_voluntary defined."
+            in errors
+        )
+        assert (
+            "Cannot sign filing. Filing for 1234567890ABCDEFGH00 for period 2024 does not have contact info defined."
+            in errors
+        )
+        assert "Cannot sign filing. TIN is required to file." in errors
+        assert "Cannot sign filing. LEI status of LAPSED cannot file." in errors
 
         get_filing_mock.return_value = None
         res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/sign")
-        assert res.status_code == 404
         assert (
-            res.json()["error_detail"]
-            == "There is no Filing for LEI 1234567890ABCDEFGH00 in period 2024, unable to sign a non-existent Filing."
+            "There is no Filing for LEI 1234567890ABCDEFGH00 in period 2024, unable to sign a non-existent Filing."
+            in res.json()["error_detail"]
         )
 
     async def test_get_latest_sub_report(

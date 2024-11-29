@@ -75,7 +75,7 @@ class CheckLeiStatus(ActionValidator):
         try:
             is_active = institution["lei_status"]["can_file"]
             if not is_active:
-                return f"LEI status of {institution['lei_status_code']} cannot file."
+                return f"Cannot sign filing. LEI status of {institution['lei_status_code']} cannot file."
         except Exception:
             log.exception("Unable to determine lei status: %s", json.dumps(institution))
             return "Unable to determine LEI status."
@@ -87,7 +87,7 @@ class CheckLeiTin(ActionValidator):
 
     def __call__(self, institution: Dict[str, Any], **kwargs):
         if not institution["tax_id"]:
-            return "TIN is required to file"
+            return "Cannot sign filing. TIN is required to file."
 
 
 class CheckFilingExists(ActionValidator):
@@ -104,11 +104,12 @@ class CheckSubAccepted(ActionValidator):
         super().__init__("check_sub_accepted")
 
     async def __call__(self, filing: FilingDAO, **kwargs):
-        submissions: List[SubmissionDAO] = await filing.awaitable_attrs.submissions
-        if not len(submissions) or submissions[0].state != SubmissionState.SUBMISSION_ACCEPTED:
-            filing.lei
-            filing.filing_period
-            return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have a latest submission in the SUBMISSION_ACCEPTED state."
+        if filing:
+            submissions: List[SubmissionDAO] = await filing.awaitable_attrs.submissions
+            if not len(submissions) or submissions[0].state != SubmissionState.SUBMISSION_ACCEPTED:
+                filing.lei
+                filing.filing_period
+                return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have a latest submission in the SUBMISSION_ACCEPTED state."
 
 
 class CheckVoluntaryFiler(ActionValidator):
@@ -116,7 +117,7 @@ class CheckVoluntaryFiler(ActionValidator):
         super().__init__("check_voluntary_filer")
 
     def __call__(self, filing: FilingDAO, **kwargs):
-        if filing.is_voluntary is None:
+        if filing and filing.is_voluntary is None:
             return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have a selection of is_voluntary defined."
 
 
@@ -125,7 +126,7 @@ class CheckContactInfo(ActionValidator):
         super().__init__("check_contact_info")
 
     def __call__(self, filing: FilingDAO, **kwargs):
-        if not filing.contact_info:
+        if filing and not filing.contact_info:
             return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have contact info defined."
 
 
@@ -147,7 +148,6 @@ def set_context(requirements: Set[UserActionContext]):
         period = request.path_params.get("period_code")
         context = {"lei": lei, "period": period}
         if lei and UserActionContext.INSTITUTION in requirements:
-
             context = context | {UserActionContext.INSTITUTION: await get_institution_data(FiRequest(request, lei))}
         if period and UserActionContext.FILING in requirements:
             context = context | {UserActionContext.FILING: await repo.get_filing(request.state.db_session, lei, period)}

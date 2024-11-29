@@ -114,7 +114,7 @@ class FilingDAO(Base):
     lei: Mapped[str]
     tasks: Mapped[List[FilingTaskProgressDAO] | None] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str] = mapped_column(nullable=True)
-    contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
+    contact_info: Mapped[ContactInfoDAO | None] = relationship("ContactInfoDAO", lazy="joined")
     submissions: Mapped[List[SubmissionDAO] | None] = relationship(
         "SubmissionDAO", lazy="select", order_by=desc(SubmissionDAO.submission_time)
     )
