@@ -3,6 +3,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from enum import StrEnum
+from http import HTTPStatus
 from typing import Any, Dict, List, Set
 
 import httpx
@@ -44,12 +45,22 @@ class FiRequest:
 
 @alru_cache(ttl=60 * 60)
 async def get_institution_data(fi_request: FiRequest):
-    async with httpx.AsyncClient() as client:
-        res = await client.get(
-            settings.user_fi_api_url + fi_request.lei,
-            headers={"authorization": fi_request.request.headers["authorization"]},
-        )
-        return res.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(
+                settings.user_fi_api_url + fi_request.lei,
+                headers={"authorization": fi_request.request.headers["authorization"]},
+            )
+            if res.status_code == HTTPStatus.OK:
+                return res.json()
+    except Exception:
+        log.exception("Failed to retrieve fi data for %s", fi_request.lei)
+
+    """
+    `alru_cache` seems to cache `None` results, even though documentation for normal `lru_cache` seems to indicate it doesn't by cache `None` by default.
+    So manually invalidate the cache if no returnable result found
+    """
+    get_institution_data.cache_invalidate(fi_request)
 
 
 class ActionValidator(ABC):
@@ -86,7 +97,7 @@ class CheckLeiTin(ActionValidator):
         super().__init__("check_lei_tin")
 
     def __call__(self, institution: Dict[str, Any], **kwargs):
-        if not institution["tax_id"]:
+        if not (institution and institution.get("tax_id")):
             return "Cannot sign filing. TIN is required to file."
 
 
@@ -130,7 +141,9 @@ class CheckContactInfo(ActionValidator):
             return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have contact info defined."
 
 
-validation_registry = {Validator() for Validator in ActionValidator.__subclasses__()}
+validation_registry = {
+    validator.name: validator for validator in {Validator() for Validator in ActionValidator.__subclasses__()}
+}
 
 
 def set_context(requirements: Set[UserActionContext]):
@@ -168,12 +181,16 @@ def validate_user_action(validator_names: Set[str], exception_name: str):
 
     async def _run_validations(request: Request):
         res = []
-        validators = set(filter(lambda validator: validator.name in validator_names, validation_registry))
-        for validator in validators:
+        for validator_name in validator_names:
+            validator = validation_registry.get(validator_name)
+            if not validator:
+                log.warning("Action validator [%s] not found.", validator_name)
+                continue
             if inspect.iscoroutinefunction(validator.__call__):
                 res.append(await validator(**request.state.context))
             else:
                 res.append(validator(**request.state.context))
+
         res = [r for r in res if r]
         if len(res):
             raise RegTechHttpException(
