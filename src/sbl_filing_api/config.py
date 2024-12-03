@@ -84,7 +84,7 @@ class Settings(BaseSettings):
 
 
 class RequestActionValidations(BaseSettings):
-    sign_and_submit: Set[str] = set()
+    sign_and_submit: Set[str] = {"check_lei_status","check_lei_tin","check_filing_exists","check_sub_accepted","check_voluntary_filer","check_contact_info"}
 
     model_config = SettingsConfigDict(env_prefix="request_validators__", env_file=env_files_to_load, extra="allow")
 
