@@ -57,7 +57,7 @@ async def get_institution_data(fi_request: FiRequest):
         log.exception("Failed to retrieve fi data for %s", fi_request.lei)
 
     """
-    `alru_cache` seems to cache `None` results, even though documentation for normal `lru_cache` seems to indicate it doesn't by cache `None` by default.
+    `alru_cache` seems to cache `None` results, even though documentation for normal `lru_cache` seems to indicate it doesn't cache `None` by default.
     So manually invalidate the cache if no returnable result found
     """
     get_institution_data.cache_invalidate(fi_request)
@@ -185,8 +185,7 @@ def validate_user_action(validator_names: Set[str], exception_name: str):
             validator = validation_registry.get(validator_name)
             if not validator:
                 log.warning("Action validator [%s] not found.", validator_name)
-                continue
-            if inspect.iscoroutinefunction(validator.__call__):
+            elif inspect.iscoroutinefunction(validator.__call__):
                 res.append(await validator(**request.state.context))
             else:
                 res.append(validator(**request.state.context))
