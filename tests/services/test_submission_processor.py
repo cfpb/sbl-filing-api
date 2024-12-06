@@ -99,7 +99,7 @@ class TestSubmissionProcessor:
             "2024", "123456790", mock_sub, None, {"continue": True}
         )
 
-        assert file_mock.mock_calls[0].args == (
+        file_mock.assert_called_once_with(
             "2024",
             "123456790",
             "2" + submission_processor.REPORT_QUALIFIER,
@@ -135,7 +135,7 @@ class TestSubmissionProcessor:
             "2024", "123456790", mock_sub, None, {"continue": True}
         )
 
-        assert file_mock.mock_calls[0].args == (
+        file_mock.assert_called_once_with(
             "2024",
             "123456790",
             "3" + submission_processor.REPORT_QUALIFIER,
@@ -171,7 +171,7 @@ class TestSubmissionProcessor:
             "2024", "123456790", mock_sub, None, {"continue": True}
         )
 
-        assert file_mock.mock_calls[0].args == (
+        file_mock.assert_called_once_with(
             "2024",
             "123456790",
             "4" + submission_processor.REPORT_QUALIFIER,

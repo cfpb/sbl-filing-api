@@ -39,7 +39,7 @@ from starlette.authentication import requires
 
 from regtech_api_commons.api.dependencies import verify_user_lei_relation
 
-from src.sbl_filing_api.services.request_handler import send_confirmation_email
+from sbl_filing_api.services.request_handler import send_confirmation_email
 
 from sbl_filing_api.services.request_action_validator import UserActionContext, validate_user_action, set_context
 
