@@ -37,7 +37,7 @@ from starlette.authentication import requires
 
 from regtech_api_commons.api.dependencies import verify_user_lei_relation
 
-from src.sbl_filing_api.services.request_handler import send_confirmation_email
+from sbl_filing_api.services.request_handler import send_confirmation_email
 
 logger = logging.getLogger(__name__)
 
