@@ -114,8 +114,6 @@ async def validate_and_update_submission(
             )
             upload_to_storage(period_code, lei, str(submission.counter) + REPORT_QUALIFIER, submission_report)
 
-            upload_to_storage(period_code, lei, str(submission.counter) + REPORT_QUALIFIER, submission_report)
-
             if not exec_check["continue"]:
                 log.warning(f"Submission {submission.id} is expired, will not be updating final state with results.")
                 return
@@ -127,8 +125,7 @@ async def validate_and_update_submission(
             submission.state = SubmissionState.SUBMISSION_UPLOAD_MALFORMED
             await update_submission(session, submission)
 
-        except Exception as e:
-            print(f"{e}")
+        except Exception:
             log.exception("Validation for submission %d did not complete due to an unexpected error.", submission.id)
             submission.state = SubmissionState.VALIDATION_ERROR
             await update_submission(session, submission)
