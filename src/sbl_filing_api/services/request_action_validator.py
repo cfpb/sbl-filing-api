@@ -1,20 +1,18 @@
 import inspect
-import json
 import logging
-from abc import ABC, abstractmethod
-from enum import StrEnum
-from http import HTTPStatus
-from typing import Any, Dict, List, Set
-
 import httpx
+
 from async_lru import alru_cache
+from enum import StrEnum
 from fastapi import Request, status
+from http import HTTPStatus
+from typing import Set
+
 from regtech_api_commons.api.exceptions import RegTechHttpException
 
 from sbl_filing_api.config import settings
-from sbl_filing_api.entities.models.dao import FilingDAO, SubmissionDAO
-from sbl_filing_api.entities.models.model_enums import SubmissionState
 from sbl_filing_api.entities.repos import submission_repo as repo
+from sbl_filing_api.services.validators.base_validator import get_validation_registry
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +20,7 @@ log = logging.getLogger(__name__)
 class UserActionContext(StrEnum):
     FILING = "filing"
     INSTITUTION = "institution"
+    PERIOD = "period"
 
 
 class FiRequest:
@@ -63,89 +62,6 @@ async def get_institution_data(fi_request: FiRequest):
     get_institution_data.cache_invalidate(fi_request)
 
 
-class ActionValidator(ABC):
-    """
-    Abstract Callable class for action validations, __subclasses__ method leveraged to construct a registry
-    """
-
-    name: str
-
-    def __init__(self, name: str):
-        super().__init__()
-        self.name = name
-
-    @abstractmethod
-    def __call__(self, *args, **kwargs): ...
-
-
-class CheckLeiStatus(ActionValidator):
-    def __init__(self):
-        super().__init__("check_lei_status")
-
-    def __call__(self, institution: Dict[str, Any], **kwargs):
-        try:
-            is_active = institution["lei_status"]["can_file"]
-            if not is_active:
-                return f"Cannot sign filing. LEI status of {institution['lei_status_code']} cannot file."
-        except Exception:
-            log.exception("Unable to determine lei status: %s", json.dumps(institution))
-            return "Unable to determine LEI status."
-
-
-class CheckLeiTin(ActionValidator):
-    def __init__(self):
-        super().__init__("check_lei_tin")
-
-    def __call__(self, institution: Dict[str, Any], **kwargs):
-        if not (institution and institution.get("tax_id")):
-            return "Cannot sign filing. TIN is required to file."
-
-
-class CheckFilingExists(ActionValidator):
-    def __init__(self):
-        super().__init__("check_filing_exists")
-
-    def __call__(self, filing: FilingDAO, lei: str, period: str, **kwargs):
-        if not filing:
-            return f"There is no Filing for LEI {lei} in period {period}, unable to sign a non-existent Filing."
-
-
-class CheckSubAccepted(ActionValidator):
-    def __init__(self):
-        super().__init__("check_sub_accepted")
-
-    async def __call__(self, filing: FilingDAO, **kwargs):
-        if filing:
-            submissions: List[SubmissionDAO] = await filing.awaitable_attrs.submissions
-            if not len(submissions) or submissions[0].state != SubmissionState.SUBMISSION_ACCEPTED:
-                filing.lei
-                filing.filing_period
-                return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have a latest submission in the SUBMISSION_ACCEPTED state."
-
-
-class CheckVoluntaryFiler(ActionValidator):
-    def __init__(self):
-        super().__init__("check_voluntary_filer")
-
-    def __call__(self, filing: FilingDAO, **kwargs):
-        if filing and filing.is_voluntary is None:
-            return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have a selection of is_voluntary defined."
-
-
-class CheckContactInfo(ActionValidator):
-    def __init__(self):
-        super().__init__("check_contact_info")
-
-    def __call__(self, filing: FilingDAO, **kwargs):
-        if filing and not filing.contact_info:
-            return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have contact info defined."
-
-
-validation_registry = {
-    validator.name: validator for validator in {Validator() for Validator in ActionValidator.__subclasses__()}
-}
-
-
 def set_context(requirements: Set[UserActionContext]):
     """
     Sets a `context` object on `request.state`; this should typically include the institution, and filing;
@@ -159,9 +75,13 @@ def set_context(requirements: Set[UserActionContext]):
     async def _set_context(request: Request):
         lei = request.path_params.get("lei")
         period = request.path_params.get("period_code")
-        context = {"lei": lei, "period": period}
+        context = {"lei": lei, "period_code": period}
         if lei and UserActionContext.INSTITUTION in requirements:
             context = context | {UserActionContext.INSTITUTION: await get_institution_data(FiRequest(request, lei))}
+        if period and UserActionContext.PERIOD in requirements:
+            context = context | {
+                UserActionContext.PERIOD: await repo.get_filing_period(request.state.db_session, period)
+            }
         if period and UserActionContext.FILING in requirements:
             context = context | {UserActionContext.FILING: await repo.get_filing(request.state.db_session, lei, period)}
         request.state.context = context
@@ -181,6 +101,7 @@ def validate_user_action(validator_names: Set[str], exception_name: str):
 
     async def _run_validations(request: Request):
         res = []
+        validation_registry = get_validation_registry()
         for validator_name in validator_names:
             validator = validation_registry.get(validator_name)
             if not validator:

@@ -2,6 +2,7 @@ from http import HTTPStatus
 from logging import Logger
 
 import pytest
+
 from fastapi import Request
 from pytest_mock import MockerFixture
 from regtech_api_commons.api.exceptions import RegTechHttpException
@@ -55,7 +56,7 @@ def request_mock_valid_context(mocker: MockerFixture, request_mock: Request, fil
 
     request_mock.state.context = {
         "lei": "1234567890ABCDEFGH00",
-        "period": "2024",
+        "period_code": "2024",
         UserActionContext.INSTITUTION: {
             "tax_id": "12-3456789",
             "lei_status_code": "ISSUED",
@@ -70,7 +71,7 @@ def request_mock_valid_context(mocker: MockerFixture, request_mock: Request, fil
 def request_mock_invalid_context(mocker: MockerFixture, request_mock: Request, filing_mock: FilingDAO) -> Request:
     request_mock.state.context = {
         "lei": "1234567890ABCDEFGH00",
-        "period": "2024",
+        "period_code": "2024",
         UserActionContext.INSTITUTION: {
             "lei_status_code": "LAPSED",
             "lei_status": {"name": "Lapsed", "code": "LAPSED", "can_file": False},
