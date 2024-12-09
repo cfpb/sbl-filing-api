@@ -76,52 +76,42 @@ async def get_filings(request: Request, period_code: str):
     return await repo.get_filings(request.state.db_session, user.institutions, period_code)
 
 
-@router.post("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
+@router.post(
+    "/institutions/{lei}/filings/{period_code}",
+    response_model=FilingDTO,
+    dependencies=[
+        Depends(set_context({UserActionContext.PERIOD, UserActionContext.FILING})),
+        Depends(validate_user_action(request_action_validations.filing_create, "Filing Create Forbidden")),
+    ],
+)
 @requires("authenticated")
 async def post_filing(request: Request, lei: str, period_code: str):
-    period = await repo.get_filing_period(request.state.db_session, filing_period=period_code)
-
-    if period:
-        filing = await repo.get_filing(request.state.db_session, lei, period_code)
-        if filing:
-            raise RegTechHttpException(
-                status_code=status.HTTP_409_CONFLICT,
-                name="Filing Creation Conflict",
-                detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
-            )
-        creator = None
-        try:
-            creator = await repo.add_user_action(
-                request.state.db_session,
-                UserActionDTO(
-                    user_id=request.user.id,
-                    user_name=request.user.name,
-                    user_email=request.user.email,
-                    action_type=UserActionType.CREATE,
-                ),
-            )
-        except Exception:
-            logger.exception("Error while trying to create the filing.creator UserAction.")
-            raise RegTechHttpException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                name="Filing.creator UserAction error",
-                detail="Error while trying to create the filing.creator UserAction.",
-            )
-
-        try:
-            return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
-        except Exception:
-            raise RegTechHttpException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                name="Filing Creation Error",
-                detail=f"An error occurred while creating a filing for LEI {lei} and Filing Period {period_code}.",
-            )
-
-    else:
+    creator = None
+    try:
+        creator = await repo.add_user_action(
+            request.state.db_session,
+            UserActionDTO(
+                user_id=request.user.id,
+                user_name=request.user.name,
+                user_email=request.user.email,
+                action_type=UserActionType.CREATE,
+            ),
+        )
+    except Exception:
+        logger.exception("Error while trying to create the filing.creator UserAction.")
         raise RegTechHttpException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            name="Filing Period Not Found",
-            detail=f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            name="Filing.creator UserAction error",
+            detail="Error while trying to create the filing.creator UserAction.",
+        )
+
+    try:
+        return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
+    except Exception:
+        raise RegTechHttpException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            name="Filing Creation Error",
+            detail=f"An error occurred while creating a filing for LEI {lei} and Filing Period {period_code}.",
         )
 
 

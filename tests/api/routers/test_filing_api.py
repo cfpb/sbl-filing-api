@@ -100,17 +100,20 @@ class TestFilingApi:
 
         # Filing already exists
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
-        assert res.status_code == 409
-        assert res.json()["error_detail"] == "Filing already exists for Filing Period 2024 and LEI 1234567890ZXWVUTSR00"
+        assert res.status_code == 403
+        assert (
+            res.json()["error_detail"]
+            == "['Filing already exists for Filing Period 2024 and LEI 1234567890ZXWVUTSR00']"
+        )
 
         # testing with a period that does not exist
         get_filing_mock.return_value = None
         get_filing_period_by_code_mock.return_value = None
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/")
-        assert res.status_code == 404
+        assert res.status_code == 403
         assert (
             res.json()["error_detail"]
-            == "The period (2025) does not exist, therefore a Filing can not be created for this period."
+            == "['The period (2025) does not exist, therefore a Filing can not be created for this period.']"
         )
 
         get_filing_period_by_code_mock.return_value = get_filing_period_mock.return_value
