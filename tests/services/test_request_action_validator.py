@@ -91,7 +91,7 @@ async def test_validations_with_errors(request_mock_invalid_context: Request):
         {
             "check_lei_status",
             "check_lei_tin",
-            "check_filing_exists",
+            "check_filing_not_exists",
             "check_sub_accepted",
             "check_voluntary_filer",
             "check_contact_info",
@@ -123,7 +123,7 @@ async def test_validations_no_errors(request_mock_valid_context: Request):
         {
             "check_lei_status",
             "check_lei_tin",
-            "check_filing_exists",
+            "check_filing_not_exists",
             "check_sub_accepted",
             "check_voluntary_filer",
             "check_contact_info",

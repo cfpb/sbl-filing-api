@@ -1,24 +1,42 @@
 import logging
 
-from sbl_filing_api.entities.models.dao import FilingPeriodDAO, FilingDAO
+from sbl_filing_api.entities.models.dao import FilingDAO
 from .base_validator import ActionValidator
 
 log = logging.getLogger(__name__)
 
 
-class CheckPeriodExists(ActionValidator):
+class CheckFilingExists(ActionValidator):
     def __init__(self):
-        super().__init__("check_period_exists")
-
-    def __call__(self, period: FilingPeriodDAO, period_code: str, **kwargs):
-        if not period:
-            return f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period."
-
-
-class CheckPeriodFilingExists(ActionValidator):
-    def __init__(self):
-        super().__init__("check_period_filing_exists")
+        super().__init__("check_filing_exists")
 
     def __call__(self, filing: FilingDAO, period_code: str, lei: str, **kwargs):
         if filing:
             return f"Filing already exists for Filing Period {period_code} and LEI {lei}"
+
+
+class CheckFilingNotExists(ActionValidator):
+    def __init__(self):
+        super().__init__("check_filing_not_exists")
+
+    def __call__(self, filing: FilingDAO, lei: str, period_code: str, **kwargs):
+        if not filing:
+            return f"There is no Filing for LEI {lei} in period {period_code}, unable to sign a non-existent Filing."
+
+
+class CheckVoluntaryFiler(ActionValidator):
+    def __init__(self):
+        super().__init__("check_voluntary_filer")
+
+    def __call__(self, filing: FilingDAO, **kwargs):
+        if filing and filing.is_voluntary is None:
+            return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have a selection of is_voluntary defined."
+
+
+class CheckContactInfo(ActionValidator):
+    def __init__(self):
+        super().__init__("check_contact_info")
+
+    def __call__(self, filing: FilingDAO, **kwargs):
+        if filing and not filing.contact_info:
+            return f"Cannot sign filing. Filing for {filing.lei} for period {filing.filing_period} does not have contact info defined."
