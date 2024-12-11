@@ -6,9 +6,9 @@ from .base_validator import ActionValidator
 log = logging.getLogger(__name__)
 
 
-class CheckPeriodNotExists(ActionValidator):
+class ValidPeriodExists(ActionValidator):
     def __init__(self):
-        super().__init__("check_period_not_exists")
+        super().__init__("valid_period_exists")
 
     def __call__(self, period: FilingPeriodDAO, period_code: str, **kwargs):
         if not period:

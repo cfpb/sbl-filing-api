@@ -85,15 +85,15 @@ class Settings(BaseSettings):
 
 class RequestActionValidations(BaseSettings):
     sign_and_submit: Set[str] = {
-        "check_lei_status",
-        "check_lei_tin",
-        "check_filing_not_exists",
-        "check_sub_accepted",
-        "check_voluntary_filer",
-        "check_contact_info",
+        "valid_lei_status",
+        "valid_lei_tin",
+        "valid_filing_exists",
+        "valid_sub_accepted",
+        "valid_voluntary_filer",
+        "valid_contact_info",
     }
 
-    filing_create: Set[str] = {"check_period_not_exists", "check_filing_exists"}
+    filing_create: Set[str] = {"valid_period_exists", "valid_no_filing_exists"}
 
     model_config = SettingsConfigDict(env_prefix="request_validators__", env_file=env_files_to_load, extra="allow")
 

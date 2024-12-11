@@ -8,9 +8,9 @@ from .base_validator import ActionValidator
 log = logging.getLogger(__name__)
 
 
-class CheckLeiStatus(ActionValidator):
+class ValidLeiStatus(ActionValidator):
     def __init__(self):
-        super().__init__("check_lei_status")
+        super().__init__("valid_lei_status")
 
     def __call__(self, institution: Dict[str, Any], **kwargs):
         try:
@@ -22,9 +22,9 @@ class CheckLeiStatus(ActionValidator):
             return "Unable to determine LEI status."
 
 
-class CheckLeiTin(ActionValidator):
+class ValidLeiTin(ActionValidator):
     def __init__(self):
-        super().__init__("check_lei_tin")
+        super().__init__("valid_lei_tin")
 
     def __call__(self, institution: Dict[str, Any], **kwargs):
         if not (institution and institution.get("tax_id")):
