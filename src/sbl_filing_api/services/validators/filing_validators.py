@@ -15,7 +15,7 @@ class ValidNoFilingExists(ActionValidator):
             return f"Filing already exists for Filing Period {period_code} and LEI {lei}"
 
 
-class ValidFilingNotExists(ActionValidator):
+class ValidFilingExists(ActionValidator):
     def __init__(self):
         super().__init__("valid_filing_exists")
 
