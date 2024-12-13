@@ -15,7 +15,6 @@ from sbl_filing_api.entities.models.dao import (
     FilingTaskProgressDAO,
     FilingTaskDAO,
     FilingType,
-    FilingTaskState,
     SubmissionState,
     ContactInfoDAO,
     UserActionDAO,
@@ -23,7 +22,6 @@ from sbl_filing_api.entities.models.dao import (
 from sbl_filing_api.entities.models.dto import FilingPeriodDTO, ContactInfoDTO, UserActionDTO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.entities.repos import submission_repo as repo
-from regtech_api_commons.models.auth import AuthenticatedUser
 from pytest_mock import MockerFixture
 
 
@@ -294,64 +292,11 @@ class TestSubmissionRepo:
         assert res.creator.user_id == "123456-7890-ABCDEF-GHIJ"
         assert res.creator.user_name == "test creator"
 
-    async def test_get_filing_tasks(self, transaction_session: AsyncSession):
-        tasks = await repo.get_filing_tasks(transaction_session)
-        assert len(tasks) == 2
-        assert tasks[0].name == "Task-1"
-        assert tasks[1].name == "Task-2"
-
-    async def test_mod_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
-        user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
-        await repo.update_task_state(
-            query_session, lei="1234567890", filing_period="2024", task_name="Task-1", state="COMPLETED", user=user
-        )
-        seconds_now = dt.utcnow().timestamp()
-        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
-        filing_task_states = filing.tasks
-
-        assert len(filing_task_states) == 2
-        assert filing_task_states[0].task.name == "Task-1"
-        assert filing_task_states[0].id == 1
-        assert filing_task_states[0].filing == 1
-        assert filing_task_states[0].state == FilingTaskState.COMPLETED
-        assert filing_task_states[0].user == "testuser"
-        assert filing_task_states[0].change_timestamp.timestamp() == pytest.approx(
-            seconds_now, abs=1.5
-        )  # allow for possible 1.5 second difference
-
-    async def test_add_filing_task(self, query_session: AsyncSession, transaction_session: AsyncSession):
-        user = AuthenticatedUser.from_claim({"preferred_username": "testuser"})
-        await repo.update_task_state(
-            query_session, lei="1234567890", filing_period="2024", task_name="Task-2", state="IN_PROGRESS", user=user
-        )
-        seconds_now = dt.utcnow().timestamp()
-        filing = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
-        filing_task_states = filing.tasks
-
-        assert len(filing_task_states) == 2
-        assert filing_task_states[1].task.name == "Task-2"
-        assert filing_task_states[1].id == 2
-        assert filing_task_states[1].filing == 1
-        assert filing_task_states[1].state == FilingTaskState.IN_PROGRESS
-        assert filing_task_states[1].user == "testuser"
-        assert filing_task_states[1].change_timestamp.timestamp() == pytest.approx(
-            seconds_now, abs=1.0
-        )  # allow for possible 1 second difference
-
     async def test_get_filing(self, query_session: AsyncSession, mocker: MockerFixture):
-        spy_populate_missing_tasks = mocker.patch(
-            "sbl_filing_api.entities.repos.submission_repo.populate_missing_tasks", wraps=repo.populate_missing_tasks
-        )
         res1 = await repo.get_filing(query_session, lei="1234567890", filing_period="2024")
         assert res1.id == 1
         assert res1.filing_period == "2024"
         assert res1.lei == "1234567890"
-        assert len(res1.tasks) == 2
-        assert FilingTaskState.NOT_STARTED in set([t.state for t in res1.tasks])
-        tasks1 = set([task_progress.task for task_progress in res1.tasks])
-        assert len(tasks1) == 2
-        assert "Task-1" in set([task.name for task in tasks1])
-        assert "Task-2" in set([task.name for task in tasks1])
         assert len(res1.signatures) == 2
         assert res1.signatures[0].id == 5
         assert res1.signatures[0].user_id == "test_sig@local.host"
@@ -360,53 +305,16 @@ class TestSubmissionRepo:
         assert res2.id == 2
         assert res2.filing_period == "2024"
         assert res2.lei == "ABCDEFGHIJ"
-        assert len(res2.tasks) == 2
-        assert FilingTaskState.NOT_STARTED in set([t.state for t in res2.tasks])
-        tasks2 = set([task_progress.task for task_progress in res2.tasks])
-        assert len(tasks2) == 2
-        assert "Task-1" in set([task.name for task in tasks2])
-        assert "Task-2" in set([task.name for task in tasks2])
-
-        tasks_populated_filings = []
-        for call in spy_populate_missing_tasks.call_args_list:
-            args, _ = call
-            filings = args[1]
-            assert isinstance(filings[0], FilingDAO)
-            tasks_populated_filings.append(filings[0].id)
-        assert set(tasks_populated_filings) == set([1, 2])
 
     async def test_get_filings(self, query_session: AsyncSession, mocker: MockerFixture):
-        spy_populate_missing_tasks = mocker.patch(
-            "sbl_filing_api.entities.repos.submission_repo.populate_missing_tasks", wraps=repo.populate_missing_tasks
-        )
         res = await repo.get_filings(query_session, leis=["1234567890", "ABCDEFGHIJ"], filing_period="2024")
         assert res[0].id == 1
         assert res[0].filing_period == "2024"
         assert res[0].lei == "1234567890"
-        assert len(res[0].tasks) == 2
-        assert FilingTaskState.NOT_STARTED in set([t.state for t in res[0].tasks])
-        tasks1 = set([task_progress.task for task_progress in res[0].tasks])
-        assert len(tasks1) == 2
-        assert "Task-1" in set([task.name for task in tasks1])
-        assert "Task-2" in set([task.name for task in tasks1])
 
         assert res[1].id == 2
         assert res[1].filing_period == "2024"
         assert res[1].lei == "ABCDEFGHIJ"
-        assert len(res[1].tasks) == 2
-        assert FilingTaskState.NOT_STARTED in set([t.state for t in res[1].tasks])
-        tasks2 = set([task_progress.task for task_progress in res[1].tasks])
-        assert len(tasks2) == 2
-        assert "Task-1" in set([task.name for task in tasks2])
-        assert "Task-2" in set([task.name for task in tasks2])
-
-        tasks_populated_filings = []
-        for call in spy_populate_missing_tasks.call_args_list:
-            args, _ = call
-            filings = args[1]
-            assert all([isinstance(f, FilingDAO) for f in filings])
-            tasks_populated_filings.extend([f.id for f in filings])
-        assert set(tasks_populated_filings) == set([1, 2])
 
     async def test_get_period_filings(self, query_session: AsyncSession, mocker: MockerFixture):
         results = await repo.get_period_filings(query_session, filing_period="2024")

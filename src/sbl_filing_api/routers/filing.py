@@ -11,9 +11,11 @@ from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
 from regtech_api_commons.models.auth import AuthenticatedUser
 
+from sbl_filing_api.entities.models.dao import FilingDAO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
+from sbl_filing_api.config import request_action_validations
 from typing import Annotated, List
 
 from sbl_filing_api.entities.engine.engine import get_session
@@ -38,6 +40,8 @@ from starlette.authentication import requires
 from regtech_api_commons.api.dependencies import verify_user_lei_relation
 
 from sbl_filing_api.services.request_handler import send_confirmation_email
+
+from sbl_filing_api.services.request_action_validator import UserActionContext, validate_user_action, set_context
 
 logger = logging.getLogger(__name__)
 
@@ -72,92 +76,57 @@ async def get_filings(request: Request, period_code: str):
     return await repo.get_filings(request.state.db_session, user.institutions, period_code)
 
 
-@router.post("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
+@router.post(
+    "/institutions/{lei}/filings/{period_code}",
+    response_model=FilingDTO,
+    dependencies=[
+        Depends(set_context({UserActionContext.PERIOD, UserActionContext.FILING})),
+        Depends(validate_user_action(request_action_validations.filing_create, "Filing Create Forbidden")),
+    ],
+)
 @requires("authenticated")
 async def post_filing(request: Request, lei: str, period_code: str):
-    period = await repo.get_filing_period(request.state.db_session, filing_period=period_code)
-
-    if period:
-        filing = await repo.get_filing(request.state.db_session, lei, period_code)
-        if filing:
-            raise RegTechHttpException(
-                status_code=status.HTTP_409_CONFLICT,
-                name="Filing Creation Conflict",
-                detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
-            )
-        creator = None
-        try:
-            creator = await repo.add_user_action(
-                request.state.db_session,
-                UserActionDTO(
-                    user_id=request.user.id,
-                    user_name=request.user.name,
-                    user_email=request.user.email,
-                    action_type=UserActionType.CREATE,
-                ),
-            )
-        except Exception:
-            logger.exception("Error while trying to create the filing.creator UserAction.")
-            raise RegTechHttpException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                name="Filing.creator UserAction error",
-                detail="Error while trying to create the filing.creator UserAction.",
-            )
-
-        try:
-            return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
-        except Exception:
-            raise RegTechHttpException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                name="Filing Creation Error",
-                detail=f"An error occurred while creating a filing for LEI {lei} and Filing Period {period_code}.",
-            )
-
-    else:
+    creator = None
+    try:
+        creator = await repo.add_user_action(
+            request.state.db_session,
+            UserActionDTO(
+                user_id=request.user.id,
+                user_name=request.user.name,
+                user_email=request.user.email,
+                action_type=UserActionType.CREATE,
+            ),
+        )
+    except Exception:
+        logger.exception("Error while trying to create the filing.creator UserAction.")
         raise RegTechHttpException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            name="Filing Period Not Found",
-            detail=f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            name="Filing.creator UserAction error",
+            detail="Error while trying to create the filing.creator UserAction.",
+        )
+
+    try:
+        return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
+    except Exception:
+        raise RegTechHttpException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            name="Filing Creation Error",
+            detail=f"An error occurred while creating a filing for LEI {lei} and Filing Period {period_code}.",
         )
 
 
-@router.put("/institutions/{lei}/filings/{period_code}/sign", response_model=FilingDTO)
+@router.put(
+    "/institutions/{lei}/filings/{period_code}/sign",
+    response_model=FilingDTO,
+    dependencies=[
+        Depends(set_context({UserActionContext.INSTITUTION, UserActionContext.FILING})),
+        Depends(validate_user_action(request_action_validations.sign_and_submit, "Filing Action Forbidden")),
+    ],
+)
 @requires("authenticated")
 async def sign_filing(request: Request, lei: str, period_code: str):
-    filing = await repo.get_filing(request.state.db_session, lei, period_code)
-    if not filing:
-        raise RegTechHttpException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            name="Filing Not Found",
-            detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to sign a non-existent Filing.",
-        )
-    latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
-    if not latest_sub or latest_sub.state != SubmissionState.SUBMISSION_ACCEPTED:
-        raise RegTechHttpException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            name="Filing Action Forbidden",
-            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a latest submission the SUBMISSION_ACCEPTED state.",
-        )
-    if filing.is_voluntary is None:
-        raise RegTechHttpException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            name="Filing Action Forbidden",
-            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a selection of is_voluntary defined.",
-        )
-    if not filing.contact_info:
-        raise RegTechHttpException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            name="Filing Action Forbidden",
-            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have contact info defined.",
-        )
-    """
-    if not filing.institution_snapshot_id:
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have institution snapshot id defined.",
-        )
-    """
-
+    filing: FilingDAO = request.state.context["filing"]
+    latest_sub = (await filing.awaitable_attrs.submissions)[0]
     sig = await repo.add_user_action(
         request.state.db_session,
         UserActionDTO(

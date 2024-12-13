@@ -1,7 +1,7 @@
 from enum import StrEnum
 import os
 from urllib import parse
-from typing import Any
+from typing import Any, Set
 
 from pydantic import field_validator, ValidationInfo, BaseModel
 from pydantic.networks import PostgresDsn
@@ -83,7 +83,24 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=env_files_to_load, extra="allow", env_nested_delimiter="__")
 
 
+class RequestActionValidations(BaseSettings):
+    sign_and_submit: Set[str] = {
+        "valid_lei_status",
+        "valid_lei_tin",
+        "valid_filing_exists",
+        "valid_sub_accepted",
+        "valid_voluntary_filer",
+        "valid_contact_info",
+    }
+
+    filing_create: Set[str] = {"valid_period_exists", "valid_no_filing_exists"}
+
+    model_config = SettingsConfigDict(env_prefix="request_validators__", env_file=env_files_to_load, extra="allow")
+
+
 settings = Settings()
+
+request_action_validations = RequestActionValidations()
 
 kc_settings = KeycloakSettings(_env_file=env_files_to_load)
 

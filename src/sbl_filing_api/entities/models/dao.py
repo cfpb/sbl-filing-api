@@ -1,7 +1,7 @@
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
 from datetime import datetime
 from typing import Any, List
-from sqlalchemy import Enum as SAEnum, String
+from sqlalchemy import Enum as SAEnum, String, desc
 from sqlalchemy import ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -114,7 +114,10 @@ class FilingDAO(Base):
     lei: Mapped[str]
     tasks: Mapped[List[FilingTaskProgressDAO] | None] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str] = mapped_column(nullable=True)
-    contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
+    contact_info: Mapped[ContactInfoDAO | None] = relationship("ContactInfoDAO", lazy="joined")
+    submissions: Mapped[List[SubmissionDAO] | None] = relationship(
+        "SubmissionDAO", lazy="select", order_by=desc(SubmissionDAO.submission_time)
+    )
     signatures: Mapped[List[UserActionDAO] | None] = relationship(
         "UserActionDAO", secondary="filing_signature", lazy="selectin", order_by="desc(UserActionDAO.timestamp)"
     )
