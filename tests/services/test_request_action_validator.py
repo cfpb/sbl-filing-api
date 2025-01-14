@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 from regtech_api_commons.api.exceptions import RegTechHttpException
 
 from sbl_filing_api.entities.models.dao import ContactInfoDAO, FilingDAO, SubmissionDAO
-from sbl_filing_api.entities.models.model_enums import SubmissionState
+from sbl_filing_api.entities.models.model_enums import SubmissionState, FilingState
 from sbl_filing_api.services.request_action_validator import UserActionContext, set_context, validate_user_action
 
 
@@ -37,7 +37,7 @@ def httpx_authed_mock(mocker: MockerFixture) -> None:
 async def filing_mock(mocker: MockerFixture) -> FilingDAO:
     sub_mock = mocker.patch("sbl_filing_api.entities.models.dao.SubmissionDAO")
     sub_mock.state = SubmissionState.UPLOAD_FAILED
-    filing = FilingDAO(lei="1234567890ABCDEFGH00", filing_period="2024", submissions=[sub_mock])
+    filing = FilingDAO(lei="1234567890ABCDEFGH00", filing_period="2024", submissions=[sub_mock], state=FilingState.OPEN)
     return filing
 
 
@@ -53,6 +53,7 @@ def request_mock_valid_context(mocker: MockerFixture, request_mock: Request, fil
     filing_mock.is_voluntary = True
     filing_mock.submissions = [SubmissionDAO(state=SubmissionState.SUBMISSION_ACCEPTED)]
     filing_mock.contact_info = ContactInfoDAO()
+    filing_mock.state = FilingState.CLOSED
 
     request_mock.state.context = {
         "lei": "1234567890ABCDEFGH00",
@@ -95,6 +96,7 @@ async def test_validations_with_errors(request_mock_invalid_context: Request):
             "valid_sub_accepted",
             "valid_voluntary_filer",
             "valid_contact_info",
+            "valid_filing_not_open",
         },
         "Test Exception",
     )
@@ -116,6 +118,7 @@ async def test_validations_with_errors(request_mock_invalid_context: Request):
     )
     assert "Cannot sign filing. TIN is required to file." in errors
     assert "Cannot sign filing. LEI status of LAPSED cannot file." in errors
+    assert "Cannot reopen filing. Filing state for 1234567890ABCDEFGH00 for period 2024 is OPEN."
 
 
 async def test_validations_no_errors(request_mock_valid_context: Request):
@@ -123,10 +126,11 @@ async def test_validations_no_errors(request_mock_valid_context: Request):
         {
             "valid_lei_status",
             "valid_lei_tin",
-            "valid_filing_exists",
+            "valid_filing_exists_sign",
             "valid_sub_accepted",
             "valid_voluntary_filer",
             "valid_contact_info",
+            "valid_filing_not_open",
         },
         "Test Exception",
     )
@@ -156,3 +160,15 @@ async def test_invalid_validation(request_mock_invalid_context: Request, log_moc
     run_validations = validate_user_action({"fake_validation"}, "Test Exception")
     await run_validations(request_mock_invalid_context)
     log_mock.warning.assert_called_with("Action validator [%s] not found.", "fake_validation")
+
+
+async def test_valid_filing_state_for_signing(request_mock_invalid_context: Request):
+    run_validations = validate_user_action({"valid_filing_open"}, "Test Exception")
+    await run_validations(request_mock_invalid_context)
+
+
+async def test_invalid_filing_state_for_signing(request_mock_valid_context: Request):
+    run_validations = validate_user_action({"valid_filing_open"}, "Test Exception")
+    with pytest.raises(RegTechHttpException) as e:
+        await run_validations(request_mock_valid_context)
+    assert "Cannot sign filing. Filing state for 1234567890ABCDEFGH00 for period 2024 is CLOSED." in e.value.detail

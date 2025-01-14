@@ -72,12 +72,21 @@ class TestSubmissionRepo:
             action_type=UserActionType.SIGN,
             timestamp=dt.now(),
         )
+        user_action6 = UserActionDAO(
+            id=6,
+            user_id="test_sig@local.host",
+            user_name="signer name",
+            user_email="test_sig@local.host",
+            action_type=UserActionType.REOPEN,
+            timestamp=dt.now(),
+        )
 
         transaction_session.add(user_action1)
         transaction_session.add(user_action2)
         transaction_session.add(user_action3)
         transaction_session.add(user_action4)
         transaction_session.add(user_action5)
+        transaction_session.add(user_action6)
 
         filing_task_1 = FilingTaskDAO(name="Task-1", task_order=1)
         filing_task_2 = FilingTaskDAO(name="Task-2", task_order=2)
@@ -262,6 +271,7 @@ class TestSubmissionRepo:
         assert res.creator.user_name == "test creator"
         assert res.creator.user_email == "test@local.host"
         assert res.creator.action_type == UserActionType.CREATE
+        assert res.state == "OPEN"
 
     async def test_modify_filing(self, transaction_session: AsyncSession):
         user_action_create = await repo.add_user_action(
@@ -606,7 +616,7 @@ class TestSubmissionRepo:
     async def test_get_user_actions(self, query_session: AsyncSession):
         res = await repo.get_user_actions(session=query_session)
 
-        assert len(res) == 5
+        assert len(res) == 6
         assert res[0].id == 1
         assert res[0].user_name == "signer name"
 
