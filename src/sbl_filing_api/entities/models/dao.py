@@ -15,6 +15,8 @@ class Base(AsyncAttrs, DeclarativeBase):
 class UserActionDAO(Base):
     __tablename__ = "user_action"
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
+    filing_id: Mapped[int] = mapped_column(ForeignKey("filing.id"))
+    submission_id: Mapped[int | None] = mapped_column(ForeignKey("submission.id"), nullable=True)
     user_id: Mapped[str] = mapped_column(String(36))
     user_name: Mapped[str] = mapped_column(String(255))
     user_email: Mapped[str] = mapped_column(String(255))
@@ -27,16 +29,15 @@ class SubmissionDAO(Base):
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
     counter: Mapped[int]
-    submitter_id: Mapped[int] = mapped_column(ForeignKey("user_action.id"))
-    submitter: Mapped[UserActionDAO] = relationship(lazy="selectin", foreign_keys=[submitter_id])
-    accepter_id: Mapped[int] = mapped_column(ForeignKey("user_action.id"), nullable=True)
-    accepter: Mapped[UserActionDAO] = relationship(lazy="selectin", foreign_keys=[accepter_id])
     state: Mapped[SubmissionState] = mapped_column(SAEnum(SubmissionState))
     validation_ruleset_version: Mapped[str] = mapped_column(nullable=True)
     validation_results: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=True)
     submission_time: Mapped[datetime] = mapped_column(server_default=func.now())
     filename: Mapped[str]
     total_records: Mapped[int] = mapped_column(nullable=True)
+    user_actions: Mapped[List[UserActionDAO] | None] = relationship(
+        "UserActionDAO", lazy="selectin", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (UniqueConstraint("filing", "counter", name="unique_filing_counter"),)
 
@@ -99,14 +100,6 @@ class ContactInfoDAO(Base):
         return f"ContactInfo ID: {self.id}, First Name: {self.first_name}, Last Name: {self.last_name}, Address Street 1: {self.hq_address_street_1}, Address Street 2: {self.hq_address_street_2}, Address City: {self.hq_address_city}, Address State: {self.hq_address_state}, Address Zip: {self.hq_address_zip}"
 
 
-class FilingSignatureDAO(Base):
-    __tablename__ = "filing_signature"
-    user_action: Mapped[int] = mapped_column(
-        ForeignKey("user_action.id"), nullable=False, primary_key=True, unique=True
-    )
-    filing: Mapped[int] = mapped_column(ForeignKey("filing.id"), index=True, nullable=False)
-
-
 class FilingDAO(Base):
     __tablename__ = "filing"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -118,13 +111,11 @@ class FilingDAO(Base):
     submissions: Mapped[List[SubmissionDAO] | None] = relationship(
         "SubmissionDAO", lazy="select", order_by=desc(SubmissionDAO.submission_time)
     )
-    signatures: Mapped[List[UserActionDAO] | None] = relationship(
-        "UserActionDAO", secondary="filing_signature", lazy="selectin", order_by="desc(UserActionDAO.timestamp)"
-    )
     confirmation_id: Mapped[str] = mapped_column(nullable=True)
-    creator_id: Mapped[int] = mapped_column(ForeignKey("user_action.id"))
-    creator: Mapped[UserActionDAO] = relationship(lazy="selectin", foreign_keys=[creator_id])
     is_voluntary: Mapped[bool] = mapped_column(nullable=True)
+    user_actions: Mapped[List[UserActionDAO] | None] = relationship(
+        "UserActionDAO", lazy="selectin", cascade="all, delete-orphan"
+    )
 
     def __str__(self):
         return f"ID: {self.id}, Filing Period: {self.filing_period}, LEI: {self.lei}, Tasks: {self.tasks}, Institution Snapshot ID: {self.institution_snapshot_id}, Contact Info: {self.contact_info}"
