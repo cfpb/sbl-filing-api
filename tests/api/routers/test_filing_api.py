@@ -914,8 +914,8 @@ class TestFilingApi:
 
         user_action_accept = UserActionDAO(
             id=3,
-            user_id="1234-5678-ABCD-EFGH",
-            user_name="test accepter",
+            user_id="123456-7890-ABCDEF-GHIJ",
+            user_name="Test User",
             user_email="test@local.host",
             action_type=UserActionType.ACCEPT,
             timestamp=datetime.datetime.now(),
@@ -931,9 +931,6 @@ class TestFilingApi:
             filename="file1.csv",
             user_actions=[user_action_submit],
         )
-
-        update_accepter_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
-        update_accepter_mock.return_value = user_action_accept
 
         update_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.update_submission")
         update_mock.return_value = SubmissionDAO(
@@ -958,22 +955,23 @@ class TestFilingApi:
         mock.return_value.state = SubmissionState.VALIDATION_SUCCESSFUL
         res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/4/accept")
         update_mock.assert_called_once()
-        update_accepter_mock.assert_called_once_with(
-            ANY,
-            UserActionDTO(
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="Test User",
-                user_email="test@local.host",
-                action_type=UserActionType.ACCEPT,
-            ),
-        )
+        submission_arg = update_mock.call_args.args[-1]
+        accepter = submission_arg.user_actions[-1]
+        assert accepter.id is None
+        assert accepter.timestamp is None
+        assert accepter.filing_id == 1
+        assert accepter.submission_id == 1
+        assert accepter.user_id == "123456-7890-ABCDEF-GHIJ"
+        assert accepter.user_name == "Test User"
+        assert accepter.user_email == "test@local.host"
+        assert accepter.action_type == UserActionType.ACCEPT
 
         assert res.json()["state"] == "SUBMISSION_ACCEPTED"
         assert res.json()["id"] == 1
         assert res.json()["counter"] == 4
         assert res.json()["accepter"]["id"] == 3
-        assert res.json()["accepter"]["user_id"] == "1234-5678-ABCD-EFGH"
-        assert res.json()["accepter"]["user_name"] == "test accepter"
+        assert res.json()["accepter"]["user_id"] == "123456-7890-ABCDEF-GHIJ"
+        assert res.json()["accepter"]["user_name"] == "Test User"
         assert res.json()["accepter"]["user_email"] == "test@local.host"
         assert res.json()["accepter"]["action_type"] == UserActionType.ACCEPT
         assert res.status_code == 200
@@ -1042,7 +1040,6 @@ class TestFilingApi:
             ANY,
             UserActionDTO(
                 filing_id=1,
-                submission_id=1,
                 user_id="123456-7890-ABCDEF-GHIJ",
                 user_name="Test User",
                 user_email="test@local.host",

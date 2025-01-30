@@ -123,7 +123,6 @@ async def sign_filing(request: Request, lei: str, period_code: str):
         UserActionDTO(
             user_id=request.user.id,
             filing_id=filing.id,
-            submission_id=latest_sub.id,
             user_name=request.user.name,
             user_email=request.user.email,
             action_type=UserActionType.SIGN,
@@ -262,18 +261,17 @@ async def accept_submission(request: Request, counter: int, lei: str, period_cod
             detail=f"Submission {counter} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
 
-    accepter = await repo.add_user_action(
-        request.state.db_session,
-        UserActionDTO(
+    submission.state = SubmissionState.SUBMISSION_ACCEPTED
+    submission.user_actions.append(
+        UserActionDAO(
+            filing_id=submission.filing,
+            submission_id=submission.id,
             user_id=request.user.id,
             user_name=request.user.name,
             user_email=request.user.email,
             action_type=UserActionType.ACCEPT,
-        ),
+        )
     )
-
-    submission.accepter_id = accepter.id
-    submission.state = SubmissionState.SUBMISSION_ACCEPTED
     submission = await repo.update_submission(request.state.db_session, submission)
     return submission
 
