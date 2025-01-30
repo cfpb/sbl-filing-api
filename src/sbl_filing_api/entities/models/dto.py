@@ -108,7 +108,11 @@ class FilingDTO(BaseModel):
     @computed_field
     @property
     def signatures(self) -> List[UserActionDTO]:
-        return [action for action in self.user_actions if action.action_type == UserActionType.SIGN]
+        return sorted(
+            [action for action in self.user_actions if action.action_type == UserActionType.SIGN],
+            key=lambda action: action.timestamp,
+            reverse=True,
+        )
 
 
 class FilingPeriodDTO(BaseModel):
