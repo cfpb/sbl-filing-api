@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import select, desc
+from sqlalchemy.orm import defer, QueryableAttribute
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, TypeVar
 from sbl_filing_api.entities.engine.engine import SessionLocal
@@ -36,7 +37,7 @@ async def get_submissions(session: AsyncSession, lei: str = None, filing_period:
     if lei and filing_period:
         filing = await get_filing(session, lei=lei, filing_period=filing_period)
         filing_id = filing.id
-    return await query_helper(session, SubmissionDAO, filing=filing_id)
+    return await query_helper(session, SubmissionDAO, defers=[SubmissionDAO.validation_results], filing=filing_id)
 
 
 async def get_latest_submission(session: AsyncSession, lei: str, filing_period: str) -> SubmissionDAO | None:
@@ -190,8 +191,12 @@ async def upsert_helper(session: AsyncSession, original_data: Any, table_obj: T)
     return new_dao
 
 
-async def query_helper(session: AsyncSession, table_obj: T, **filter_args) -> List[T]:
+async def query_helper(
+    session: AsyncSession, table_obj: T, *, defers: List[QueryableAttribute] | None = None, **filter_args
+) -> List[T]:
     stmt = select(table_obj)
+    if defers:
+        stmt = stmt.options(defer(*defers))
     # remove empty args
     filter_args = {k: v for k, v in filter_args.items() if v is not None}
     if filter_args:

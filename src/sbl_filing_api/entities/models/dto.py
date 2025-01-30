@@ -14,19 +14,24 @@ class UserActionDTO(BaseModel):
     action_type: UserActionType
 
 
-class SubmissionDTO(BaseModel):
+class SubmissionBaseDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int | None = None
     counter: int
     state: SubmissionState | None = None
     validation_ruleset_version: str | None = None
-    validation_results: Dict[str, Any] | None = None
     submission_time: datetime | None = None
     filename: str
     total_records: int | None = None
     submitter: UserActionDTO
     accepter: UserActionDTO | None = None
+
+
+class SubmissionDTO(SubmissionBaseDTO):
+    model_config = ConfigDict(from_attributes=True)
+
+    validation_results: Dict[str, Any] | None = None
 
 
 class FilingTaskDTO(BaseModel):
