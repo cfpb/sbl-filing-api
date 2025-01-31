@@ -32,7 +32,7 @@ aiosqlite = "^0.20.0"
 
 [tool.poetry.group.linters.dependencies]
 ruff = "0.9.4"
-black = "24.8.0"
+black = "25.1.0"
 
 
 
