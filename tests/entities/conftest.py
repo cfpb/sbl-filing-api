@@ -1,13 +1,9 @@
 import asyncio
 import pytest
 
-from asyncio import current_task
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    AsyncEngine,
-    async_scoped_session,
-    async_sessionmaker,
-)
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
 from unittest.mock import Mock
 from sbl_filing_api.entities.models.dao import Base
 from regtech_api_commons.models.auth import AuthenticatedUser
@@ -24,43 +20,37 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 def engine():
-    return create_async_engine("sqlite+aiosqlite://")
+    return create_engine("sqlite://")
 
 
 @pytest.fixture(scope="function", autouse=True)
-async def setup_db(
+def setup_db(
     request: pytest.FixtureRequest,
-    engine: AsyncEngine,
-    event_loop: asyncio.AbstractEventLoop,
+    engine: Engine,
 ):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(engine)
 
     def teardown():
-        async def td():
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.drop_all)
-
-        event_loop.run_until_complete(td())
+        Base.metadata.drop_all(engine)
 
     request.addfinalizer(teardown)
 
 
 @pytest.fixture(scope="function")
-async def transaction_session(session_generator: async_scoped_session):
-    async with session_generator() as session:
+def transaction_session(session_generator: scoped_session):
+    with session_generator() as session:
         yield session
 
 
 @pytest.fixture(scope="function")
-async def query_session(session_generator: async_scoped_session):
-    async with session_generator() as session:
+def query_session(session_generator: scoped_session):
+    with session_generator() as session:
         yield session
 
 
 @pytest.fixture(scope="function")
-def session_generator(engine: AsyncEngine):
-    return async_scoped_session(async_sessionmaker(engine, expire_on_commit=False), current_task)
+def session_generator(engine: Engine):
+    return scoped_session(sessionmaker(engine, expire_on_commit=False))
 
 
 @pytest.fixture

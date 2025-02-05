@@ -79,11 +79,9 @@ def set_context(requirements: Set[UserActionContext]):
         if lei and UserActionContext.INSTITUTION in requirements:
             context = context | {UserActionContext.INSTITUTION: await get_institution_data(FiRequest(request, lei))}
         if period and UserActionContext.PERIOD in requirements:
-            context = context | {
-                UserActionContext.PERIOD: await repo.get_filing_period(request.state.db_session, period)
-            }
+            context = context | {UserActionContext.PERIOD: repo.get_filing_period(request.state.db_session, period)}
         if period and UserActionContext.FILING in requirements:
-            context = context | {UserActionContext.FILING: await repo.get_filing(request.state.db_session, lei, period)}
+            context = context | {UserActionContext.FILING: repo.get_filing(request.state.db_session, lei, period)}
         request.state.context = context
 
     return _set_context

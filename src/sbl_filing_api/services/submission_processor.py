@@ -65,15 +65,15 @@ def generate_file_path(period_code: str, lei: str, file_identifier: str, extensi
     return file_path
 
 
-async def validate_and_update_submission(
+def validate_and_update_submission(
     period_code: str, lei: str, submission: SubmissionDAO, content: bytes, exec_check: dict
 ):
-    async with SessionLocal() as session:
+    with SessionLocal() as session:
         try:
             validator_version = imeta.version("regtech-data-validator")
             submission.validation_ruleset_version = validator_version
             submission.state = SubmissionState.VALIDATION_IN_PROGRESS
-            submission = await update_submission(session, submission)
+            submission = update_submission(session, submission)
 
             file_path = generate_file_path(period_code, lei, submission.counter)
 
@@ -118,17 +118,17 @@ async def validate_and_update_submission(
                 log.warning(f"Submission {submission.id} is expired, will not be updating final state with results.")
                 return
 
-            await update_submission(session, submission)
+            update_submission(session, submission)
 
         except RuntimeError:
             log.exception("The file is malformed.")
             submission.state = SubmissionState.SUBMISSION_UPLOAD_MALFORMED
-            await update_submission(session, submission)
+            update_submission(session, submission)
 
         except Exception:
             log.exception("Validation for submission %d did not complete due to an unexpected error.", submission.id)
             submission.state = SubmissionState.VALIDATION_ERROR
-            await update_submission(session, submission)
+            update_submission(session, submission)
 
 
 def build_validation_results(final_df: pl.DataFrame, results: list[ValidationResults], final_phase: ValidationPhase):

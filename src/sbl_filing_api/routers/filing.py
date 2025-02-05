@@ -33,7 +33,7 @@ from sbl_filing_api.entities.models.dto import (
 
 from sbl_filing_api.entities.repos import submission_repo as repo
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from starlette.authentication import requires
 
@@ -46,7 +46,7 @@ from sbl_filing_api.services.request_action_validator import UserActionContext, 
 logger = logging.getLogger(__name__)
 
 
-async def set_db(request: Request, session: Annotated[AsyncSession, Depends(get_session)]):
+def set_db(request: Request, session: Annotated[Session, Depends(get_session)]):
     request.state.db_session = session
 
 
@@ -56,14 +56,14 @@ router = Router(dependencies=[Depends(set_db), Depends(verify_user_lei_relation)
 
 @router.get("/periods", response_model=List[FilingPeriodDTO])
 @requires("authenticated")
-async def get_filing_periods(request: Request):
-    return await repo.get_filing_periods(request.state.db_session)
+def get_filing_periods(request: Request):
+    return repo.get_filing_periods(request.state.db_session)
 
 
 @router.get("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO | None)
 @requires("authenticated")
-async def get_filing(request: Request, response: Response, lei: str, period_code: str):
-    res = await repo.get_filing(request.state.db_session, lei, period_code)
+def get_filing(request: Request, response: Response, lei: str, period_code: str):
+    res = repo.get_filing(request.state.db_session, lei, period_code)
     if res:
         return res
     response.status_code = status.HTTP_204_NO_CONTENT
@@ -71,9 +71,9 @@ async def get_filing(request: Request, response: Response, lei: str, period_code
 
 @router.get("/periods/{period_code}/filings", response_model=List[FilingDTO])
 @requires("authenticated")
-async def get_filings(request: Request, period_code: str):
+def get_filings(request: Request, period_code: str):
     user: AuthenticatedUser = request.user
-    return await repo.get_filings(request.state.db_session, user.institutions, period_code)
+    return repo.get_filings(request.state.db_session, user.institutions, period_code)
 
 
 @router.post(
@@ -85,10 +85,10 @@ async def get_filings(request: Request, period_code: str):
     ],
 )
 @requires("authenticated")
-async def post_filing(request: Request, lei: str, period_code: str):
+def post_filing(request: Request, lei: str, period_code: str):
     creator = None
     try:
-        creator = await repo.add_user_action(
+        creator = repo.add_user_action(
             request.state.db_session,
             UserActionDTO(
                 user_id=request.user.id,
@@ -106,7 +106,7 @@ async def post_filing(request: Request, lei: str, period_code: str):
         )
 
     try:
-        return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
+        return repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
     except Exception:
         raise RegTechHttpException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -124,10 +124,10 @@ async def post_filing(request: Request, lei: str, period_code: str):
     ],
 )
 @requires("authenticated")
-async def sign_filing(request: Request, lei: str, period_code: str):
+def sign_filing(request: Request, lei: str, period_code: str):
     filing: FilingDAO = request.state.context["filing"]
-    latest_sub = (await filing.awaitable_attrs.submissions)[0]
-    sig = await repo.add_user_action(
+    latest_sub = filing.submissions[0]
+    sig = repo.add_user_action(
         request.state.db_session,
         UserActionDTO(
             user_id=request.user.id,
@@ -142,7 +142,7 @@ async def sign_filing(request: Request, lei: str, period_code: str):
     send_confirmation_email(
         request.user.name, request.user.email, filing.contact_info.email, filing.confirmation_id, sig_timestamp
     )
-    return await repo.upsert_filing(request.state.db_session, filing)
+    return repo.upsert_filing(request.state.db_session, filing)
 
 
 @router.post("/institutions/{lei}/filings/{period_code}/submissions", response_model=SubmissionDTO)
@@ -151,7 +151,7 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
     submission_processor.validate_file_processable(file)
     content = await file.read()
 
-    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+    filing = repo.get_filing(request.state.db_session, lei, period_code)
     if not filing:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -160,7 +160,7 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
         )
     submission = None
     try:
-        submitter = await repo.add_user_action(
+        submitter = repo.add_user_action(
             request.state.db_session,
             UserActionDTO(
                 user_id=request.user.id,
@@ -169,7 +169,7 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
                 action_type=UserActionType.SUBMIT,
             ),
         )
-        submission = await repo.add_submission(request.state.db_session, filing.id, file.filename, submitter.id)
+        submission = repo.add_submission(request.state.db_session, filing.id, file.filename, submitter.id)
         try:
             submission_processor.upload_to_storage(
                 period_code, lei, submission.counter, content, file.filename.split(".")[-1]
@@ -179,10 +179,10 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
             with io.BytesIO(content) as byte_stream:
                 reader = csv.reader(io.TextIOWrapper(byte_stream))
                 submission.total_records = sum(1 for row in reader) - 1
-            submission = await repo.update_submission(request.state.db_session, submission)
+            submission = repo.update_submission(request.state.db_session, submission)
         except Exception as e:
             submission.state = SubmissionState.UPLOAD_FAILED
-            submission = await repo.update_submission(request.state.db_session, submission)
+            submission = repo.update_submission(request.state.db_session, submission)
             raise RegTechHttpException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 name="Submission Unprocessable",
@@ -200,7 +200,7 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
         if submission:
             try:
                 submission.state = SubmissionState.UPLOAD_FAILED
-                submission = await repo.update_submission(request.state.db_session, submission)
+                submission = repo.update_submission(request.state.db_session, submission)
             except Exception as ex:
                 logger.error(
                     (
@@ -220,21 +220,21 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
 
 @router.get("/institutions/{lei}/filings/{period_code}/submissions", response_model=List[SubmissionDTO])
 @requires("authenticated")
-async def get_submissions(request: Request, lei: str, period_code: str):
-    return await repo.get_submissions(request.state.db_session, lei, period_code)
+def get_submissions(request: Request, lei: str, period_code: str):
+    return repo.get_submissions(request.state.db_session, lei, period_code)
 
 
 @router.get("/institutions/{lei}/filings/{period_code}/submissions/latest", response_model=SubmissionDTO)
 @requires("authenticated")
-async def get_submission_latest(request: Request, lei: str, period_code: str):
-    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+def get_submission_latest(request: Request, lei: str, period_code: str):
+    filing = repo.get_filing(request.state.db_session, lei, period_code)
     if not filing:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
             name="Filing Not Found",
             detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to get latest submission for it.",
         )
-    result = await repo.get_latest_submission(request.state.db_session, lei, period_code)
+    result = repo.get_latest_submission(request.state.db_session, lei, period_code)
     if result:
         return result
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -242,8 +242,8 @@ async def get_submission_latest(request: Request, lei: str, period_code: str):
 
 @router.get("/institutions/{lei}/filings/{period_code}/submissions/{counter}", response_model=SubmissionDTO | None)
 @requires("authenticated")
-async def get_submission(request: Request, response: Response, counter: int, lei: str, period_code: str):
-    result = await repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
+def get_submission(request: Request, response: Response, counter: int, lei: str, period_code: str):
+    result = repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
     if result:
         return result
     response.status_code = status.HTTP_404_NOT_FOUND
@@ -251,8 +251,8 @@ async def get_submission(request: Request, response: Response, counter: int, lei
 
 @router.put("/institutions/{lei}/filings/{period_code}/submissions/{counter}/accept", response_model=SubmissionDTO)
 @requires("authenticated")
-async def accept_submission(request: Request, counter: int, lei: str, period_code: str):
-    submission = await repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
+def accept_submission(request: Request, counter: int, lei: str, period_code: str):
+    submission = repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
     if not submission:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -269,7 +269,7 @@ async def accept_submission(request: Request, counter: int, lei: str, period_cod
             detail=f"Submission {counter} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
 
-    accepter = await repo.add_user_action(
+    accepter = repo.add_user_action(
         request.state.db_session,
         UserActionDTO(
             user_id=request.user.id,
@@ -281,17 +281,17 @@ async def accept_submission(request: Request, counter: int, lei: str, period_cod
 
     submission.accepter_id = accepter.id
     submission.state = SubmissionState.SUBMISSION_ACCEPTED
-    submission = await repo.update_submission(request.state.db_session, submission)
+    submission = repo.update_submission(request.state.db_session, submission)
     return submission
 
 
 @router.put("/institutions/{lei}/filings/{period_code}/institution-snapshot-id", response_model=FilingDTO)
 @requires("authenticated")
-async def put_institution_snapshot(request: Request, lei: str, period_code: str, update_value: SnapshotUpdateDTO):
-    result = await repo.get_filing(request.state.db_session, lei, period_code)
+def put_institution_snapshot(request: Request, lei: str, period_code: str, update_value: SnapshotUpdateDTO):
+    result = repo.get_filing(request.state.db_session, lei, period_code)
     if result:
         result.institution_snapshot_id = update_value.institution_snapshot_id
-        return await repo.upsert_filing(request.state.db_session, result)
+        return repo.upsert_filing(request.state.db_session, result)
     raise RegTechHttpException(
         status_code=status.HTTP_404_NOT_FOUND,
         name="Filing Not Found",
@@ -301,14 +301,14 @@ async def put_institution_snapshot(request: Request, lei: str, period_code: str,
 
 @router.post("/institutions/{lei}/filings/{period_code}/tasks/{task_name}", deprecated=True)
 @requires("authenticated")
-async def update_task_state(request: Request, lei: str, period_code: str, task_name: str, state: StateUpdateDTO):
-    await repo.update_task_state(request.state.db_session, lei, period_code, task_name, state.state, request.user)
+def update_task_state(request: Request, lei: str, period_code: str, task_name: str, state: StateUpdateDTO):
+    repo.update_task_state(request.state.db_session, lei, period_code, task_name, state.state, request.user)
 
 
 @router.get("/institutions/{lei}/filings/{period_code}/contact-info", response_model=ContactInfoDTO | None)
 @requires("authenticated")
-async def get_contact_info(request: Request, response: Response, lei: str, period_code: str):
-    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+def get_contact_info(request: Request, response: Response, lei: str, period_code: str):
+    filing = repo.get_filing(request.state.db_session, lei, period_code)
     if filing and filing.contact_info:
         return filing.contact_info
     response.status_code = status.HTTP_404_NOT_FOUND
@@ -316,10 +316,10 @@ async def get_contact_info(request: Request, response: Response, lei: str, perio
 
 @router.put("/institutions/{lei}/filings/{period_code}/contact-info", response_model=FilingDTO)
 @requires("authenticated")
-async def put_contact_info(request: Request, lei: str, period_code: str, contact_info: ContactInfoDTO):
-    result = await repo.get_filing(request.state.db_session, lei, period_code)
+def put_contact_info(request: Request, lei: str, period_code: str, contact_info: ContactInfoDTO):
+    result = repo.get_filing(request.state.db_session, lei, period_code)
     if result:
-        return await repo.update_contact_info(request.state.db_session, lei, period_code, contact_info)
+        return repo.update_contact_info(request.state.db_session, lei, period_code, contact_info)
     raise RegTechHttpException(
         status_code=status.HTTP_404_NOT_FOUND,
         name="Filing Not Found",
@@ -332,15 +332,15 @@ async def put_contact_info(request: Request, lei: str, period_code: str, contact
     responses={200: {"content": {"text/plain; charset=utf-8": {}}}},
 )
 @requires("authenticated")
-async def get_latest_submission_report(request: Request, lei: str, period_code: str):
-    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+def get_latest_submission_report(request: Request, lei: str, period_code: str):
+    filing = repo.get_filing(request.state.db_session, lei, period_code)
     if not filing:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
             name="Filing Not Found",
             detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to get latest submission for it.",
         )
-    latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
+    latest_sub = repo.get_latest_submission(request.state.db_session, lei, period_code)
     if latest_sub and latest_sub.state in [
         SubmissionState.VALIDATION_SUCCESSFUL,
         SubmissionState.VALIDATION_WITH_ERRORS,
@@ -371,8 +371,8 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
     responses={200: {"content": {"text/plain; charset=utf-8": {}}}},
 )
 @requires("authenticated")
-async def get_submission_report(request: Request, response: Response, lei: str, period_code: str, counter: int):
-    sub = await repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
+def get_submission_report(request: Request, response: Response, lei: str, period_code: str, counter: int):
+    sub = repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
     if sub and sub.state in [
         SubmissionState.VALIDATION_SUCCESSFUL,
         SubmissionState.VALIDATION_WITH_ERRORS,
@@ -400,11 +400,11 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
 
 @router.put("/institutions/{lei}/filings/{period_code}/is-voluntary", response_model=FilingDTO)
 @requires("authenticated")
-async def update_is_voluntary(request: Request, lei: str, period_code: str, update_value: VoluntaryUpdateDTO):
-    result = await repo.get_filing(request.state.db_session, lei, period_code)
+def update_is_voluntary(request: Request, lei: str, period_code: str, update_value: VoluntaryUpdateDTO):
+    result = repo.get_filing(request.state.db_session, lei, period_code)
     if result:
         result.is_voluntary = update_value.is_voluntary
-        res = await repo.upsert_filing(request.state.db_session, result)
+        res = repo.upsert_filing(request.state.db_session, result)
         return res
     raise RegTechHttpException(
         status_code=status.HTTP_404_NOT_FOUND,

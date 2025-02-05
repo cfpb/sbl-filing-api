@@ -10,7 +10,7 @@ def test_postgres_dsn_building():
         "db_scehma": "test",
     }
     settings = Settings(**mock_config)
-    assert str(settings.conn) == "postgresql+asyncpg://user:%5Cz9-%2Ftgb76%23%40@test:5432/test"
+    assert str(settings.conn) == "postgresql+psycopg2://user:%5Cz9-%2Ftgb76%23%40@test:5432/test"
 
 
 def test_default_maxes():

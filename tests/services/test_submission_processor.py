@@ -19,17 +19,17 @@ class TestSubmissionProcessor:
         file_mock = mocker.patch("fastapi.UploadFile")
         return file_mock.return_value
 
-    async def test_upload(self, mocker: MockerFixture):
+    def test_upload(self, mocker: MockerFixture):
         upload_mock = mocker.patch("sbl_filing_api.services.file_handler.upload")
         submission_processor.upload_to_storage("test_period", "test", "test", b"test content local")
         upload_mock.assert_called_once_with(path="upload/test_period/test/test.csv", content=b"test content local")
 
-    async def test_read_from_storage(self, mocker: MockerFixture):
+    def test_read_from_storage(self, mocker: MockerFixture):
         download_mock = mocker.patch("sbl_filing_api.services.file_handler.download")
         submission_processor.get_from_storage("2024", "1234567890", "1_report")
         download_mock.assert_called_with("upload/2024/1234567890/1_report.csv")
 
-    async def test_upload_failure(self, mocker: MockerFixture):
+    def test_upload_failure(self, mocker: MockerFixture):
         upload_mock = mocker.patch("sbl_filing_api.services.file_handler.upload")
         upload_mock.side_effect = IOError("test")
         with pytest.raises(Exception) as e:
@@ -37,7 +37,7 @@ class TestSubmissionProcessor:
         assert isinstance(e.value, RegTechHttpException)
         assert e.value.name == "Upload Failure"
 
-    async def test_read_failure(self, mocker: MockerFixture):
+    def test_read_failure(self, mocker: MockerFixture):
         download_mock = mocker.patch("sbl_filing_api.services.file_handler.download")
         download_mock.side_effect = IOError("test")
         with pytest.raises(Exception) as e:
@@ -75,7 +75,7 @@ class TestSubmissionProcessor:
             submission_processor.validate_file_processable(mock_upload_file)
         assert e.value.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
-    async def test_validate_and_update_successful(
+    def test_validate_and_update_successful(
         self,
         mocker: MockerFixture,
         successful_submission_mock: Mock,
@@ -95,9 +95,7 @@ class TestSubmissionProcessor:
 
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": True}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": True})
 
         file_mock.assert_called_once_with(
             "2024",
@@ -109,7 +107,7 @@ class TestSubmissionProcessor:
         assert successful_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
         assert successful_submission_mock.mock_calls[1].args[1].state == "VALIDATION_SUCCESSFUL"
 
-    async def test_validate_and_update_warnings(
+    def test_validate_and_update_warnings(
         self,
         mocker: MockerFixture,
         warning_submission_mock: Mock,
@@ -131,9 +129,7 @@ class TestSubmissionProcessor:
 
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": True}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": True})
 
         file_mock.assert_called_once_with(
             "2024",
@@ -145,7 +141,7 @@ class TestSubmissionProcessor:
         assert warning_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
         assert warning_submission_mock.mock_calls[1].args[1].state == SubmissionState.VALIDATION_WITH_WARNINGS
 
-    async def test_validate_and_update_errors(
+    def test_validate_and_update_errors(
         self,
         mocker: MockerFixture,
         error_submission_mock: Mock,
@@ -167,9 +163,7 @@ class TestSubmissionProcessor:
 
         file_mock = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": True}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": True})
 
         file_mock.assert_called_once_with(
             "2024",
@@ -181,7 +175,7 @@ class TestSubmissionProcessor:
         assert error_submission_mock.mock_calls[0].args[1].validation_ruleset_version == "0.1.0"
         assert error_submission_mock.mock_calls[1].args[1].state == SubmissionState.VALIDATION_WITH_ERRORS
 
-    async def test_validate_and_update_submission_malformed(
+    def test_validate_and_update_submission_malformed(
         self,
         mocker: MockerFixture,
     ):
@@ -206,9 +200,7 @@ class TestSubmissionProcessor:
         re = RuntimeError("File not in csv format")
         mock_read_csv.side_effect = re
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": True}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": True})
 
         mock_update_submission.assert_called()
         log_mock.exception.assert_called_with("The file is malformed.")
@@ -221,9 +213,7 @@ class TestSubmissionProcessor:
         re = RuntimeError("File can not be parsed by validator")
         mock_validation.side_effect = re
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": True}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": True})
         log_mock.exception.assert_called_with("The file is malformed.")
         assert mock_update_submission.mock_calls[0].args[1].state == SubmissionState.VALIDATION_IN_PROGRESS
         assert mock_update_submission.mock_calls[1].args[1].state == SubmissionState.SUBMISSION_UPLOAD_MALFORMED
@@ -231,14 +221,12 @@ class TestSubmissionProcessor:
         e = Exception("Test exception")
         mock_validation.side_effect = e
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": True}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": True})
         log_mock.exception.assert_called_with(
             "Validation for submission %d did not complete due to an unexpected error.", mock_sub.id
         )
 
-    async def test_validation_expired(
+    def test_validation_expired(
         self,
         mocker: MockerFixture,
         validate_submission_mock: Mock,
@@ -266,15 +254,13 @@ class TestSubmissionProcessor:
         mock_build_json = mocker.patch("sbl_filing_api.services.submission_processor.build_validation_results")
         mock_build_json.return_value = {"logic_errors": {"total_count": 1}}
 
-        await submission_processor.validate_and_update_submission(
-            "2024", "123456790", mock_sub, None, {"continue": False}
-        )
+        submission_processor.validate_and_update_submission("2024", "123456790", mock_sub, None, {"continue": False})
 
         # second update shouldn't be called
         assert len(mock_update_submission.mock_calls) == 1
         log_mock.warning.assert_called_with("Submission 1 is expired, will not be updating final state with results.")
 
-    async def test_build_validation_results_success(self, mocker: MockerFixture):
+    def test_build_validation_results_success(self, mocker: MockerFixture):
 
         df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
         df_to_dicts_mock.return_value = []
@@ -290,7 +276,7 @@ class TestSubmissionProcessor:
         assert validation_results["logic_warnings"]["multi_field_count"] == 0
         assert validation_results["logic_warnings"]["register_count"] == 0
 
-    async def test_build_validation_results_syntax_errors(self, mocker: MockerFixture):
+    def test_build_validation_results_syntax_errors(self, mocker: MockerFixture):
 
         df_to_dicts_mock = mocker.patch("sbl_filing_api.services.submission_processor.df_to_dicts")
         df_to_dicts_mock.return_value = [
