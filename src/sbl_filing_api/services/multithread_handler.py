@@ -26,13 +26,13 @@ async def check_future(future, submission_id, exec_check):
     except asyncio.InvalidStateError:
         future.cancel()
         exec_check["continue"] = False
-        await repo.expire_submission(submission_id)
+        repo.expire_submission(submission_id)
         logger.warning(
             f"Validation for submission {submission_id} did not complete within the expected timeframe, will be set to VALIDATION_EXPIRED."
         )
     except Exception:
         exec_check["continue"] = False
-        await repo.error_out_submission(submission_id)
+        repo.error_out_submission(submission_id)
         logger.error(
             f"Validation for submission {submission_id} did not complete due to an unexpected error.",
             exc_info=True,

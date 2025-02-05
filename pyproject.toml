@@ -10,7 +10,6 @@ packages = [{ include = "sbl_filing_api", from = "src" }]
 python = ">=3.12,<4"
 sqlalchemy = "^2.0.35"
 psycopg2-binary = "^2.9.9"
-asyncpg = "^0.30.0"
 regtech-api-commons = {git = "https://github.com/cfpb/regtech-api-commons.git"}
 regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.git"}
 regtech-regex = {git = "https://github.com/cfpb/regtech-regex.git"}
@@ -27,7 +26,6 @@ pytest-mock = "^3.12.0"
 pytest-env = "^1.1.5"
 pytest-alembic = "^0.11.1"
 pytest-asyncio = "^0.25.3"
-aiosqlite = "^0.20.0"
 
 
 [tool.poetry.group.linters.dependencies]

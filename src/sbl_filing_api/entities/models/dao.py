@@ -4,11 +4,10 @@ from typing import Any, List
 from sqlalchemy import Enum as SAEnum, String, desc
 from sqlalchemy import ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
-from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import JSON
 
 
-class Base(AsyncAttrs, DeclarativeBase):
+class Base(DeclarativeBase):
     pass
 
 

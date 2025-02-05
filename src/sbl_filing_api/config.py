@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     db_user: str
     db_pwd: str
     db_host: str
-    db_scheme: str = "postgresql+asyncpg"
+    db_scheme: str = "postgresql+psycopg2"
     db_logging: bool = False
     conn: PostgresDsn | None = None
 

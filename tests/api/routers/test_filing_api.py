@@ -6,7 +6,7 @@ import pytest
 from copy import deepcopy
 from datetime import datetime as dt
 
-from unittest.mock import ANY, Mock, AsyncMock
+from unittest.mock import ANY, Mock
 
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
@@ -327,12 +327,11 @@ class TestFilingApi:
         mock_get_loop.return_value = mock_event_loop
         mock_event_loop.run_in_executor.return_value = asyncio.Future()
 
-        async_mock = AsyncMock(return_value=return_sub)
         mock_add_submission = mocker.patch(
-            "sbl_filing_api.entities.repos.submission_repo.add_submission", side_effect=async_mock
+            "sbl_filing_api.entities.repos.submission_repo.add_submission", return_value=return_sub
         )
         mock_update_submission = mocker.patch(
-            "sbl_filing_api.entities.repos.submission_repo.update_submission", side_effect=async_mock
+            "sbl_filing_api.entities.repos.submission_repo.update_submission", return_value=return_sub
         )
         mock_add_submitter = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
         mock_add_submitter.return_value = user_action_submit
@@ -409,14 +408,13 @@ class TestFilingApi:
         mock_validate_file = mocker.patch("sbl_filing_api.services.submission_processor.validate_file_processable")
         mock_validate_file.return_value = None
 
-        async_mock = AsyncMock(return_value=return_sub)
-        mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submission", side_effect=async_mock)
+        mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submission", return_value=return_sub)
 
         mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
 
         mock_update_submission = mocker.patch(
-            "sbl_filing_api.entities.repos.submission_repo.update_submission", side_effect=async_mock
+            "sbl_filing_api.entities.repos.submission_repo.update_submission", return_value=return_sub
         )
 
         mock_add_submitter = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
@@ -468,8 +466,7 @@ class TestFilingApi:
         mock_validate_file = mocker.patch("sbl_filing_api.services.submission_processor.validate_file_processable")
         mock_validate_file.return_value = None
 
-        async_mock = AsyncMock(return_value=return_sub)
-        mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submission", side_effect=async_mock)
+        mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_submission", return_value=return_sub)
 
         mock_upload = mocker.patch("sbl_filing_api.services.submission_processor.upload_to_storage")
         mock_upload.return_value = None
@@ -479,8 +476,8 @@ class TestFilingApi:
             side_effect=Exception("Can't connect to database"),
         )
 
-        mock_add_submitter = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
-        mock_add_submitter.side_effect = AsyncMock(
+        mocker.patch(
+            "sbl_filing_api.entities.repos.submission_repo.add_user_action",
             return_value=UserActionDAO(
                 id=2,
                 user_id="123456-7890-ABCDEF-GHIJ",
@@ -488,7 +485,7 @@ class TestFilingApi:
                 user_email="test@local.host",
                 action_type=UserActionType.SUBMIT,
                 timestamp=datetime.datetime.now(),
-            )
+            ),
         )
 
         file = {"file": ("submission.csv", open(submission_csv, "rb"))}
