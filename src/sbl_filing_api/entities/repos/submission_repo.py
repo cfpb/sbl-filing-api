@@ -95,7 +95,9 @@ async def get_user_actions(session: AsyncSession) -> List[UserActionDAO]:
     return await query_helper(session, UserActionDAO)
 
 
-async def add_submission(session: AsyncSession, filing_id: int, filename: str, submitter_id: int) -> SubmissionDAO:
+async def add_submission(
+    session: AsyncSession, filing_id: int, filename: str, submitter: UserActionDAO
+) -> SubmissionDAO:
     stmt = select(SubmissionDAO).filter_by(filing=filing_id).order_by(desc(SubmissionDAO.counter)).limit(1)
     last_sub = await session.scalar(stmt)
     current_count = last_sub.counter if last_sub else 0
@@ -103,12 +105,13 @@ async def add_submission(session: AsyncSession, filing_id: int, filename: str, s
         filing=filing_id,
         state=SubmissionState.SUBMISSION_STARTED,
         filename=filename,
-        submitter_id=submitter_id,
         counter=(current_count + 1),
+        user_actions=[submitter],
     )
     # this returns the attached object, most importantly with the new submission id
     new_sub = await session.merge(new_sub)
     await session.commit()
+    await session.refresh(new_sub)
     return new_sub
 
 
@@ -138,8 +141,8 @@ async def upsert_filing(session: AsyncSession, filing: FilingDTO) -> FilingDAO:
     return await upsert_helper(session, filing, FilingDAO)
 
 
-async def create_new_filing(session: AsyncSession, lei: str, filing_period: str, creator_id: int) -> FilingDAO:
-    new_filing = FilingDAO(filing_period=filing_period, lei=lei, creator_id=creator_id)
+async def create_new_filing(session: AsyncSession, lei: str, filing_period: str, creator: UserActionDAO) -> FilingDAO:
+    new_filing = FilingDAO(filing_period=filing_period, lei=lei, user_actions=[creator])
     return await upsert_helper(session, new_filing, FilingDAO)
 
 
