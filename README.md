@@ -12,7 +12,7 @@ If you have an inquiry or suggestion for the user and financial institutions man
 
 ---
 ### Pre-requisites
-[SBL Project Repo](https://github.com/cfpb/sbl-project) contains the `docker-compose.yml` to run the ancillary services.
+[SBL Project Repo](https://github.com/cfpb/sbl-project) contains the `docker-compose.yml` to run the ancillary services.  See [LOCAL_DEV_COMPOSE.md](https://github.com/cfpb/sbl-project/blob/main/LOCAL_DEV_COMPOSE.md) for more information.
 - Not all services need to run, this module `sbl-filing-api` is part of the docker compose file, which doesn't need to be ran in docker for local development.
 - Issuing `docker compose up -d pg keycloak user-fi` would start the necessary services (regtech-user-fi-management, postgres, and keycloak)
 ```bash
