@@ -2,7 +2,13 @@ from sbl_filing_api.config import regex_configs
 from datetime import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
+from sbl_filing_api.entities.models.model_enums import (
+    FilingType,
+    FilingTaskState,
+    SubmissionState,
+    UserActionType,
+    FilingState,
+)
 
 
 class UserActionDTO(BaseModel):
@@ -94,6 +100,8 @@ class FilingDTO(BaseModel):
     signatures: List[UserActionDTO] = []
     creator: UserActionDTO
     is_voluntary: bool | None = None
+    state: FilingState | None = None
+    reopens: List[UserActionDTO] = []
 
 
 class FilingPeriodDTO(BaseModel):
