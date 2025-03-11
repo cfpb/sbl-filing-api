@@ -20,7 +20,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-
     with op.batch_alter_table("user_action", schema=None) as batch_op:
         batch_op.alter_column(
             "user_name",

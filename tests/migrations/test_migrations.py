@@ -444,6 +444,18 @@ def test_migrations_to_26f11ac15b3c(alembic_runner: MigrationContext, alembic_en
     assert "is_voluntary" in set([c["name"] for c in inspector.get_columns("filing")])
 
 
+def test_migrations_to_6ec12afa5b37(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("6ec12afa5b37")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+
+    counter_constraint = inspector.get_unique_constraints("submission")[0]
+
+    assert "counter" in set([c["name"] for c in inspector.get_columns("submission")])
+    assert counter_constraint["name"] == "unique_filing_counter"
+    assert set(counter_constraint["column_names"]) == set(["filing", "counter"])
+
+
 def test_migrations_to_63138f5cf036(alembic_runner: MigrationContext, alembic_engine: Engine):
     alembic_runner.migrate_up_to("63138f5cf036")
 

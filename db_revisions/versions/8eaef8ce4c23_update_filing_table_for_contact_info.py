@@ -1,4 +1,4 @@
-"""update filing table for contact info 
+"""update filing table for contact info
 
 Revision ID: 8eaef8ce4c23
 Revises: 31e39764e3c0

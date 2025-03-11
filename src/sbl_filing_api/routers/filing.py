@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import csv
+import io
 
 from concurrent.futures import ProcessPoolExecutor
 from fastapi import Depends, Request, UploadFile, status
@@ -9,9 +11,11 @@ from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
 from regtech_api_commons.models.auth import AuthenticatedUser
 
+from sbl_filing_api.entities.models.dao import FilingDAO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
+from sbl_filing_api.config import request_action_validations
 from typing import Annotated, List
 
 from sbl_filing_api.entities.engine.engine import get_session
@@ -25,16 +29,20 @@ from sbl_filing_api.entities.models.dto import (
     SubmissionState,
     UserActionDTO,
     VoluntaryUpdateDTO,
+    SubmissionBaseDTO,
 )
 
 from sbl_filing_api.entities.repos import submission_repo as repo
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from starlette.authentication import requires
 
 from regtech_api_commons.api.dependencies import verify_user_lei_relation
+
+from sbl_filing_api.services.request_handler import send_confirmation_email
+
+from sbl_filing_api.services.request_action_validator import UserActionContext, validate_user_action, set_context
 
 logger = logging.getLogger(__name__)
 
@@ -69,85 +77,57 @@ async def get_filings(request: Request, period_code: str):
     return await repo.get_filings(request.state.db_session, user.institutions, period_code)
 
 
-@router.post("/institutions/{lei}/filings/{period_code}", response_model=FilingDTO)
+@router.post(
+    "/institutions/{lei}/filings/{period_code}",
+    response_model=FilingDTO,
+    dependencies=[
+        Depends(set_context({UserActionContext.PERIOD, UserActionContext.FILING})),
+        Depends(validate_user_action(request_action_validations.filing_create, "Filing Create Forbidden")),
+    ],
+)
 @requires("authenticated")
 async def post_filing(request: Request, lei: str, period_code: str):
-    period = await repo.get_filing_period(request.state.db_session, filing_period=period_code)
-
-    if period:
-        creator = None
-        try:
-            creator = await repo.add_user_action(
-                request.state.db_session,
-                UserActionDTO(
-                    user_id=request.user.id,
-                    user_name=request.user.name,
-                    user_email=request.user.email,
-                    action_type=UserActionType.CREATE,
-                ),
-            )
-        except Exception:
-            logger.exception("Error while trying to create the filing.creator UserAction.")
-            raise RegTechHttpException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                name="Filing.creator UserAction error",
-                detail="Error while trying to create the filing.creator UserAction.",
-            )
-
-        try:
-            return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
-        except IntegrityError:
-            raise RegTechHttpException(
-                status_code=status.HTTP_409_CONFLICT,
-                name="Filing Creation Conflict",
-                detail=f"Filing already exists for Filing Period {period_code} and LEI {lei}",
-            )
-
-    else:
+    creator = None
+    try:
+        creator = await repo.add_user_action(
+            request.state.db_session,
+            UserActionDTO(
+                user_id=request.user.id,
+                user_name=request.user.name,
+                user_email=request.user.email,
+                action_type=UserActionType.CREATE,
+            ),
+        )
+    except Exception:
+        logger.exception("Error while trying to create the filing.creator UserAction.")
         raise RegTechHttpException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            name="Filing Period Not Found",
-            detail=f"The period ({period_code}) does not exist, therefore a Filing can not be created for this period.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            name="Filing.creator UserAction error",
+            detail="Error while trying to create the filing.creator UserAction.",
+        )
+
+    try:
+        return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
+    except Exception:
+        raise RegTechHttpException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            name="Filing Creation Error",
+            detail=f"An error occurred while creating a filing for LEI {lei} and Filing Period {period_code}.",
         )
 
 
-@router.put("/institutions/{lei}/filings/{period_code}/sign", response_model=FilingDTO)
+@router.put(
+    "/institutions/{lei}/filings/{period_code}/sign",
+    response_model=FilingDTO,
+    dependencies=[
+        Depends(set_context({UserActionContext.INSTITUTION, UserActionContext.FILING})),
+        Depends(validate_user_action(request_action_validations.sign_and_submit, "Filing Action Forbidden")),
+    ],
+)
 @requires("authenticated")
 async def sign_filing(request: Request, lei: str, period_code: str):
-    filing = await repo.get_filing(request.state.db_session, lei, period_code)
-    if not filing:
-        raise RegTechHttpException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            name="Filing Not Found",
-            detail=f"There is no Filing for LEI {lei} in period {period_code}, unable to sign a non-existent Filing.",
-        )
-    latest_sub = await repo.get_latest_submission(request.state.db_session, lei, period_code)
-    if not latest_sub or latest_sub.state != SubmissionState.SUBMISSION_ACCEPTED:
-        raise RegTechHttpException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            name="Filing Action Forbidden",
-            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a latest submission the SUBMISSION_ACCEPTED state.",
-        )
-    if filing.is_voluntary is None:
-        raise RegTechHttpException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            name="Filing Action Forbidden",
-            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have a selection of is_voluntary defined.",
-        )
-    if not filing.contact_info:
-        raise RegTechHttpException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            name="Filing Action Forbidden",
-            detail=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have contact info defined.",
-        )
-    """
-    if not filing.institution_snapshot_id:
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=f"Cannot sign filing. Filing for {lei} for period {period_code} does not have institution snapshot id defined.",
-        )
-    """
-
+    filing: FilingDAO = request.state.context["filing"]
+    latest_sub = (await filing.awaitable_attrs.submissions)[0]
     sig = await repo.add_user_action(
         request.state.db_session,
         UserActionDTO(
@@ -157,8 +137,12 @@ async def sign_filing(request: Request, lei: str, period_code: str):
             action_type=UserActionType.SIGN,
         ),
     )
-    filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.id) + "-" + str(sig.timestamp.timestamp())
+    sig_timestamp = int(sig.timestamp.timestamp())
+    filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.counter) + "-" + str(sig_timestamp)
     filing.signatures.append(sig)
+    send_confirmation_email(
+        request.user.name, request.user.email, filing.contact_info.email, filing.confirmation_id, sig_timestamp
+    )
     return await repo.upsert_filing(request.state.db_session, filing)
 
 
@@ -189,10 +173,13 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
         submission = await repo.add_submission(request.state.db_session, filing.id, file.filename, submitter.id)
         try:
             submission_processor.upload_to_storage(
-                period_code, lei, submission.id, content, file.filename.split(".")[-1]
+                period_code, lei, submission.counter, content, file.filename.split(".")[-1]
             )
 
             submission.state = SubmissionState.SUBMISSION_UPLOADED
+            with io.BytesIO(content) as byte_stream:
+                reader = csv.reader(io.TextIOWrapper(byte_stream))
+                submission.total_records = sum(1 for row in reader) - 1
             submission = await repo.update_submission(request.state.db_session, submission)
         except Exception as e:
             submission.state = SubmissionState.UPLOAD_FAILED
@@ -232,7 +219,7 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
         ) from e
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/submissions", response_model=List[SubmissionDTO])
+@router.get("/institutions/{lei}/filings/{period_code}/submissions", response_model=List[SubmissionBaseDTO])
 @requires("authenticated")
 async def get_submissions(request: Request, lei: str, period_code: str):
     return await repo.get_submissions(request.state.db_session, lei, period_code)
@@ -254,24 +241,24 @@ async def get_submission_latest(request: Request, lei: str, period_code: str):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/submissions/{id}", response_model=SubmissionDTO | None)
+@router.get("/institutions/{lei}/filings/{period_code}/submissions/{counter}", response_model=SubmissionDTO | None)
 @requires("authenticated")
-async def get_submission(request: Request, response: Response, id: int):
-    result = await repo.get_submission(request.state.db_session, id)
+async def get_submission(request: Request, response: Response, counter: int, lei: str, period_code: str):
+    result = await repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
     if result:
         return result
     response.status_code = status.HTTP_404_NOT_FOUND
 
 
-@router.put("/institutions/{lei}/filings/{period_code}/submissions/{id}/accept", response_model=SubmissionDTO)
+@router.put("/institutions/{lei}/filings/{period_code}/submissions/{counter}/accept", response_model=SubmissionDTO)
 @requires("authenticated")
-async def accept_submission(request: Request, id: int, lei: str, period_code: str):
-    submission = await repo.get_submission(request.state.db_session, id)
+async def accept_submission(request: Request, counter: int, lei: str, period_code: str):
+    submission = await repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
     if not submission:
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
             name="Submission Not Found",
-            detail=f"Submission ID {id} does not exist, cannot accept a non-existing submission.",
+            detail=f"Submission {counter} for LEI {lei} in filing period {period_code} does not exist, cannot accept a non-existing submission.",
         )
     if (
         submission.state != SubmissionState.VALIDATION_SUCCESSFUL
@@ -280,7 +267,7 @@ async def accept_submission(request: Request, id: int, lei: str, period_code: st
         raise RegTechHttpException(
             status_code=status.HTTP_403_FORBIDDEN,
             name="Submission Action Forbidden",
-            detail=f"Submission {id} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
+            detail=f"Submission {counter} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
 
     accepter = await repo.add_user_action(
@@ -362,13 +349,13 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
         SubmissionState.SUBMISSION_ACCEPTED,
     ]:
         file_data = submission_processor.get_from_storage(
-            period_code, lei, str(latest_sub.id) + submission_processor.REPORT_QUALIFIER
+            period_code, lei, str(latest_sub.counter) + submission_processor.REPORT_QUALIFIER
         )
         return StreamingResponse(
             content=file_data,
             media_type="text/csv",
             headers={
-                "Content-Disposition": f'attachment; filename="{latest_sub.id}_validation_report.csv"',
+                "Content-Disposition": f'attachment; filename="{latest_sub.counter}_validation_report.csv"',
                 "Cache-Control": "no-store",
             },
         )
@@ -381,12 +368,12 @@ async def get_latest_submission_report(request: Request, lei: str, period_code: 
 
 
 @router.get(
-    "/institutions/{lei}/filings/{period_code}/submissions/{id}/report",
+    "/institutions/{lei}/filings/{period_code}/submissions/{counter}/report",
     responses={200: {"content": {"text/plain; charset=utf-8": {}}}},
 )
 @requires("authenticated")
-async def get_submission_report(request: Request, response: Response, lei: str, period_code: str, id: int):
-    sub = await repo.get_submission(request.state.db_session, id)
+async def get_submission_report(request: Request, response: Response, lei: str, period_code: str, counter: int):
+    sub = await repo.get_submission_by_counter(request.state.db_session, lei, period_code, counter)
     if sub and sub.state in [
         SubmissionState.VALIDATION_SUCCESSFUL,
         SubmissionState.VALIDATION_WITH_ERRORS,
@@ -394,13 +381,13 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
         SubmissionState.SUBMISSION_ACCEPTED,
     ]:
         file_data = submission_processor.get_from_storage(
-            period_code, lei, str(sub.id) + submission_processor.REPORT_QUALIFIER
+            period_code, lei, str(sub.counter) + submission_processor.REPORT_QUALIFIER
         )
         return StreamingResponse(
             content=file_data,
             media_type="text/csv",
             headers={
-                "Content-Disposition": f'attachment; filename="{sub.id}_validation_report.csv"',
+                "Content-Disposition": f'attachment; filename="{sub.counter}_validation_report.csv"',
                 "Cache-Control": "no-store",
             },
         )
@@ -408,7 +395,7 @@ async def get_submission_report(request: Request, response: Response, lei: str, 
         raise RegTechHttpException(
             status_code=status.HTTP_404_NOT_FOUND,
             name="Report Not Found",
-            detail=f"Report for ({id}) does not exist.",
+            detail=f"Report for ({lei}-{period_code}-{counter}) does not exist.",
         )
 
 

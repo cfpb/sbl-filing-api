@@ -1,7 +1,7 @@
 from enum import StrEnum
 import os
 from urllib import parse
-from typing import Any
+from typing import Any, Set
 
 from pydantic import field_validator, ValidationInfo, BaseModel
 from pydantic.networks import PostgresDsn
@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     conn: PostgresDsn | None = None
 
     fs_upload_config: FsUploadConfig
+
     server_config: ServerConfig = ServerConfig()
 
     submission_file_type: str = "text/csv"
@@ -58,10 +59,11 @@ class Settings(BaseSettings):
     expired_submission_check_secs: int = 120
 
     user_fi_api_url: str = "http://sbl-project-user_fi-1:8888/v1/institutions/"
+    mail_api_url: str = "http://mail-api:8765/internal/confirmation/send"
 
     max_validation_errors: int = 1000000
     max_json_records: int = 10000
-    max_json_group_size: int = 0
+    max_json_group_size: int = 200
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -81,7 +83,24 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=env_files_to_load, extra="allow", env_nested_delimiter="__")
 
 
+class RequestActionValidations(BaseSettings):
+    sign_and_submit: Set[str] = {
+        "valid_lei_status",
+        "valid_lei_tin",
+        "valid_filing_exists",
+        "valid_sub_accepted",
+        "valid_voluntary_filer",
+        "valid_contact_info",
+    }
+
+    filing_create: Set[str] = {"valid_period_exists", "valid_no_filing_exists"}
+
+    model_config = SettingsConfigDict(env_prefix="request_validators__", env_file=env_files_to_load, extra="allow")
+
+
 settings = Settings()
+
+request_action_validations = RequestActionValidations()
 
 kc_settings = KeycloakSettings(_env_file=env_files_to_load)
 

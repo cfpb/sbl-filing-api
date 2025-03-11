@@ -1,8 +1,8 @@
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
 from datetime import datetime
 from typing import Any, List
-from sqlalchemy import Enum as SAEnum, String
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import Enum as SAEnum, String, desc
+from sqlalchemy import ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import JSON
@@ -26,6 +26,7 @@ class SubmissionDAO(Base):
     __tablename__ = "submission"
     id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True)
     filing: Mapped[int] = mapped_column(ForeignKey("filing.id"))
+    counter: Mapped[int]
     submitter_id: Mapped[int] = mapped_column(ForeignKey("user_action.id"))
     submitter: Mapped[UserActionDAO] = relationship(lazy="selectin", foreign_keys=[submitter_id])
     accepter_id: Mapped[int] = mapped_column(ForeignKey("user_action.id"), nullable=True)
@@ -37,8 +38,10 @@ class SubmissionDAO(Base):
     filename: Mapped[str]
     total_records: Mapped[int] = mapped_column(nullable=True)
 
+    __table_args__ = (UniqueConstraint("filing", "counter", name="unique_filing_counter"),)
+
     def __str__(self):
-        return f"Submission ID: {self.id}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"
+        return f"Submission ID: {self.id}, Counter: {self.counter}, State: {self.state}, Ruleset: {self.validation_ruleset_version}, Filing Period: {self.filing}, Submission: {self.submission_time}"
 
 
 class FilingPeriodDAO(Base):
@@ -111,7 +114,10 @@ class FilingDAO(Base):
     lei: Mapped[str]
     tasks: Mapped[List[FilingTaskProgressDAO] | None] = relationship(lazy="selectin", cascade="all, delete-orphan")
     institution_snapshot_id: Mapped[str] = mapped_column(nullable=True)
-    contact_info: Mapped[ContactInfoDAO] = relationship("ContactInfoDAO", lazy="joined")
+    contact_info: Mapped[ContactInfoDAO | None] = relationship("ContactInfoDAO", lazy="joined")
+    submissions: Mapped[List[SubmissionDAO] | None] = relationship(
+        "SubmissionDAO", lazy="select", order_by=desc(SubmissionDAO.submission_time)
+    )
     signatures: Mapped[List[UserActionDAO] | None] = relationship(
         "UserActionDAO", secondary="filing_signature", lazy="selectin", order_by="desc(UserActionDAO.timestamp)"
     )
