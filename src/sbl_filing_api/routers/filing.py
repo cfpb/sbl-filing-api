@@ -29,6 +29,7 @@ from sbl_filing_api.entities.models.dto import (
     SubmissionState,
     UserActionDTO,
     VoluntaryUpdateDTO,
+    SubmissionBaseDTO,
 )
 
 from sbl_filing_api.entities.repos import submission_repo as repo
@@ -218,7 +219,7 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
         ) from e
 
 
-@router.get("/institutions/{lei}/filings/{period_code}/submissions", response_model=List[SubmissionDTO])
+@router.get("/institutions/{lei}/filings/{period_code}/submissions", response_model=List[SubmissionBaseDTO])
 @requires("authenticated")
 async def get_submissions(request: Request, lei: str, period_code: str):
     return await repo.get_submissions(request.state.db_session, lei, period_code)
