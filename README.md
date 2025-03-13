@@ -16,13 +16,13 @@
 | src/sbl\_filing\_api/services/multithread\_handler.py               |       27 |        2 |        0 |        0 |     93% |     18-19 |
 | src/sbl\_filing\_api/services/request\_action\_validator.py         |       66 |        3 |       16 |        0 |     96% | 42, 55-56 |
 | src/sbl\_filing\_api/services/request\_handler.py                   |       14 |        0 |        2 |        0 |    100% |           |
-| src/sbl\_filing\_api/services/submission\_processor.py              |       84 |        1 |       18 |        2 |     97% |64, 94->97 |
+| src/sbl\_filing\_api/services/submission\_processor.py              |       85 |        1 |       18 |        2 |     97% |64, 96->99 |
 | src/sbl\_filing\_api/services/validators/base\_validator.py         |       20 |        0 |        8 |        1 |     96% |  19->exit |
 | src/sbl\_filing\_api/services/validators/filing\_validators.py      |       28 |        0 |        8 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/institution\_validators.py |       22 |        0 |        4 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/period\_validators.py      |       10 |        0 |        2 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/submission\_validators.py  |       16 |        0 |        4 |        0 |    100% |           |
-|                                                           **TOTAL** |  **951** |   **38** |  **122** |    **7** | **96%** |           |
+|                                                           **TOTAL** |  **952** |   **38** |  **122** |    **7** | **96%** |           |
 
 7 empty files skipped.
 
