@@ -27,7 +27,7 @@ def validate_submission_mock(mocker: MockerFixture):
 @pytest.fixture(scope="function")
 def error_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
 
-    mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_batch_csv")
+    mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_data")
     mock_read_csv.return_value = iter(
         [
             ValidationResults(
@@ -46,7 +46,7 @@ def error_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock)
 @pytest.fixture(scope="function")
 def successful_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
 
-    mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_batch_csv")
+    mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_data")
     mock_read_csv.return_value = iter(
         [
             ValidationResults(
@@ -65,7 +65,7 @@ def successful_submission_mock(mocker: MockerFixture, validate_submission_mock: 
 @pytest.fixture(scope="function")
 def warning_submission_mock(mocker: MockerFixture, validate_submission_mock: Mock):
 
-    mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_batch_csv")
+    mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_data")
     mock_read_csv.return_value = iter(
         [
             ValidationResults(

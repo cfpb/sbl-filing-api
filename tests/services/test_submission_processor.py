@@ -202,7 +202,7 @@ class TestSubmissionProcessor:
             filename="submission.csv",
         )
 
-        mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_batch_csv")
+        mock_read_csv = mocker.patch("sbl_filing_api.services.submission_processor.validate_data")
         re = RuntimeError("File not in csv format")
         mock_read_csv.side_effect = re
 
@@ -217,7 +217,7 @@ class TestSubmissionProcessor:
         assert mock_update_submission.mock_calls[1].args[1].state == SubmissionState.SUBMISSION_UPLOAD_MALFORMED
 
         mock_read_csv.side_effect = None
-        mock_validation = mocker.patch("sbl_filing_api.services.submission_processor.validate_batch_csv")
+        mock_validation = mocker.patch("sbl_filing_api.services.submission_processor.validate_data")
         re = RuntimeError("File can not be parsed by validator")
         mock_validation.side_effect = re
 

@@ -4,7 +4,7 @@ import importlib.metadata as imeta
 import logging
 
 from fastapi import UploadFile
-from regtech_data_validator.validator import validate_batch_csv
+from regtech_data_validator.validator import validate_data
 from regtech_data_validator.data_formatters import df_to_dicts, df_to_download
 from regtech_data_validator.checks import Severity
 from regtech_data_validator.validation_results import ValidationPhase, ValidationResults
@@ -81,8 +81,10 @@ async def validate_and_update_submission(
             all_findings = []
             final_df = pl.DataFrame()
 
-            for validation_results in validate_batch_csv(
-                file_path,
+            lf = pl.scan_csv(file_path, infer_schema=False, missing_utf8_is_empty_string=True)
+
+            for validation_results in validate_data(
+                lf,
                 context={"lei": lei},
                 batch_size=50000,
                 batch_count=1,
