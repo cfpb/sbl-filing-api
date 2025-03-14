@@ -1,4 +1,4 @@
-FROM --platform=amd64 ghcr.io/cfpb/regtech/sbl/python-ubi8:3.12
+FROM --platform=amd64 ghcr.io/cfpb/regtech/sbl/python-ubi8:v3.12.0
 ENV UVICORN_LOG_LEVEL=info
 
 WORKDIR /usr/app
