@@ -17,7 +17,7 @@ regtech-regex = {git = "https://github.com/cfpb/regtech-regex.git"}
 boto3 = "^1.37.11"
 python-multipart = "^0.0.20"
 alembic = "^1.15.1"
-async-lru = "^2.0.4"
+async-lru = "^2.0.5"
 ujson = "^5.10.0"
 
 [tool.poetry.group.dev.dependencies]
