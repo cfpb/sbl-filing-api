@@ -16,7 +16,7 @@ regtech-data-validator = {git = "https://github.com/cfpb/regtech-data-validator.
 regtech-regex = {git = "https://github.com/cfpb/regtech-regex.git"}
 boto3 = "^1.37.19"
 python-multipart = "^0.0.20"
-alembic = "^1.15.1"
+alembic = "^1.15.2"
 async-lru = "^2.0.5"
 ujson = "^5.10.0"
 
