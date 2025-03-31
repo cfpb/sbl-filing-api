@@ -2500,7 +2500,7 @@ uvicorn = "^0.34.0"
 type = "git"
 url = "https://github.com/cfpb/regtech-api-commons.git"
 reference = "HEAD"
-resolved_reference = "9011c10e8e7ad445a192aac9adc6751d239b4544"
+resolved_reference = "125aa1f3fcdee737e1c1dd02125fbda499579281"
 
 [[package]]
 name = "regtech-data-validator"
