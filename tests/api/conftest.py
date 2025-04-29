@@ -85,15 +85,16 @@ def get_filing_mock(mocker: MockerFixture) -> Mock:
             phone_number="112-345-6789",
             email="test1@cfpb.gov",
         ),
-        creator_id=1,
-        creator=UserActionDAO(
-            id=1,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="test submitter",
-            user_email="test@local.host",
-            action_type=UserActionType.SUBMIT,
-            timestamp=datetime.now(),
-        ),
+        user_actions=[
+            UserActionDAO(
+                id=1,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test submitter",
+                user_email="test@local.host",
+                action_type=UserActionType.SUBMIT,
+                timestamp=datetime.now(),
+            ),
+        ],
     )
     return mock
 
@@ -120,15 +121,16 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 phone_number="112-345-6789",
                 email="test1@cfpb.gov",
             ),
-            creator_id=1,
-            creator=UserActionDAO(
-                id=1,
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="test submitter",
-                user_email="test@local.host",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.now(),
-            ),
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="123456-7890-ABCDEF-GHIJ",
+                    user_name="test submitter",
+                    user_email="test@local.host",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.now(),
+                ),
+            ],
         ),
         FilingDAO(
             id=1,
@@ -148,15 +150,16 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 phone_number="112-345-6789",
                 email="test1@cfpb.gov",
             ),
-            creator_id=1,
-            creator=UserActionDAO(
-                id=1,
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="test submitter",
-                user_email="test@local.host",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.now(),
-            ),
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="123456-7890-ABCDEF-GHIJ",
+                    user_name="test submitter",
+                    user_email="test@local.host",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.now(),
+                ),
+            ],
         ),
         FilingDAO(
             id=1,
@@ -176,15 +179,16 @@ def get_filings_mock(mocker: MockerFixture) -> Mock:
                 phone_number="112-345-6789",
                 email="test1@cfpb.gov",
             ),
-            creator_id=1,
-            creator=UserActionDAO(
-                id=1,
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="test submitter",
-                user_email="test@local.host",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.now(),
-            ),
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="123456-7890-ABCDEF-GHIJ",
+                    user_name="test submitter",
+                    user_email="test@local.host",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.now(),
+                ),
+            ],
         ),
     ]
     return mock
@@ -211,15 +215,16 @@ def post_filing_mock(mocker: MockerFixture) -> Mock:
             phone_number="312-345-6789",
             email="test3@cfpb.gov",
         ),
-        creator_id=1,
-        creator=UserActionDAO(
-            id=1,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="test creator",
-            user_email="test@local.host",
-            action_type=UserActionType.CREATE,
-            timestamp=datetime.now(),
-        ),
+        user_actions=[
+            UserActionDAO(
+                id=1,
+                user_id="123456-7890-ABCDEF-GHIJ",
+                user_name="test creator",
+                user_email="test@local.host",
+                action_type=UserActionType.CREATE,
+                timestamp=datetime.now(),
+            ),
+        ],
     )
     return mock
 

@@ -11,7 +11,7 @@ from regtech_api_commons.api.router_wrapper import Router
 from regtech_api_commons.api.exceptions import RegTechHttpException
 from regtech_api_commons.models.auth import AuthenticatedUser
 
-from sbl_filing_api.entities.models.dao import FilingDAO
+from sbl_filing_api.entities.models.dao import FilingDAO, UserActionDAO
 from sbl_filing_api.entities.models.model_enums import UserActionType
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
@@ -87,27 +87,16 @@ async def get_filings(request: Request, period_code: str):
 )
 @requires("authenticated")
 async def post_filing(request: Request, lei: str, period_code: str):
-    creator = None
-    try:
-        creator = await repo.add_user_action(
-            request.state.db_session,
-            UserActionDTO(
-                user_id=request.user.id,
-                user_name=request.user.name,
-                user_email=request.user.email,
-                action_type=UserActionType.CREATE,
-            ),
-        )
-    except Exception:
-        logger.exception("Error while trying to create the filing.creator UserAction.")
-        raise RegTechHttpException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            name="Filing.creator UserAction error",
-            detail="Error while trying to create the filing.creator UserAction.",
-        )
+    # TODO consider moving this into create_new_filing
+    creator = UserActionDAO(
+        user_id=request.user.id,
+        user_name=request.user.name,
+        user_email=request.user.email,
+        action_type=UserActionType.CREATE,
+    )
 
     try:
-        return await repo.create_new_filing(request.state.db_session, lei, period_code, creator_id=creator.id)
+        return await repo.create_new_filing(request.state.db_session, lei, period_code, creator)
     except Exception:
         raise RegTechHttpException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -127,19 +116,23 @@ async def post_filing(request: Request, lei: str, period_code: str):
 @requires("authenticated")
 async def sign_filing(request: Request, lei: str, period_code: str):
     filing: FilingDAO = request.state.context["filing"]
+    # Is it possible this is the wrong submission?  UI should be able to know which submission is being signed, or maybe
+    # it needs to be a transaction and check status?
     latest_sub = (await filing.awaitable_attrs.submissions)[0]
     sig = await repo.add_user_action(
         request.state.db_session,
         UserActionDTO(
             user_id=request.user.id,
+            filing_id=filing.id,
             user_name=request.user.name,
             user_email=request.user.email,
             action_type=UserActionType.SIGN,
         ),
     )
+    # TODO consider what happens if anything after this point fails.  Can we retry just this part?
     sig_timestamp = int(sig.timestamp.timestamp())
     filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.counter) + "-" + str(sig_timestamp)
-    filing.signatures.append(sig)
+    filing.user_actions.append(sig)
     send_confirmation_email(
         request.user.name, request.user.email, filing.contact_info.email, filing.confirmation_id, sig_timestamp
     )
@@ -161,19 +154,18 @@ async def upload_file(request: Request, lei: str, period_code: str, file: Upload
         )
     submission = None
     try:
-        submitter = await repo.add_user_action(
-            request.state.db_session,
-            UserActionDTO(
-                user_id=request.user.id,
-                user_name=request.user.name,
-                user_email=request.user.email,
-                action_type=UserActionType.SUBMIT,
-            ),
+        # TODO consider moving this to add_submission
+        submitter = UserActionDAO(
+            user_id=request.user.id,
+            filing_id=filing.id,
+            user_name=request.user.name,
+            user_email=request.user.email,
+            action_type=UserActionType.SUBMIT,
         )
-        submission = await repo.add_submission(request.state.db_session, filing.id, file.filename, submitter.id)
+        submission = await repo.add_submission(request.state.db_session, filing.id, file.filename, submitter)
         try:
             submission_processor.upload_to_storage(
-                period_code, lei, submission.counter, content, file.filename.split(".")[-1]
+                period_code, lei, str(submission.counter), content, file.filename.split(".")[-1]
             )
 
             submission.state = SubmissionState.SUBMISSION_UPLOADED
@@ -270,18 +262,17 @@ async def accept_submission(request: Request, counter: int, lei: str, period_cod
             detail=f"Submission {counter} for LEI {lei} in filing period {period_code} is not in an acceptable state.  Submissions must be validated successfully or with only warnings to be accepted.",
         )
 
-    accepter = await repo.add_user_action(
-        request.state.db_session,
-        UserActionDTO(
+    submission.state = SubmissionState.SUBMISSION_ACCEPTED
+    submission.user_actions.append(
+        UserActionDAO(
+            filing_id=submission.filing,
+            submission_id=submission.id,
             user_id=request.user.id,
             user_name=request.user.name,
             user_email=request.user.email,
             action_type=UserActionType.ACCEPT,
-        ),
+        )
     )
-
-    submission.accepter_id = accepter.id
-    submission.state = SubmissionState.SUBMISSION_ACCEPTED
     submission = await repo.update_submission(request.state.db_session, submission)
     return submission
 

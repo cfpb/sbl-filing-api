@@ -1,14 +1,14 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class UserActionType(str, Enum):
+class UserActionType(StrEnum):
     SUBMIT = "SUBMIT"
     ACCEPT = "ACCEPT"
     SIGN = "SIGN"
     CREATE = "CREATE"
 
 
-class SubmissionState(str, Enum):
+class SubmissionState(StrEnum):
     SUBMISSION_ACCEPTED = "SUBMISSION_ACCEPTED"
     SUBMISSION_STARTED = "SUBMISSION_STARTED"
     SUBMISSION_UPLOAD_MALFORMED = "SUBMISSION_UPLOAD_MALFORMED"
@@ -22,11 +22,11 @@ class SubmissionState(str, Enum):
     VALIDATION_WITH_WARNINGS = "VALIDATION_WITH_WARNINGS"
 
 
-class FilingTaskState(str, Enum):
+class FilingTaskState(StrEnum):
     NOT_STARTED = "NOT_STARTED"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
 
 
-class FilingType(str, Enum):
+class FilingType(StrEnum):
     ANNUAL = "ANNUAL"
