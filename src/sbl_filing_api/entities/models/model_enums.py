@@ -6,6 +6,7 @@ class UserActionType(str, Enum):
     ACCEPT = "ACCEPT"
     SIGN = "SIGN"
     CREATE = "CREATE"
+    REOPEN = "REOPEN"
 
 
 class SubmissionState(str, Enum):
@@ -30,3 +31,8 @@ class FilingTaskState(str, Enum):
 
 class FilingType(str, Enum):
     ANNUAL = "ANNUAL"
+
+
+class FilingState(str, Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
