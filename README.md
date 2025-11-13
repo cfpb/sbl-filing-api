@@ -4,25 +4,25 @@
 
 | Name                                                                |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
 |-------------------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
-| src/sbl\_filing\_api/config.py                                      |       63 |        2 |        2 |        1 |     95% |     15-16 |
+| src/sbl\_filing\_api/config.py                                      |       57 |        2 |        2 |        1 |     95% |     15-16 |
 | src/sbl\_filing\_api/entities/engine/engine.py                      |       11 |        0 |        0 |        0 |    100% |           |
-| src/sbl\_filing\_api/entities/models/dao.py                         |       99 |        5 |        0 |        0 |     95% |44, 63, 78, 99, 130 |
-| src/sbl\_filing\_api/entities/models/dto.py                         |       92 |        0 |        8 |        2 |     98% |73->77, 77->81 |
+| src/sbl\_filing\_api/entities/models/dao.py                         |       90 |        5 |        0 |        0 |     94% |44, 63, 78, 99, 130 |
+| src/sbl\_filing\_api/entities/models/dto.py                         |       71 |        0 |        8 |        2 |     97% |73->77, 77->81 |
 | src/sbl\_filing\_api/entities/models/model\_enums.py                |       24 |        0 |        0 |        0 |    100% |           |
 | src/sbl\_filing\_api/entities/repos/submission\_repo.py             |      118 |       13 |       16 |        0 |     89% |87, 121-124, 150-158 |
 | src/sbl\_filing\_api/main.py                                        |       41 |       11 |        0 |        0 |     73% |35-40, 44-48 |
 | src/sbl\_filing\_api/routers/filing.py                              |      194 |        1 |       30 |        1 |     99% |       410 |
 | src/sbl\_filing\_api/services/file\_handler.py                      |       22 |        0 |        4 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/multithread\_handler.py               |       27 |        2 |        0 |        0 |     93% |     18-19 |
-| src/sbl\_filing\_api/services/request\_action\_validator.py         |       66 |        3 |       16 |        0 |     96% | 42, 55-56 |
+| src/sbl\_filing\_api/services/request\_action\_validator.py         |       64 |        3 |       16 |        0 |     96% | 42, 55-56 |
 | src/sbl\_filing\_api/services/request\_handler.py                   |       14 |        0 |        2 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/submission\_processor.py              |       85 |        1 |       18 |        2 |     97% |64, 96->99 |
-| src/sbl\_filing\_api/services/validators/base\_validator.py         |       20 |        0 |        8 |        1 |     96% |  19->exit |
+| src/sbl\_filing\_api/services/validators/base\_validator.py         |       17 |        0 |        6 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/filing\_validators.py      |       28 |        0 |        8 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/institution\_validators.py |       22 |        0 |        4 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/period\_validators.py      |       10 |        0 |        2 |        0 |    100% |           |
 | src/sbl\_filing\_api/services/validators/submission\_validators.py  |       16 |        0 |        4 |        0 |    100% |           |
-|                                                           **TOTAL** |  **952** |   **38** |  **122** |    **7** | **96%** |           |
+|                                                           **TOTAL** |  **911** |   **38** |  **120** |    **6** | **96%** |           |
 
 7 empty files skipped.
 
