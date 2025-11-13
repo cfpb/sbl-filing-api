@@ -650,18 +650,18 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-markers = {main = "platform_system == \"Windows\"", dev = "sys_platform == \"win32\"", linters = "platform_system == \"Windows\"", load-testing = "platform_system == \"Windows\""}
+markers = {main = "platform_system == \"Windows\"", dev = "sys_platform == \"win32\"", linters = "platform_system == \"Windows\"", load-testing = "platform_system == \"Windows\" or sys_platform == \"win32\""}
 
 [[package]]
 name = "configargparse"
-version = "1.7"
+version = "1.7.1"
 description = "A drop-in replacement for argparse that allows options to also be set via config files and/or environment variables."
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 groups = ["load-testing"]
 files = [
-    {file = "ConfigArgParse-1.7-py3-none-any.whl", hash = "sha256:d249da6591465c6c26df64a9f73d2536e743be2f244eb3ebe61114af2f94f86b"},
-    {file = "ConfigArgParse-1.7.tar.gz", hash = "sha256:e7067471884de5478c58a511e529f0f9bd1c66bfef1dea90935438d6c23306d1"},
+    {file = "configargparse-1.7.1-py3-none-any.whl", hash = "sha256:8b586a31f9d873abd1ca527ffbe58863c99f36d896e2829779803125e83be4b6"},
+    {file = "configargparse-1.7.1.tar.gz", hash = "sha256:79c2ddae836a1e5914b71d58e4b9adbd9f7779d4e6351a637b7d2d9b6c46d3d9"},
 ]
 
 [package.extras]
@@ -1230,7 +1230,7 @@ version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
 optional = false
 python-versions = ">=3.7"
-groups = ["dev"]
+groups = ["dev", "load-testing"]
 files = [
     {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
     {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
@@ -1296,48 +1296,56 @@ typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "locust"
-version = "2.36.2"
+version = "2.41.6"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.10"
 groups = ["load-testing"]
 files = [
-    {file = "locust-2.36.2-py3-none-any.whl", hash = "sha256:74239f493f44035b25a87a0665deadf41d213b3dcd45774398e511dec15e26eb"},
-    {file = "locust-2.36.2.tar.gz", hash = "sha256:604aff7535f5a83b7f666d32373b2dc74ad260c7c3d1dc274f4c82844be72eb6"},
+    {file = "locust-2.41.6-py3-none-any.whl", hash = "sha256:6679bf9e2d92e3c6500551f29dfa58a84d6f767d398cedefbc8a4765659a2126"},
+    {file = "locust-2.41.6.tar.gz", hash = "sha256:1fd76545f41639ba8c1ee57b5cafdf8bd426a264a0656fd927a99040bb86150b"},
 ]
 
 [package.dependencies]
-configargparse = ">=1.5.5"
+configargparse = ">=1.7.1"
 flask = ">=2.0.0"
 flask-cors = ">=3.0.10"
 flask-login = ">=0.6.3"
-gevent = ">=24.10.1,<25.0.0"
+gevent = ">=24.10.1,<25.8.1"
 geventhttpclient = ">=2.3.1"
-locust-cloud = ">=1.20.5"
+locust-cloud = ">=1.27.2"
 msgpack = ">=1.0.0"
 psutil = ">=5.9.1"
+pytest = ">=8.3.3,<9.0.0"
+python-engineio = ">=4.12.2"
+python-socketio = {version = ">=5.13.0", extras = ["client"]}
 pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
 pyzmq = ">=25.0.0"
-requests = {version = ">=2.32.2", markers = "python_version > \"3.11\""}
+requests = ">=2.32.2"
 setuptools = ">=70.0.0"
 werkzeug = ">=2.0.0"
 
+[package.extras]
+milvus = ["pymilvus (>=2.5.0)"]
+mqtt = ["paho-mqtt (>=2.1.0)"]
+
 [[package]]
 name = "locust-cloud"
-version = "1.20.7"
+version = "1.27.2"
 description = "Locust Cloud"
 optional = false
 python-versions = ">=3.10"
 groups = ["load-testing"]
 files = [
-    {file = "locust_cloud-1.20.7-py3-none-any.whl", hash = "sha256:f38214e77993d0ee87114dafa857e1689789ed4bfe4ae57c2b9dc754674f08bc"},
-    {file = "locust_cloud-1.20.7.tar.gz", hash = "sha256:24c16b767adffab51b97f489bcf142e16e2439354fb4296ecbb3e87ad20e220a"},
+    {file = "locust_cloud-1.27.2-py3-none-any.whl", hash = "sha256:cd21ee33e5ea721c0e4f3c0e691e9c637fc88783d234b060ae1693c26010604e"},
+    {file = "locust_cloud-1.27.2.tar.gz", hash = "sha256:0d80d63ba722a45c39dcdce66ca5a389944db2123a5fff59d1438e4ee3701258"},
 ]
 
 [package.dependencies]
-configargparse = ">=1.5.5"
-gevent = ">=24.10.1,<25.0.0"
+configargparse = ">=1.7.1"
+gevent = ">=24.10.1,<26.0.0"
 platformdirs = ">=4.3.6,<5.0.0"
+python-engineio = ">=4.12.2"
 python-socketio = {version = "5.13.0", extras = ["client"]}
 
 [[package]]
@@ -1588,7 +1596,7 @@ version = "24.2"
 description = "Core utilities for Python packages"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "dev", "linters"]
+groups = ["main", "dev", "linters", "load-testing"]
 files = [
     {file = "packaging-24.2-py3-none-any.whl", hash = "sha256:09abb1bccd265c01f4a3aa3f7a7db064b36514d2cba19a2f694fe6150451a759"},
     {file = "packaging-24.2.tar.gz", hash = "sha256:c228a6dc5e932d346bc5739379109d49e8853dd8223571c7c5b55260edc0b97f"},
@@ -1747,7 +1755,7 @@ version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["dev", "load-testing"]
 files = [
     {file = "pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669"},
     {file = "pluggy-1.5.0.tar.gz", hash = "sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1"},
@@ -2153,7 +2161,7 @@ version = "8.3.5"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["dev", "load-testing"]
 files = [
     {file = "pytest-8.3.5-py3-none-any.whl", hash = "sha256:c69214aa47deac29fad6c2a4f590b9c4a9fdb16a403176fe154b79c0b4d4d820"},
     {file = "pytest-8.3.5.tar.gz", hash = "sha256:f4efe70cc14e511565ac476b57c279e12a855b11f48f212af1080ef2263d3845"},
@@ -2291,14 +2299,14 @@ cli = ["click (>=5.0)"]
 
 [[package]]
 name = "python-engineio"
-version = "4.12.0"
+version = "4.12.3"
 description = "Engine.IO server and client for Python"
 optional = false
 python-versions = ">=3.6"
 groups = ["load-testing"]
 files = [
-    {file = "python_engineio-4.12.0-py3-none-any.whl", hash = "sha256:a0c47c129c39777e8ebc6d18011efd50db2144e4e8f08983acae8a3614626535"},
-    {file = "python_engineio-4.12.0.tar.gz", hash = "sha256:f42a36a868d7063aa10ddccf6bd6117a169b6bd00d7ca53999772093b62014f9"},
+    {file = "python_engineio-4.12.3-py3-none-any.whl", hash = "sha256:7c099abb2a27ea7ab429c04da86ab2d82698cdd6c52406cb73766fe454feb7e1"},
+    {file = "python_engineio-4.12.3.tar.gz", hash = "sha256:35633e55ec30915e7fc8f7e34ca8d73ee0c080cec8a8cd04faf2d7396f0a7a7a"},
 ]
 
 [package.dependencies]
@@ -3245,4 +3253,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4"
-content-hash = "edd4ae6728535e7eb2008ff04851ceb141303c1c73403865aa44342e43347756"
+content-hash = "4e33bdfa8473e4c87fcbd674f085709a2b8fb39baba89de6bc0e4043b5bd9a57"
