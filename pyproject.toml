@@ -18,7 +18,7 @@ boto3 = "^1.40.72"
 python-multipart = "^0.0.20"
 alembic = "^1.15.2"
 async-lru = "^2.0.5"
-ujson = "^5.10.0"
+ujson = "^5.11.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
