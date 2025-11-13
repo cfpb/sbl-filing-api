@@ -31,7 +31,7 @@ aiosqlite = "^0.21.0"
 
 
 [tool.poetry.group.linters.dependencies]
-ruff = "0.11.7"
+ruff = "0.14.4"
 black = "25.1.0"
 
 
