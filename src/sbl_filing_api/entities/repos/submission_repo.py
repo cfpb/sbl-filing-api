@@ -21,7 +21,7 @@ from sbl_filing_api.entities.models.dao import (
     UserActionDAO,
 )
 from sbl_filing_api.entities.models.dto import FilingPeriodDTO, FilingDTO, ContactInfoDTO, UserActionDTO
-from sbl_filing_api.entities.models.model_enums import SubmissionState
+from sbl_filing_api.entities.models.model_enums import SubmissionState, FilingState
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ async def upsert_filing(session: AsyncSession, filing: FilingDTO) -> FilingDAO:
 
 
 async def create_new_filing(session: AsyncSession, lei: str, filing_period: str, creator_id: int) -> FilingDAO:
-    new_filing = FilingDAO(filing_period=filing_period, lei=lei, creator_id=creator_id)
+    new_filing = FilingDAO(filing_period=filing_period, lei=lei, creator_id=creator_id, state=FilingState.OPEN)
     return await upsert_helper(session, new_filing, FilingDAO)
 
 

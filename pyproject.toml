@@ -79,8 +79,9 @@ env = [
   "FS_DOWNLOAD_CONFIG__PROTOCOL=file",
   "ENV=TEST",
   "MAIL_API_URL=http://mail-api:8765/internal/confirmation/send",
-  'REQUEST_VALIDATORS__SIGN_AND_SUBMIT=["valid_lei_status","valid_lei_tin","valid_filing_exists","valid_sub_accepted","valid_voluntary_filer","valid_contact_info"]',
-  'REQUEST_VALIDATORS__FILING_CREATE=["valid_period_exists", "valid_no_filing_exists"]'
+  'REQUEST_VALIDATORS__SIGN_AND_SUBMIT=["valid_lei_status","valid_lei_tin","valid_filing_exists_sign","valid_filing_open","valid_sub_accepted","valid_voluntary_filer","valid_contact_info"]',
+  'REQUEST_VALIDATORS__FILING_CREATE=["valid_period_exists", "valid_no_filing_exists"]',
+  'REQUEST_VALIDATORS__FILING_REOPEN=["valid_filing_exists_reopen", "valid_filing_not_open"]'
 ]
 testpaths = ["tests"]
 

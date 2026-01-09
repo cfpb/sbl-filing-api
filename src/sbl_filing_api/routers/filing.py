@@ -12,7 +12,7 @@ from regtech_api_commons.api.exceptions import RegTechHttpException
 from regtech_api_commons.models.auth import AuthenticatedUser
 
 from sbl_filing_api.entities.models.dao import FilingDAO
-from sbl_filing_api.entities.models.model_enums import UserActionType
+from sbl_filing_api.entities.models.model_enums import UserActionType, FilingState
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
 from sbl_filing_api.config import request_action_validations
@@ -140,6 +140,7 @@ async def sign_filing(request: Request, lei: str, period_code: str):
     sig_timestamp = int(sig.timestamp.timestamp())
     filing.confirmation_id = lei + "-" + period_code + "-" + str(latest_sub.counter) + "-" + str(sig_timestamp)
     filing.signatures.append(sig)
+    filing.state = FilingState.CLOSED
     send_confirmation_email(
         request.user.name, request.user.email, filing.contact_info.email, filing.confirmation_id, sig_timestamp
     )
@@ -412,3 +413,29 @@ async def update_is_voluntary(request: Request, lei: str, period_code: str, upda
         name="Filing Not Found",
         detail=f"A Filing for the LEI ({lei}) and period ({period_code}) that was attempted to be updated does not exist.",
     )
+
+
+@router.put(
+    "/institutions/{lei}/filings/{period_code}/reopen",
+    response_model=FilingDTO,
+    dependencies=[
+        Depends(set_context({UserActionContext.FILING})),
+        Depends(validate_user_action(request_action_validations.filing_reopen, "Filing Reopen Forbidden")),
+    ],
+)
+@requires("authenticated")
+async def reopen_filing(request: Request, lei: str, period_code: str):
+    reopen = await repo.add_user_action(
+        request.state.db_session,
+        UserActionDTO(
+            user_id=request.user.id,
+            user_name=request.user.name,
+            user_email=request.user.email,
+            action_type=UserActionType.REOPEN,
+        ),
+    )
+    filing = await repo.get_filing(request.state.db_session, lei, period_code)
+    filing.reopens.append(reopen)
+    filing.state = FilingState.OPEN
+    res = await repo.upsert_filing(request.state.db_session, filing)
+    return res

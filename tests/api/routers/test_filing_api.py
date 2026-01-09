@@ -21,7 +21,7 @@ from sbl_filing_api.entities.models.dao import (
     UserActionDAO,
 )
 from sbl_filing_api.entities.models.dto import ContactInfoDTO, UserActionDTO
-from sbl_filing_api.entities.models.model_enums import UserActionType
+from sbl_filing_api.entities.models.model_enums import UserActionType, FilingState
 from sbl_filing_api.services import submission_processor
 from sbl_filing_api.services.multithread_handler import handle_submission
 
@@ -1001,6 +1001,7 @@ class TestFilingApi:
         self, mocker: MockerFixture, app_fixture: FastAPI, authed_user_mock: Mock, get_filing_mock: Mock
     ):
         get_filing_mock.return_value.is_voluntary = True
+        get_filing_mock.return_value.state = FilingState.OPEN
         get_filing_mock.return_value.submissions = [
             SubmissionDAO(
                 id=1,
@@ -1302,3 +1303,43 @@ class TestFilingApi:
             in res.json()["error_detail"]
         )
         assert res.status_code == 422
+
+    async def test_unauthed_reopen_filing(self, mocker: MockerFixture, app_fixture: FastAPI, unauthed_user_mock):
+        client = TestClient(app_fixture)
+        res = client.put("/v1/filing/institutions/123456790/filings/2024/reopen")
+        assert res.status_code == 403
+
+    def test_reopen_filing(
+        self, mocker: MockerFixture, app_fixture: FastAPI, get_filing_mock: Mock, authed_user_mock: Mock
+    ):
+        add_user_action_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
+        add_user_action_mock.return_value = None
+        get_filing_mock.return_value.state = FilingState.OPEN
+
+        upsert_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.upsert_filing")
+        updated_filing_obj = deepcopy(get_filing_mock.return_value)
+        upsert_mock.return_value = updated_filing_obj
+
+        client = TestClient(app_fixture)
+        res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/reopen")
+
+        assert res.status_code == 403
+        assert res.json()["error_name"] == "Filing Reopen Forbidden"
+        assert (
+            res.json()["error_detail"]
+            == "['Cannot reopen filing. Filing state for 1234567890ABCDEFGH00 for period 2024 is OPEN.']"
+        )
+
+        get_filing_mock.return_value.state = FilingState.CLOSED
+        res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/reopen")
+        assert res.status_code == 200
+        assert res.json()["state"] == "OPEN"
+
+        get_filing_mock.return_value = None
+        res = client.put("/v1/filing/institutions/1234567890ABCDEFGH00/filings/2024/reopen")
+        assert res.status_code == 403
+        assert res.json()["error_name"] == "Filing Reopen Forbidden"
+        assert (
+            res.json()["error_detail"]
+            == "['There is no Filing for LEI 1234567890ABCDEFGH00 in period 2024, unable to reopen a non-existent Filing.']"
+        )
