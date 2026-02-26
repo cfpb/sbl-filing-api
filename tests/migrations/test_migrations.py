@@ -462,3 +462,26 @@ def test_migrations_to_63138f5cf036(alembic_runner: MigrationContext, alembic_en
     inspector = sqlalchemy.inspect(alembic_engine)
     columns = inspector.get_columns("filing")
     assert next(c for c in columns if c["name"] == "is_voluntary")["nullable"]
+
+
+def test_migrations_to_ef815604e2a9(alembic_runner: MigrationContext, alembic_engine: Engine):
+    alembic_runner.migrate_up_to("ef815604e2a9")
+
+    inspector = sqlalchemy.inspect(alembic_engine)
+    user_action_columns = inspector.get_columns("user_action")
+    filing_id_col = next(c for c in user_action_columns if c["name"] == "filing_id")
+    submission_id_col = next(c for c in user_action_columns if c["name"] == "submission_id")
+    assert filing_id_col
+    assert submission_id_col
+    assert not filing_id_col["nullable"]
+    assert submission_id_col["nullable"]
+
+    tables = inspector.get_table_names()
+    assert "filing_signature" not in tables
+
+    filing_columns = inspector.get_columns("filing")
+    assert not [c for c in filing_columns if c["name"] == "creator_id"]
+
+    submission_columns = inspector.get_columns("submission")
+    assert not [c for c in submission_columns if c["name"] == "submitter_id"]
+    assert not [c for c in submission_columns if c["name"] == "accepter_id"]

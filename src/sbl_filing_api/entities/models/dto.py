@@ -1,12 +1,14 @@
 from sbl_filing_api.config import regex_configs
 from datetime import datetime
-from typing import Dict, Any, List
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import Dict, Any, List, Annotated
+from pydantic import BaseModel, ConfigDict, Field, model_validator, computed_field
 from sbl_filing_api.entities.models.model_enums import FilingType, FilingTaskState, SubmissionState, UserActionType
 
 
 class UserActionDTO(BaseModel):
     id: int | None = None
+    filing_id: int | None = None
+    submission_id: int | None = None
     user_id: str = Field(max_length=36)
     user_name: str = Field(max_length=255)
     user_email: str = Field(max_length=255)
@@ -24,8 +26,17 @@ class SubmissionBaseDTO(BaseModel):
     submission_time: datetime | None = None
     filename: str
     total_records: int | None = None
-    submitter: UserActionDTO
-    accepter: UserActionDTO | None = None
+    user_actions: Annotated[List[UserActionDTO] | None, Field(exclude=True)] = None
+
+    @computed_field
+    @property
+    def submitter(self) -> UserActionDTO | None:
+        return next((action for action in self.user_actions if action.action_type == UserActionType.SUBMIT), None)
+
+    @computed_field
+    @property
+    def accepter(self) -> UserActionDTO | None:
+        return next((action for action in self.user_actions if action.action_type == UserActionType.ACCEPT), None)
 
 
 class SubmissionDTO(SubmissionBaseDTO):
@@ -91,9 +102,22 @@ class FilingDTO(BaseModel):
     institution_snapshot_id: str | None = None
     contact_info: ContactInfoDTO | None = None
     confirmation_id: str | None = None
-    signatures: List[UserActionDTO] = []
-    creator: UserActionDTO
     is_voluntary: bool | None = None
+    user_actions: Annotated[List[UserActionDTO] | None, Field(exclude=True)] = None
+
+    @computed_field
+    @property
+    def creator(self) -> UserActionDTO | None:
+        return next((action for action in self.user_actions if action.action_type == UserActionType.CREATE), None)
+
+    @computed_field
+    @property
+    def signatures(self) -> List[UserActionDTO]:
+        return sorted(
+            [action for action in self.user_actions if action.action_type == UserActionType.SIGN],
+            key=lambda action: action.timestamp,
+            reverse=True,
+        )
 
 
 class FilingPeriodDTO(BaseModel):
@@ -108,7 +132,7 @@ class FilingPeriodDTO(BaseModel):
 
 
 class SnapshotUpdateDTO(BaseModel):
-    model_config = ConfigDict(from_attribute=True)
+    model_config = ConfigDict(from_attributes=True)
 
     institution_snapshot_id: str
 
@@ -120,6 +144,6 @@ class StateUpdateDTO(BaseModel):
 
 
 class VoluntaryUpdateDTO(BaseModel):
-    model_config = ConfigDict(from_attribute=True)
+    model_config = ConfigDict(from_attributes=True)
 
     is_voluntary: bool

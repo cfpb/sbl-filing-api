@@ -117,26 +117,7 @@ class TestFilingApi:
         )
 
         get_filing_period_by_code_mock.return_value = get_filing_period_mock.return_value
-        user_action_create = UserActionDAO(
-            id=1,
-            user_id="123456-7890-ABCDEF-GHIJ",
-            user_name="Test Creator",
-            user_email="test@local.host",
-            action_type=UserActionType.CREATE,
-            timestamp=datetime.datetime.now(),
-        )
-        mock_add_creator = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
-        mock_add_creator.side_effect = Exception("Error while trying to process CREATE User Action")
 
-        log_mock = mocker.patch("sbl_filing_api.routers.filing.logger.exception")
-
-        res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2025/")
-        assert res.status_code == 500
-        assert res.json()["error_detail"] == "Error while trying to create the filing.creator UserAction."
-        log_mock.assert_called_with("Error while trying to create the filing.creator UserAction.")
-
-        mock_add_creator.return_value = user_action_create
-        mock_add_creator.side_effect = None
         post_filing_mock.side_effect = IntegrityError(None, None, None)
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
         assert res.status_code == 500
@@ -148,7 +129,17 @@ class TestFilingApi:
 
         post_filing_mock.side_effect = None
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/")
-        post_filing_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", creator_id=1)
+        post_filing_mock.assert_called_with(ANY, "1234567890ZXWVUTSR00", "2024", ANY)
+        creator_arg = post_filing_mock.call_args.args[-1]
+        # These properties will be filled in by the ORM
+        assert creator_arg.id is None
+        assert creator_arg.filing_id is None
+        assert creator_arg.submission_id is None
+        assert creator_arg.timestamp is None
+        assert creator_arg.action_type == UserActionType.CREATE
+        assert creator_arg.user_email == "test@local.host"
+        assert creator_arg.user_id == "123456-7890-ABCDEF-GHIJ"
+        assert creator_arg.user_name == "Test User"
         assert res.status_code == 200
         assert res.json()["lei"] == "1234567890ZXWVUTSR00"
         assert res.json()["filing_period"] == "2024"
@@ -178,8 +169,7 @@ class TestFilingApi:
                 validation_ruleset_version="v1",
                 submission_time=datetime.datetime.now(),
                 filename="file1.csv",
-                submitter_id=2,
-                submitter=user_action_submit,
+                user_actions=[user_action_submit],
             )
         ]
 
@@ -227,8 +217,7 @@ class TestFilingApi:
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
-            submitter_id=2,
-            submitter=user_action_submit,
+            user_actions=[user_action_submit],
         )
 
         client = TestClient(app_fixture)
@@ -274,8 +263,7 @@ class TestFilingApi:
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
-            submitter_id=2,
-            submitter=user_action_submit,
+            user_actions=[user_action_submit],
         )
 
         client = TestClient(app_fixture)
@@ -312,8 +300,7 @@ class TestFilingApi:
             counter=1,
             state=SubmissionState.SUBMISSION_UPLOADED,
             filename="submission.csv",
-            submitter_id=1,
-            submitter=user_action_submit,
+            user_actions=[user_action_submit],
         )
 
         mock_validate_file = mocker.patch("sbl_filing_api.services.submission_processor.validate_file_processable")
@@ -341,7 +328,17 @@ class TestFilingApi:
         client = TestClient(app_fixture)
 
         res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=files)
-        mock_add_submission.assert_called_with(ANY, 1, "submission.csv", user_action_submit.id)
+        mock_add_submission.assert_called_with(ANY, 1, "submission.csv", ANY)
+        submitter_arg = mock_add_submission.call_args.args[-1]
+        # These properties will be filled in by the ORM
+        assert submitter_arg.id is None
+        assert submitter_arg.submission_id is None
+        assert submitter_arg.timestamp is None
+        assert submitter_arg.filing_id == 1
+        assert submitter_arg.user_id == "123456-7890-ABCDEF-GHIJ"
+        assert submitter_arg.user_name == "Test User"
+        assert submitter_arg.user_email == "test@local.host"
+        assert submitter_arg.action_type == UserActionType.SUBMIT
         mock_event_loop.run_in_executor.assert_called_with(
             ANY, handle_submission, "2024", "1234567890ZXWVUTSR00", return_sub, open(submission_csv, "rb").read(), ANY
         )
@@ -420,16 +417,10 @@ class TestFilingApi:
         )
 
         mock_add_submitter = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
-        mock_add_submitter.side_effect = RuntimeError("Failed to add submitter.")
 
         file = {"file": ("submission.csv", open(submission_csv, "rb"))}
         client = TestClient(app_fixture)
 
-        res = client.post("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions", files=file)
-        assert res.status_code == 500
-        assert res.json()["error_detail"] == "Error while trying to process SUBMIT User Action"
-
-        mock_add_submitter.side_effect = None
         mock_add_submitter.return_value = UserActionDAO(
             id=2,
             user_id="123456-7890-ABCDEF-GHIJ",
@@ -723,15 +714,16 @@ class TestFilingApi:
                 phone_ext="x54321",
                 email="name_1@email.test",
             ),
-            creator_id=1,
-            creator=UserActionDAO(
-                id=1,
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="test creator",
-                user_email="test@local.host",
-                action_type=UserActionType.CREATE,
-                timestamp=datetime.datetime.now(),
-            ),
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="123456-7890-ABCDEF-GHIJ",
+                    user_name="test creator",
+                    user_email="test@local.host",
+                    action_type=UserActionType.CREATE,
+                    timestamp=datetime.datetime.now(),
+                ),
+            ],
         )
 
         client = TestClient(app_fixture)
@@ -816,15 +808,16 @@ class TestFilingApi:
                 phone_number="112-345-6789",
                 email="name_1@email.test",
             ),
-            creator_id=1,
-            creator=UserActionDAO(
-                id=1,
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="test creator",
-                user_email="test@local.host",
-                action_type=UserActionType.CREATE,
-                timestamp=datetime.datetime.now(),
-            ),
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="123456-7890-ABCDEF-GHIJ",
+                    user_name="test creator",
+                    user_email="test@local.host",
+                    action_type=UserActionType.CREATE,
+                    timestamp=datetime.datetime.now(),
+                ),
+            ],
         )
 
         client = TestClient(app_fixture)
@@ -921,8 +914,8 @@ class TestFilingApi:
 
         user_action_accept = UserActionDAO(
             id=3,
-            user_id="1234-5678-ABCD-EFGH",
-            user_name="test accepter",
+            user_id="123456-7890-ABCDEF-GHIJ",
+            user_name="Test User",
             user_email="test@local.host",
             action_type=UserActionType.ACCEPT,
             timestamp=datetime.datetime.now(),
@@ -936,12 +929,8 @@ class TestFilingApi:
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
-            submitter_id=2,
-            submitter=user_action_submit,
+            user_actions=[user_action_submit],
         )
-
-        update_accepter_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.add_user_action")
-        update_accepter_mock.return_value = user_action_accept
 
         update_mock = mocker.patch("sbl_filing_api.entities.repos.submission_repo.update_submission")
         update_mock.return_value = SubmissionDAO(
@@ -952,10 +941,7 @@ class TestFilingApi:
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
-            submitter_id=2,
-            submitter=user_action_submit,
-            accepter_id=update_accepter_mock.return_value.id,
-            accepter=update_accepter_mock.return_value,
+            user_actions=[user_action_submit, user_action_accept],
         )
 
         client = TestClient(app_fixture)
@@ -969,22 +955,23 @@ class TestFilingApi:
         mock.return_value.state = SubmissionState.VALIDATION_SUCCESSFUL
         res = client.put("/v1/filing/institutions/1234567890ZXWVUTSR00/filings/2024/submissions/4/accept")
         update_mock.assert_called_once()
-        update_accepter_mock.assert_called_once_with(
-            ANY,
-            UserActionDTO(
-                user_id="123456-7890-ABCDEF-GHIJ",
-                user_name="Test User",
-                user_email="test@local.host",
-                action_type=UserActionType.ACCEPT,
-            ),
-        )
+        submission_arg = update_mock.call_args.args[-1]
+        accepter = submission_arg.user_actions[-1]
+        assert accepter.id is None
+        assert accepter.timestamp is None
+        assert accepter.filing_id == 1
+        assert accepter.submission_id == 1
+        assert accepter.user_id == "123456-7890-ABCDEF-GHIJ"
+        assert accepter.user_name == "Test User"
+        assert accepter.user_email == "test@local.host"
+        assert accepter.action_type == UserActionType.ACCEPT
 
         assert res.json()["state"] == "SUBMISSION_ACCEPTED"
         assert res.json()["id"] == 1
         assert res.json()["counter"] == 4
         assert res.json()["accepter"]["id"] == 3
-        assert res.json()["accepter"]["user_id"] == "1234-5678-ABCD-EFGH"
-        assert res.json()["accepter"]["user_name"] == "test accepter"
+        assert res.json()["accepter"]["user_id"] == "123456-7890-ABCDEF-GHIJ"
+        assert res.json()["accepter"]["user_name"] == "Test User"
         assert res.json()["accepter"]["user_email"] == "test@local.host"
         assert res.json()["accepter"]["action_type"] == UserActionType.ACCEPT
         assert res.status_code == 200
@@ -1005,19 +992,21 @@ class TestFilingApi:
             SubmissionDAO(
                 id=1,
                 counter=5,
-                submitter=UserActionDAO(
-                    id=1,
-                    user_id="123456-7890-ABCDEF-GHIJ",
-                    user_name="Test Submitter User",
-                    user_email="test1@cfpb.gov",
-                    action_type=UserActionType.SUBMIT,
-                    timestamp=datetime.datetime.now(),
-                ),
                 filing=1,
                 state=SubmissionState.SUBMISSION_ACCEPTED,
                 validation_ruleset_version="v1",
                 submission_time=datetime.datetime.now(),
                 filename="file1.csv",
+                user_actions=[
+                    UserActionDAO(
+                        id=1,
+                        user_id="123456-7890-ABCDEF-GHIJ",
+                        user_name="Test Submitter User",
+                        user_email="test1@cfpb.gov",
+                        action_type=UserActionType.SUBMIT,
+                        timestamp=datetime.datetime.now(),
+                    ),
+                ],
             )
         ]
 
@@ -1050,6 +1039,7 @@ class TestFilingApi:
         add_sig_mock.assert_called_with(
             ANY,
             UserActionDTO(
+                filing_id=1,
                 user_id="123456-7890-ABCDEF-GHIJ",
                 user_name="Test User",
                 user_email="test@local.host",
@@ -1074,19 +1064,21 @@ class TestFilingApi:
         get_filing_mock.return_value.submissions = [
             SubmissionDAO(
                 id=1,
-                submitter=UserActionDAO(
-                    id=1,
-                    user_id="1234-5678-ABCD-EFGH",
-                    user_name="Test Submitter User",
-                    user_email="test1@cfpb.gov",
-                    action_type=UserActionType.SUBMIT,
-                    timestamp=datetime.datetime.now(),
-                ),
                 filing=1,
                 state=SubmissionState.VALIDATION_SUCCESSFUL,
                 validation_ruleset_version="v1",
                 submission_time=datetime.datetime.now(),
                 filename="file1.csv",
+                user_actions=[
+                    UserActionDAO(
+                        id=1,
+                        user_id="1234-5678-ABCD-EFGH",
+                        user_name="Test Submitter User",
+                        user_email="test1@cfpb.gov",
+                        action_type=UserActionType.SUBMIT,
+                        timestamp=datetime.datetime.now(),
+                    ),
+                ],
             )
         ]
         get_filing_mock.return_value.contact_info = None
@@ -1145,19 +1137,21 @@ class TestFilingApi:
         sub_mock.return_value = SubmissionDAO(
             id=1,
             counter=3,
-            submitter=UserActionDAO(
-                id=1,
-                user_id="1234-5678-ABCD-EFGH",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
             filing=1,
             state=SubmissionState.VALIDATION_SUCCESSFUL,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="1234-5678-ABCD-EFGH",
+                    user_name="Test Submitter User",
+                    user_email="test1@cfpb.gov",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.datetime.now(),
+                ),
+            ],
         )
 
         file_content = "Test"
@@ -1176,19 +1170,21 @@ class TestFilingApi:
 
         sub_mock.return_value = SubmissionDAO(
             id=1,
-            submitter=UserActionDAO(
-                id=1,
-                user_id="1234-5678-ABCD-EFGH",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
             filing=1,
             state=SubmissionState.VALIDATION_IN_PROGRESS,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="1234-5678-ABCD-EFGH",
+                    user_name="Test Submitter User",
+                    user_email="test1@cfpb.gov",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.datetime.now(),
+                ),
+            ],
         )
 
         client = TestClient(app_fixture)
@@ -1212,19 +1208,21 @@ class TestFilingApi:
         sub_mock.return_value = SubmissionDAO(
             id=2,
             counter=4,
-            submitter=UserActionDAO(
-                id=1,
-                user_id="1234-5678-ABCD-EFGH",
-                user_name="Test Submitter User",
-                user_email="test1@cfpb.gov",
-                action_type=UserActionType.SUBMIT,
-                timestamp=datetime.datetime.now(),
-            ),
             filing=1,
             state=SubmissionState.VALIDATION_SUCCESSFUL,
             validation_ruleset_version="v1",
             submission_time=datetime.datetime.now(),
             filename="file1.csv",
+            user_actions=[
+                UserActionDAO(
+                    id=1,
+                    user_id="1234-5678-ABCD-EFGH",
+                    user_name="Test Submitter User",
+                    user_email="test1@cfpb.gov",
+                    action_type=UserActionType.SUBMIT,
+                    timestamp=datetime.datetime.now(),
+                ),
+            ],
         )
 
         file_content = "Test"

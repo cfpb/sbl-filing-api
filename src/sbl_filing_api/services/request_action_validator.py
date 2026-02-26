@@ -67,7 +67,7 @@ def set_context(requirements: Set[UserActionContext]):
     Sets a `context` object on `request.state`; this should typically include the institution, and filing;
     `context` should be set before running any validation dependencies
     Args:
-        requst (Request): request from the API endpoint
+        request (Request): request from the API endpoint
         lei: comes from request path param
         period: filing period comes from request path param
     """
